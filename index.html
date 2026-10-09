@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AutoGo Rent a Car: consulta vehículos disponibles, renta en línea y gestiona tus alquileres.">
+    <meta name="theme-color" content="#151b38">
+    <title>AutoGo Rent a Car</title>
+
+    <link rel="icon" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=3">
+</head>
+
+<body>
+
+    <!-- ICONO DEL VEHÍCULO -->
+    <svg width="0" height="0" style="position:absolute;" aria-hidden="true">
+        <defs>
+            <symbol id="auto" viewBox="0 0 64 36">
+                <path d="M10 6c2-4 6-6 10-6h24c4 0 8 2 10 6l4 8c4 1 6 4 6 8v6c0 2-2 3-4 3h-3a7 7 0 0 1-14 0H25a7 7 0 0 1-14 0H6c-2 0-4-1-4-3v-6c0-4 2-7 6-8zm8 2-4 7h36l-4-7zM18 34a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm28 0a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+            </symbol>
+        </defs>
+    </svg>
+
+    <!-- FONDO -->
+    <div class="fondo" aria-hidden="true"></div>
+
+    <!-- APLICACIÓN -->
+    <div id="raiz"></div>
+
+    <noscript>
+        <p class="sin-js">AutoGo necesita JavaScript activado para funcionar.</p>
+    </noscript>
+
+    <script src="js/config.js?v=3"></script>
+    <script src="js/ui.js?v=3"></script>
+    <script src="js/demo.js?v=3"></script>
+    <script src="js/api.js?v=3"></script>
+    <script src="js/app.js?v=3"></script>
+
+    <!-- Banner de la pantalla de Inicio: ajusta su alto al saludo + tarjetas -->
+    <script>
+        (function () {
+            var raiz = document.getElementById('raiz');
+            var pendiente = false;
+
+            function ajustarBanner() {
+                pendiente = false;
+                var main = document.querySelector('.main');
+                if (!main) return;
+                var ruta = (location.hash.split('/')[1] || '').split('?')[0];
+                var kpis = main.querySelector('.kpis');
+                var top = main.querySelector('.topbar');
+                if (ruta !== 'inicio' || !kpis || !top) {
+                    main.classList.remove('hero-on');
+                    return;
+                }
+                main.classList.add('hero-on');
+
+                // Mueve "Rentar un vehículo" a la fila de tarjetas
+                var btn = Array.prototype.slice.call(top.querySelectorAll('a, button'))
+                    .filter(function (el) { return /rentar/i.test(el.textContent); })[0];
+                if (btn) {
+                    btn.classList.add('kpi-accion');
+                    kpis.insertBefore(btn, kpis.firstChild);
+                }
+                var alto = kpis.offsetTop + kpis.offsetHeight + 16 - 18;
+                main.style.setProperty('--hero-h', alto + 'px');
+            }
+
+            function programar() {
+                if (pendiente) return;
+                pendiente = true;
+                requestAnimationFrame(ajustarBanner);
+            }
+
+            // Ruta del catálogo: se toma del enlace "Ver vehículos disponibles" cuando aparece
+            var rutaCatalogo = '#/catalogo';
+
+            // Mensaje para invitar al cliente a ver el catálogo (login y registro)
+            function mensajeCatalogo() {
+                var enlace = Array.prototype.slice.call(
+                    document.querySelectorAll('a[href*="catalogo"], a[href*="vehiculos"], a[href*="disponibles"]')
+                ).filter(function (a) { return !a.closest('.marca') && !a.closest('.auth-promo'); })[0];
+                if (enlace && enlace.getAttribute('href')) rutaCatalogo = enlace.getAttribute('href');
+
+                var foto = document.querySelector('.auth-foto');
+                if (!foto) return;
+
+                // El logo ya no lleva al catálogo: se quita el enlace
+                var marca = foto.querySelector('.marca');
+                if (marca) {
+                    Array.prototype.forEach.call(marca.querySelectorAll('a'), function (a) {
+                        a.removeAttribute('href');
+                        a.setAttribute('tabindex', '-1');
+                        a.style.pointerEvents = 'none';
+                        a.style.cursor = 'default';
+                    });
+                    marca.style.cursor = 'default';
+                }
+
+                if (foto.querySelector('.auth-promo')) return;
+                var p = foto.querySelector('p');
+                if (!p) return;
+
+                // Solo el botón verde (sin título ni texto)
+                var caja = document.createElement('div');
+                caja.className = 'auth-promo';
+                caja.innerHTML = '<a href="' + rutaCatalogo + '">Ver catálogo &rarr;</a>';
+                p.parentNode.insertBefore(caja, p.nextSibling);
+            }
+
+            new MutationObserver(function () { mensajeCatalogo(); programar(); }).observe(raiz, { childList: true, subtree: true });
+            // Respaldo: cualquier clic en el logo de la pantalla de acceso se ignora
+            document.addEventListener('click', function (e) {
+                if (e.target.closest && e.target.closest('.auth-foto .marca')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, true);
+
+            window.addEventListener('hashchange', function () { mensajeCatalogo(); programar(); });
+            window.addEventListener('resize', programar);
+            window.addEventListener('load', mensajeCatalogo);
+
+            // Al cargar: la pantalla puede estar ya dibujada, así que se coloca el botón de inmediato
+            mensajeCatalogo();
+            setTimeout(mensajeCatalogo, 150);
+            setTimeout(mensajeCatalogo, 600);
+            programar();
+        })();
+    </script>
+
+</body>
+
+</html>
