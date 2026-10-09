@@ -1,0 +1,6 @@
+@AutoGo_HostAddress = http://localhost:5077
+
+GET {{AutoGo_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
