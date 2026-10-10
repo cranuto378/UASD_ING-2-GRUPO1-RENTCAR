@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+*.user
+appsettings.*.local.json
+src/AutoGo.Api/wwwroot/media/**/*.png
+src/AutoGo.Api/wwwroot/media/**/*.jpg
+src/AutoGo.Api/wwwroot/media/**/*.jpeg
+src/AutoGo.Api/wwwroot/media/**/*.webp

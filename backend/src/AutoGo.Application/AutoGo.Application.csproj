@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Casos de uso. Sólo depende del dominio; sin frameworks ni paquetes externos. -->
+  <ItemGroup>
+    <ProjectReference Include="..\AutoGo.Domain\AutoGo.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoGo.UnitTests" />
+  </ItemGroup>
+</Project>

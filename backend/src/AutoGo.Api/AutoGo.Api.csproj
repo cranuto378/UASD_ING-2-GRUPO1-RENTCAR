@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- Capa de presentación: GraphQL (HotChocolate) + JWT. Composition root de la solución. -->
+  <PropertyGroup>
+    <UserSecretsId>autogo-api</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AutoGo.Application\AutoGo.Application.csproj" />
+    <ProjectReference Include="..\AutoGo.Infrastructure\AutoGo.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="HotChocolate.AspNetCore" Version="15.1.*" />
+    <PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="15.1.*" />
+    <PackageReference Include="HotChocolate.Data" Version="15.1.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0-*" />
+  </ItemGroup>
+</Project>
