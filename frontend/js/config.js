@@ -7,5 +7,5 @@
 
 window.AUTOGO_CONFIG = {
   API_URL: 'https://localhost:7180',
-  DEMO: true
+  DEMO: false
 };

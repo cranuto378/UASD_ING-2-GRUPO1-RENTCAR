@@ -273,8 +273,7 @@ function pintarFijas() {
     ${esAdmin() ? `
       <a class="icon-btn campana" href="#/alquileres?filtro=activos" title="Devoluciones pendientes" aria-label="Devoluciones pendientes${pendientes ? ': ' + pendientes : ''}">
         ${icon('bell')}${pendientes ? `<span class="punto">${pendientes}</span>` : ''}
-      </a>` : ''}
-    <button class="icon-btn" type="button" data-menu title="Cuenta" aria-label="Opciones de la cuenta">${icon('gear')}</button>`;
+      </a>` : ''}`;
 }
 
 async function refrescarPendientes() {
@@ -942,15 +941,21 @@ async function vCatalogo(c, ctx) {
     const v = lista.find(x => x.id === +b.dataset.rentar);
     if (!v) return;
 
+    /* Usa las fechas que se ven ahora mismo en el formulario, no las de la última
+       búsqueda: si el usuario cambió una fecha sin volver a buscar, "ini"/"fin"
+       (cerradas sobre el resultado anterior) quedarían desactualizadas. */
+    const iniActual = f.desde.value || ini;
+    const finActual = f.hasta.value || fin;
+
     if (!Api.sesion()) {
-      const destino = `catalogo?desde=${ini}&hasta=${fin}${cat ? '&cat=' + cat : ''}&veh=${v.id}`;
+      const destino = `catalogo?desde=${iniActual}&hasta=${finActual}${cat ? '&cat=' + cat : ''}&veh=${v.id}`;
       UI.toast('Inicia sesión o crea una cuenta para rentar.', 'info');
       return ir('login?next=' + encodeURIComponent(destino));
     }
 
-    if (esAdmin()) return ir(`nuevo-alquiler?veh=${v.id}&desde=${ini}&hasta=${fin}`);
+    if (esAdmin()) return ir(`nuevo-alquiler?veh=${v.id}&desde=${iniActual}&hasta=${finActual}`);
 
-    confirmarAlquiler(v, ini, fin, buscar);
+    confirmarAlquiler(v, iniActual, finActual, buscar);
   });
 
   await buscar();
@@ -1093,6 +1098,8 @@ async function vInicioCliente(c, ctx) {
 async function vMisAlquileres(c, ctx) {
   let filtro = ctx.q.get('filtro') || 'activos';
   let todos = [];
+  let expandidoId = null;
+  const fotos = new Map(); // vehiculoId -> fotoUrl | null (ya se intentó y no tiene)
 
   ctx.acciones(`<a class="btn" href="#/catalogo">${icon('plus')} Nuevo alquiler</a>`);
 
@@ -1108,6 +1115,20 @@ async function vMisAlquileres(c, ctx) {
 
   const caja = $('#lista', c);
 
+  const filaFoto = a => {
+    if (expandidoId !== a.id) return '';
+    const url = fotos.get(a.vehiculoId);
+    const cuerpo = url === undefined
+      ? UI.cargando(1)
+      : url
+        ? `<img src="${esc(Api.media(url))}" alt="${esc(a.vehiculo)}">`
+        : UI.sinFoto();
+    return `
+            <tr class="fila-foto">
+              <td colspan="8"><div class="foto-expandida">${cuerpo}</div></td>
+            </tr>`;
+  };
+
   const pintar = () => {
     $$('[data-f]', c).forEach(b => {
       b.classList.toggle('act', b.dataset.f === filtro);
@@ -1122,7 +1143,7 @@ async function vMisAlquileres(c, ctx) {
         <table class="tabla">
           <thead><tr><th>#</th><th>Vehículo</th><th>Salida</th><th>Entrega</th><th class="num">Días</th><th class="num">Monto</th><th>Estado</th><th></th></tr></thead>
           <tbody>${lista.map(a => `
-            <tr>
+            <tr class="fila-clic${expandidoId === a.id ? ' act' : ''}" data-fila="${a.id}">
               <td class="nowrap">#${a.id}</td>
               <td class="principal"><b>${esc(a.vehiculo)}</b><small>${esc(a.placa)}</small></td>
               <td class="nowrap">${fmt.fecha(a.fechaInicio)}</td>
@@ -1134,7 +1155,7 @@ async function vMisAlquileres(c, ctx) {
                 <button class="icon-btn" type="button" data-ver="${a.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
                 <button class="icon-btn" type="button" data-cancelar="${a.id}" title="Cancelar" aria-label="Cancelar"${puedeCancelar(a) ? '' : ' disabled'}>${icon('ban')}</button>
               </div></td>
-            </tr>`).join('')}
+            </tr>${filaFoto(a)}`).join('')}
           </tbody>
         </table>
       </div>`
@@ -1152,8 +1173,28 @@ async function vMisAlquileres(c, ctx) {
     }
   }
 
+  async function alternarFila(a) {
+    if (expandidoId === a.id) {
+      expandidoId = null;
+      return pintar();
+    }
+
+    expandidoId = a.id;
+    pintar();
+
+    if (!fotos.has(a.vehiculoId)) {
+      try {
+        const v = await Api.vehiculo(a.vehiculoId);
+        fotos.set(a.vehiculoId, v.fotoUrl || null);
+      } catch (e) {
+        fotos.set(a.vehiculoId, null);
+      }
+      if (ctx.vigente() && expandidoId === a.id) pintar();
+    }
+  }
+
   c.addEventListener('click', async e => {
-    const t = e.target.closest('[data-f], [data-ver], [data-cancelar]');
+    const t = e.target.closest('[data-f], [data-ver], [data-cancelar], [data-fila]');
     if (!t) return;
 
     if (t.dataset.f) {
@@ -1162,11 +1203,17 @@ async function vMisAlquileres(c, ctx) {
       return pintar();
     }
 
-    const a = todos.find(x => x.id === +(t.dataset.ver || t.dataset.cancelar));
-    if (!a) return;
+    if (t.dataset.ver || t.dataset.cancelar) {
+      const a = todos.find(x => x.id === +(t.dataset.ver || t.dataset.cancelar));
+      if (!a) return;
+      if (t.dataset.ver) return detalleAlquiler(a, { alCambiar: cargar });
+      return cancelarAlquiler(a, cargar);
+    }
 
-    if (t.dataset.ver) return detalleAlquiler(a, { alCambiar: cargar });
-    cancelarAlquiler(a, cargar);
+    if (t.dataset.fila) {
+      const a = todos.find(x => x.id === +t.dataset.fila);
+      if (a) alternarFila(a);
+    }
   });
 
   await cargar();

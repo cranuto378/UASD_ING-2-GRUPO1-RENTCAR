@@ -4,6 +4,10 @@
    Token en Authorization: Bearer <token>
 ========================================================= */
 
+/* Se captura la jQuery real apenas carga este script, antes de que alguna
+   extensión del navegador pueda pisar el global "$" con otra cosa. */
+const $jq = window.jQuery;
+
 const Api = (() => {
   const cfg = window.AUTOGO_CONFIG || {};
   const BASE = (cfg.API_URL || '').replace(/\/+$/, '');
@@ -87,21 +91,19 @@ const Api = (() => {
 
   /* Petición */
 
-  async function pedir(op, query, variables = {}, archivo) {
+  function pedir(op, query, variables = {}, archivo) {
     if (DEMO) {
       const vars = archivo ? { ...variables, [archivo.campo]: archivo.file } : variables;
 
-      try {
-        return await Demo.ejecutar(op, vars, actual && actual.token);
-      } catch (e) {
+      return Demo.ejecutar(op, vars, actual && actual.token).catch(e => {
         throw new ApiError(e.code || 'ERROR_INTERNO', e.message || 'Ocurrió un error inesperado.');
-      }
+      });
     }
 
     const headers = {};
-    let body;
-
     if (actual && actual.token) headers.Authorization = 'Bearer ' + actual.token;
+
+    const ajax = { url: BASE + '/graphql', method: 'POST', headers, dataType: 'json' };
 
     if (archivo) {
       const fd = new FormData();
@@ -114,43 +116,65 @@ const Api = (() => {
       fd.append('0', archivo.file);
 
       headers['GraphQL-Preflight'] = '1';
-      body = fd;
+      ajax.data = fd;
+      ajax.contentType = false;
+      ajax.processData = false;
     } else {
-      headers['Content-Type'] = 'application/json';
-      body = JSON.stringify({ query, variables });
+      ajax.contentType = 'application/json';
+      ajax.data = JSON.stringify({ query, variables });
     }
 
-    let res;
+    /* $.ajax en vez de fetch: misma petición POST a /graphql, mismo manejo de errores por extensions.code */
+    return new Promise((resolve, reject) => {
+      $jq.ajax(ajax)
+        .done(json => {
+          if (!json) {
+            reject(new ApiError('ERROR_INTERNO', 'El servidor no devolvió datos.'));
+            return;
+          }
 
-    try {
-      res = await fetch(BASE + '/graphql', { method: 'POST', headers, body });
-    } catch (e) {
-      throw new ApiError(
-        'SIN_CONEXION',
-        'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.'
-      );
-    }
+          if (json.errors && json.errors.length) {
+            const e = json.errors[0];
+            reject(new ApiError(
+              (e.extensions && e.extensions.code) || 'ERROR_INTERNO',
+              e.message || 'Ocurrió un error inesperado.'
+            ));
+            return;
+          }
 
-    let json;
+          if (!json.data) {
+            reject(new ApiError('ERROR_INTERNO', 'El servidor no devolvió datos.'));
+            return;
+          }
 
-    try {
-      json = await res.json();
-    } catch (e) {
-      if (res.status === 401) throw new ApiError('AUTH_NOT_AUTHENTICATED', 'Tu sesión expiró.');
-      throw new ApiError('ERROR_INTERNO', 'El servidor respondió de forma inesperada.');
-    }
+          resolve(json.data[op]);
+        })
+        .fail((jqXHR, textStatus) => {
+          if (jqXHR.responseJSON && jqXHR.responseJSON.errors && jqXHR.responseJSON.errors.length) {
+            const e = jqXHR.responseJSON.errors[0];
+            reject(new ApiError(
+              (e.extensions && e.extensions.code) || 'ERROR_INTERNO',
+              e.message || 'Ocurrió un error inesperado.'
+            ));
+            return;
+          }
 
-    if (json.errors && json.errors.length) {
-      const e = json.errors[0];
-      throw new ApiError(
-        (e.extensions && e.extensions.code) || 'ERROR_INTERNO',
-        e.message || 'Ocurrió un error inesperado.'
-      );
-    }
+          if (textStatus === 'parsererror' && jqXHR.status === 401) {
+            reject(new ApiError('AUTH_NOT_AUTHENTICATED', 'Tu sesión expiró.'));
+            return;
+          }
 
-    if (!json.data) throw new ApiError('ERROR_INTERNO', 'El servidor no devolvió datos.');
+          if (textStatus === 'parsererror') {
+            reject(new ApiError('ERROR_INTERNO', 'El servidor respondió de forma inesperada.'));
+            return;
+          }
 
-    return json.data[op];
+          reject(new ApiError(
+            'SIN_CONEXION',
+            'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.'
+          ));
+        });
+    });
   }
 
 

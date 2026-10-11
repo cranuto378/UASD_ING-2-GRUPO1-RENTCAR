@@ -426,6 +426,7 @@ img {
     align-items: center;
     gap: 4px;
     position: relative;
+    display: hidden;
 }
 
 .campana {
@@ -1532,6 +1533,50 @@ input[type=file]::file-selector-button {
 
 .tabla .inactivo {
     opacity: .55;
+}
+
+.tabla tbody tr.fila-clic {
+    cursor: pointer;
+}
+
+.tabla tbody tr.fila-clic.act {
+    background: rgba(255, 255, 255, .06);
+}
+
+.tabla tbody tr.fila-foto td {
+    padding: 0 16px 16px;
+    border-bottom: 1px solid var(--borde-2, rgba(255, 255, 255, .08));
+}
+
+.tabla tbody tr.fila-foto:hover {
+    background: transparent;
+}
+
+.foto-expandida {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    max-width: 320px;
+    height: 180px;
+    margin: 0 auto;
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+        radial-gradient(70% 70% at 50% 100%, rgba(255, 255, 255, .22), transparent 70%),
+        rgba(255, 255, 255, .06);
+    color: rgba(255, 255, 255, .72);
+    animation: foto-expandida-in .15s ease-out;
+}
+
+.foto-expandida img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+@keyframes foto-expandida-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .foto-mini {
