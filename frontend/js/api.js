@@ -159,7 +159,10 @@ const Api = (() => {
   const USUARIO = 'id nombre correo rol debeCambiarPassword clienteId';
   const AUTH = `token expiraEnUtc usuario { ${USUARIO} }`;
   const CATEGORIA = 'id nombre';
-  const VEHICULO = 'id placa categoriaId categoria marca modelo anio precioDia estadoOperativo estadoActual mantenimientoHasta fotoUrl activo';
+  // color, transmisión, capacidad y observaciones: solo en demo o si config.js tiene VEHICULO_EXTRA: true
+  const VEHICULO_EXTRA = DEMO || cfg.VEHICULO_EXTRA === true;
+  const VEHICULO = 'id placa categoriaId categoria marca modelo anio precioDia estadoOperativo estadoActual mantenimientoHasta fotoUrl activo' +
+    (VEHICULO_EXTRA ? ' color transmision capacidad observaciones' : '');
   const COTIZACION = 'vehiculoId fechaInicio fechaFin dias precioDia total';
   const CLIENTE = 'id nombre cedula correo telefono licenciaConducir activo tieneCuenta fechaCreacion';
   const ALQUILER = 'id clienteId clienteNombre clienteCedula vehiculoId placa vehiculo canal fechaInicio fechaFinPactada fechaDevolucion precioDia dias montoBase diasMora montoMora montoTotal totalFacturado estado vencido diasRetraso observaciones fechaCreacion';
@@ -190,6 +193,7 @@ const Api = (() => {
 
   return {
     DEMO,
+    VEHICULO_EXTRA,
     ApiError,
     sesion,
     guardarSesion,

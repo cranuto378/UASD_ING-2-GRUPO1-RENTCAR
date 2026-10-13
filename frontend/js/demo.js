@@ -953,7 +953,28 @@ const Demo = (() => {
     if (!(precio > 0)) falla('DATO_INVALIDO', 'El precio por día debe ser mayor que 0.');
     if (db.vehiculos.some(x => x.placa === placa && x.id !== id)) falla('PLACA_DUPLICADA', 'Ya existe un vehículo con esa placa.');
 
-    return { placa, categoriaId: input.categoriaId, marca: input.marca.trim(), modelo: input.modelo.trim(), anio, precioDia: dinero(precio) };
+    const extra = {};
+
+    if (input.color != null) extra.color = String(input.color).trim() || null;
+
+    if (input.transmision != null) {
+      if (!['AUTOMATICA', 'MANUAL'].includes(input.transmision)) falla('DATO_INVALIDO', 'La transmisión no es válida.');
+      extra.transmision = input.transmision;
+    }
+
+    if (input.capacidad != null) {
+      const cap = +input.capacidad;
+      if (!(Number.isInteger(cap) && cap >= 1 && cap <= 60)) falla('DATO_INVALIDO', 'La capacidad debe estar entre 1 y 60 pasajeros.');
+      extra.capacidad = cap;
+    }
+
+    if (input.observaciones != null) {
+      const obs = String(input.observaciones).trim();
+      if (obs.length > 500) falla('DATO_INVALIDO', 'Las observaciones no pueden superar 500 caracteres.');
+      extra.observaciones = obs || null;
+    }
+
+    return { placa, categoriaId: input.categoriaId, marca: input.marca.trim(), modelo: input.modelo.trim(), anio, precioDia: dinero(precio), ...extra };
   }
 
   function validarCliente(input, id) {
