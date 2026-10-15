@@ -137,6 +137,9 @@ async function render() {
   // que fondo, sidebar, tarjetas, formularios y capas flotantes reaccionen
   // juntos al modo día/noche sin alterar las pantallas públicas/auth.
   document.body.classList.toggle('entorno-admin', !!s && esAdmin() && !enAuth);
+  document.body.classList.toggle('entorno-cliente', !!s && !esAdmin() && !enAuth);
+  document.body.classList.toggle('shell-activa', !enAuth);
+  document.documentElement.classList.toggle('shell-activa', !enAuth);
 
   const cont = enAuth ? montarAuth(def) : montarShell(ruta, def);
 
@@ -617,30 +620,69 @@ const fotoVeh = v => (v && v.fotoUrl
   ? `<img src="${esc(Api.media(v.fotoUrl))}" alt="${esc(v.marca + ' ' + v.modelo)}" loading="lazy" data-veh>`
   : UI.sinFoto());
 
-const tarjetaVeh = (v, { accion = 'rentar', texto = 'Rentar', sel = false } = {}) => `
-  <article class="card veh-card${sel ? ' sel' : ''}">
-    <div class="veh-foto">${fotoVeh(v)}${badge(null, v.categoria, 'neutro')}</div>
+const tarjetaVeh = (v, { accion = 'rentar', texto = 'Rentar', sel = false, registro = false } = {}) => `
+  <article class="card veh-card${sel ? ' sel' : ''}${registro ? ' veh-card-registro' : ''}"${registro ? ` data-card-veh="${v.id}"` : ''}>
+    <div class="veh-foto">
+      ${fotoVeh(v)}
+      <div class="veh-foto-etiquetas">
+        ${badge(null, v.categoria, 'neutro')}
+        ${registro ? badge(null, 'Disponible', 'ok') : ''}
+      </div>
+      ${registro && sel ? `<span class="veh-seleccion-check">${icon('check')} Seleccionado</span>` : ''}
+    </div>
     <div class="veh-cuerpo">
-      <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
-      <span class="meta">${esc(v.anio)} · Placa ${esc(v.placa)}</span>
+      <div class="veh-titulo-linea">
+        <div>
+          <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
+          <span class="meta">${esc(v.anio)} · Placa ${esc(v.placa)}</span>
+        </div>
+      </div>
+      ${registro ? `<div class="veh-datos-rapidos">
+        ${v.transmision ? `<span>${icon('settings')} ${esc(etq(v.transmision))}</span>` : ''}
+        ${v.color ? `<span>${icon('tag')} ${esc(v.color)}</span>` : ''}
+        <span>${icon('calendar')} ${esc(v.anio)}</span>
+      </div>` : ''}
       <div class="veh-pie">
-        <div class="precio"><b>${fmt.dinero(v.precioDia)}</b> <span>/ día</span></div>
-        <button class="btn sm" type="button" data-${accion}="${v.id}">${texto}</button>
+        <div class="precio"><small>${registro ? 'Tarifa diaria' : ''}</small><b>${fmt.dinero(v.precioDia)}</b> <span>/ día</span></div>
+        <button class="btn sm${sel ? ' veh-btn-elegido' : ''}" type="button" data-${accion}="${v.id}">${texto}</button>
       </div>
     </div>
   </article>`;
 
-function estadoAlquiler(a) {
+function estadoOperativoAlquiler(a) {
   const h = hoy();
-  let extra = '';
+
+  if (a.estado === 'COMPLETADO') return { clave: 'completado', texto: 'Completado', tono: 'ok' };
+  if (a.estado === 'CANCELADO') return { clave: 'cancelado', texto: 'Cancelado', tono: 'cancelado' };
 
   if (a.estado === 'ACTIVO') {
-    if (a.vencido) extra = badge(null, `${a.diasRetraso} día(s) de retraso`, 'bad');
-    else if (a.fechaFinPactada === h) extra = badge(null, 'Entrega hoy', 'warn');
-    else if (a.fechaInicio > h) extra = badge(null, 'Reserva', 'neutro');
+    if (a.vencido || (a.fechaFinPactada && a.fechaFinPactada < h)) {
+      return { clave: 'vencido', texto: 'Vencido', tono: 'bad' };
+    }
+    if (a.fechaInicio > h) {
+      return { clave: 'reserva', texto: 'Reserva', tono: 'reserva' };
+    }
+    if (a.fechaFinPactada === h) {
+      return { clave: 'por_devolver', texto: 'Por devolver', tono: 'warn' };
+    }
+    return { clave: 'activo', texto: 'Activo', tono: 'info' };
   }
 
-  return `<div class="badges">${badge(a.estado)}${extra}</div>`;
+  return { clave: String(a.estado || '').toLowerCase(), texto: etq(a.estado), tono: 'neutro' };
+}
+
+function estadoAlquiler(a) {
+  const e = estadoOperativoAlquiler(a);
+  return `<div class="badges">${badge(null, e.texto, e.tono)}</div>`;
+}
+
+function claseFilaAlquiler(a) {
+  const e = estadoOperativoAlquiler(a).clave;
+  if (e === 'vencido') return 'fila-alerta';
+  if (e === 'reserva') return 'fila-reserva';
+  if (e === 'por_devolver') return 'fila-por-devolver';
+  if (e === 'cancelado') return 'fila-cancelado';
+  return '';
 }
 
 const puedeCancelar = a => a.estado === 'ACTIVO' && a.fechaInicio > hoy();
@@ -1265,18 +1307,18 @@ async function vInicioCliente(c, ctx) {
   const facturado = facturas.reduce((t, x) => t + Number(x.monto), 0);
 
   c.innerHTML = `
-    <div class="seccion">
+    <div class="seccion cliente-inicio">
       ${vencidos.length ? `
         <div class="aviso-banda">${icon('alert')}
           <span>Tienes ${vencidos.length} alquiler(es) con la entrega vencida. Devuelve el vehículo lo antes posible para evitar más cargos por mora.</span>
           <a class="btn sm" href="#/mis-alquileres">Ver</a>
         </div>` : ''}
 
-      <div class="kpis">
-        <div class="card kpi"><span class="etq">${icon('car')} En curso</span><span class="valor">${enCurso.length}</span><span class="nota">Alquileres activos</span></div>
-        <div class="card kpi"><span class="etq">${icon('calendar')} Reservas</span><span class="valor">${reservas.length}</span><span class="nota">Próximas salidas</span></div>
-        <div class="card kpi"><span class="etq">${icon('clock')} Próxima entrega</span><span class="valor">${proxima ? fmt.fechaCorta(proxima) : '—'}</span><span class="nota">${proxima ? fmt.fecha(proxima) : 'Sin entregas pendientes'}</span></div>
-        <div class="card kpi"><span class="etq">${icon('wallet')} Total facturado</span><span class="valor">${fmt.dinero(facturado)}</span><span class="nota">${facturas.length} factura(s)</span></div>
+      <div class="kpis cliente-kpis">
+        <div class="card kpi cliente-kpi tono-blue"><span class="etq"><span class="cliente-kpi-ico">${icon('car')}</span> En curso</span><span class="valor">${enCurso.length}</span><span class="nota">Alquileres activos</span></div>
+        <div class="card kpi cliente-kpi tono-purple"><span class="etq"><span class="cliente-kpi-ico">${icon('calendar')}</span> Reservas</span><span class="valor">${reservas.length}</span><span class="nota">Próximas salidas</span></div>
+        <div class="card kpi cliente-kpi tono-orange"><span class="etq"><span class="cliente-kpi-ico">${icon('clock')}</span> Próxima entrega</span><span class="valor">${proxima ? fmt.fechaCorta(proxima) : '—'}</span><span class="nota">${proxima ? fmt.fecha(proxima) : 'Sin entregas pendientes'}</span></div>
+        <div class="card kpi cliente-kpi tono-green"><span class="etq"><span class="cliente-kpi-ico">${icon('wallet')}</span> Total facturado</span><span class="valor">${fmt.dinero(facturado)}</span><span class="nota">${facturas.length} factura(s)</span></div>
       </div>
 
       <div class="dos-col">
@@ -1393,10 +1435,15 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
     titulo: `Alquiler #${a.id}`,
     ancho: 600,
     cuerpo: `
-      <div class="resumen-veh">
-        <div class="foto-mini">${UI.sinFoto(true)}</div>
-        <div><b>${esc(a.vehiculo)}</b><span>Placa ${esc(a.placa)} · ${etq(a.canal)}</span></div>
-        <div style="margin-left:auto">${estadoAlquiler(a)}</div>
+      <div class="detalle-alq-head">
+        <div class="detalle-alq-foto" data-detalle-foto>${UI.sinFoto(true)}</div>
+        <div class="detalle-alq-identidad">
+          <span class="detalle-alq-eyebrow">VEHÍCULO DEL ALQUILER</span>
+          <b>${esc(a.vehiculo)}</b>
+          <span>Placa ${esc(a.placa)} · ${etq(a.canal)}</span>
+          <div class="detalle-alq-meta" data-detalle-veh-meta><span>${fmt.dinero(a.precioDia)} / día</span></div>
+        </div>
+        <div class="detalle-alq-estado">${estadoAlquiler(a)}</div>
       </div>
 
       <dl class="dl">
@@ -1428,6 +1475,24 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
         <button class="btn ghost" type="button" data-cerrar>Cerrar</button>
       </div>`
   });
+
+  // Completa el encabezado con la ficha real del vehículo (foto, año, categoría y datos extra).
+  if (a.vehiculoId) {
+    Api.vehiculo(a.vehiculoId).then(v => {
+      const foto = $('[data-detalle-foto]', m.el);
+      const meta = $('[data-detalle-veh-meta]', m.el);
+      if (foto) foto.innerHTML = fotoVeh(v);
+      if (meta) {
+        const extras = [
+          v.anio ? String(v.anio) : null,
+          v.categoria || null,
+          v.transmision || null,
+          v.color || null
+        ].filter(Boolean);
+        meta.innerHTML = `<span>${fmt.dinero(v.precioDia)} / día</span>${extras.map(x => `<span>${esc(x)}</span>`).join('')}`;
+      }
+    }).catch(() => { /* La información base del alquiler sigue visible. */ });
+  }
 
   $$('[data-acc]', m.el).forEach(b => {
     b.onclick = () => {
@@ -2016,26 +2081,108 @@ function activarGrafico(caja, serie) {
 
 const FILTROS_ALQ = {
   todos: { texto: 'Todos', args: {} },
-  activos: { texto: 'Activos', args: { estado: 'ACTIVO', orden: 'vencimiento' } },
-  vencidos: { texto: 'Vencidos', args: { soloVencidos: true, orden: 'vencimiento' } },
+  activos: {
+    texto: 'Activos',
+    args: { estado: 'ACTIVO', orden: 'vencimiento' },
+    local: a => estadoOperativoAlquiler(a).clave === 'activo'
+  },
+  reservas: {
+    texto: 'Reservas',
+    args: { estado: 'ACTIVO', orden: 'vencimiento' },
+    local: a => estadoOperativoAlquiler(a).clave === 'reserva'
+  },
+  vencidos: {
+    texto: 'Vencidos',
+    args: { estado: 'ACTIVO', orden: 'vencimiento' },
+    local: a => estadoOperativoAlquiler(a).clave === 'vencido'
+  },
+  por_devolver: {
+    texto: 'Por devolver',
+    args: { estado: 'ACTIVO', orden: 'vencimiento' },
+    local: a => estadoOperativoAlquiler(a).clave === 'por_devolver'
+  },
   completados: { texto: 'Completados', args: { estado: 'COMPLETADO' } },
   cancelados: { texto: 'Cancelados', args: { estado: 'CANCELADO' } }
 };
+
+function textoAlquiler(a) {
+  return `${a.id} ${a.clienteNombre || ''} ${a.clienteCedula || ''} ${a.vehiculo || ''} ${a.placa || ''}`.toLowerCase();
+}
+
+async function alquileresFiltrados({ filtro = 'todos', texto = '', canal = '', desde = '', hasta = '', first = 12, after = null, last = null, before = null } = {}) {
+  const def = FILTROS_ALQ[filtro] || FILTROS_ALQ.todos;
+  const r = await panelTodas(p => Api.alquileres({ ...def.args, ...p }));
+  let lista = r.nodes;
+
+  if (def.local) lista = lista.filter(def.local);
+  const q = texto.trim().toLowerCase();
+  if (q) lista = lista.filter(a => textoAlquiler(a).includes(q));
+  if (canal) lista = lista.filter(a => a.canal === canal);
+  if (desde) lista = lista.filter(a => a.fechaInicio >= desde);
+  if (hasta) lista = lista.filter(a => a.fechaInicio <= hasta);
+
+  const cantidad = last || first;
+  const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
+  const nodes = lista.slice(inicio, inicio + cantidad);
+  return {
+    nodes,
+    totalCount: lista.length,
+    pageInfo: {
+      hasNextPage: inicio + cantidad < lista.length,
+      endCursor: String(inicio + cantidad),
+      hasPreviousPage: inicio > 0,
+      startCursor: String(inicio)
+    }
+  };
+}
+
+async function resumenAlquileres() {
+  const r = await panelTodas(p => Api.alquileres({ orden: 'vencimiento', ...p }));
+  const h = hoy();
+  const vigentes = r.nodes.filter(a => a.estado === 'ACTIVO');
+  const operativos = vigentes.map(a => ({ a, estado: estadoOperativoAlquiler(a).clave }));
+
+  return {
+    total: r.nodes.length,
+    activos: operativos.filter(x => x.estado === 'activo').length,
+    reservas: operativos.filter(x => x.estado === 'reserva').length,
+    vencidos: operativos.filter(x => x.estado === 'vencido').length,
+    porDevolver: operativos.filter(x => x.estado === 'por_devolver').length
+  };
+}
 
 async function vAlquileres(c, ctx) {
   let filtro = FILTROS_ALQ[ctx.q.get('filtro')] ? ctx.q.get('filtro') : 'todos';
   const clienteId = +ctx.q.get('cliente') || null;
   const clienteNombre = ctx.q.get('nombre');
+  const filtros = { texto: '', canal: '', desde: '', hasta: '' };
 
   ctx.acciones(`<a class="btn" href="#/nuevo-alquiler${clienteId ? '?cliente=' + clienteId : ''}">${icon('plus')} Nuevo alquiler</a>`);
 
   c.innerHTML = `
-    <div class="herramientas">
-      <div class="segmentos" role="tablist">
+    <div class="alq-resumen" id="alqResumen">
+      ${Array.from({ length: 4 }, () => '<div class="card alq-mini"><span class="skeleton"></span></div>').join('')}
+    </div>
+
+    <div class="herramientas alq-herramientas">
+      <div class="segmentos" role="tablist" aria-label="Estado de alquileres">
         ${Object.entries(FILTROS_ALQ).map(([k, f]) => `<button type="button" data-f="${k}">${f.texto}</button>`).join('')}
       </div>
       ${clienteId ? `<span class="filtro-activo">Cliente: <b>${esc(clienteNombre || '#' + clienteId)}</b><a href="#/alquileres" aria-label="Quitar filtro de cliente">${icon('x')}</a></span>` : ''}
     </div>
+
+    <div class="card alq-filtros">
+      <div class="buscar">${icon('search')}<input type="search" id="qAlq" placeholder="Buscar cliente, cédula, vehículo, placa o #" aria-label="Buscar alquiler" autocomplete="off"></div>
+      <select id="canalAlq" aria-label="Filtrar por canal">
+        <option value="">Todos los canales</option>
+        <option value="MOSTRADOR">Mostrador</option>
+        <option value="PORTAL">Portal</option>
+      </select>
+      <label class="alq-fecha"><span>Desde</span><input type="date" id="desdeAlq"></label>
+      <label class="alq-fecha"><span>Hasta</span><input type="date" id="hastaAlq"></label>
+      <button class="btn ghost sm" type="button" id="limpiarAlq">Limpiar</button>
+    </div>
+
     <div class="card" id="lista"></div>`;
 
   const marcar = () => $$('[data-f]', c).forEach(b => {
@@ -2046,18 +2193,20 @@ async function vAlquileres(c, ctx) {
   const l = listado({
     cont: $('#lista', c),
     vigente: ctx.vigente,
-    cargar: pag => Api.alquileres({ ...FILTROS_ALQ[filtro].args, clienteId, ...pag }),
+    cargar: pag => clienteId
+      ? panelAlquileresCliente({ clienteId, filtro, filtros, ...pag })
+      : alquileresFiltrados({ filtro, ...filtros, ...pag }),
     pintar: r => (r.nodes.length ? `
       <div class="tabla-wrap">
-        <table class="tabla">
+        <table class="tabla tabla-alquileres">
           <thead><tr><th>#</th><th>Cliente</th><th>Vehículo</th><th>Salida</th><th>Entrega</th><th class="num">Monto</th><th>Estado</th><th></th></tr></thead>
           <tbody>${r.nodes.map(a => `
-            <tr>
-              <td class="nowrap">#${a.id}<br><small style="color:var(--txt-3)">${etq(a.canal)}</small></td>
+            <tr class="${claseFilaAlquiler(a)}">
+              <td class="nowrap"><b>#${a.id}</b><br><small>${etq(a.canal)}</small></td>
               <td class="principal"><b>${esc(a.clienteNombre)}</b><small>${esc(a.clienteCedula)}</small></td>
               <td class="principal"><b>${esc(a.vehiculo)}</b><small>${esc(a.placa)}</small></td>
               <td class="nowrap">${fmt.fecha(a.fechaInicio)}</td>
-              <td class="nowrap">${fmt.fecha(a.fechaDevolucion || a.fechaFinPactada)}</td>
+              <td class="nowrap">${fmt.fecha(a.fechaDevolucion || a.fechaFinPactada)}${a.vencido ? `<small class="alq-atraso">${a.diasRetraso || 1} día(s) tarde</small>` : (a.estado === 'ACTIVO' && a.fechaFinPactada === hoy() ? '<small class="alq-entrega-hoy">Entrega hoy</small>' : '')}</td>
               <td class="num">${fmt.dinero(a.montoTotal)}</td>
               <td>${estadoAlquiler(a)}</td>
               <td><div class="acciones">
@@ -2069,17 +2218,63 @@ async function vAlquileres(c, ctx) {
             </tr>`).join('')}
           </tbody>
         </table>
-      </div>` : UI.vacio('No hay alquileres con este filtro.', 'calendar'))
+      </div>` : UI.vacio('No hay alquileres que coincidan con los filtros.', 'calendar'))
   });
+
+  async function actualizarResumen() {
+    const caja = $('#alqResumen', c);
+    try {
+      const d = await resumenAlquileres();
+      if (!ctx.vigente()) return;
+      caja.innerHTML = `
+        <button type="button" class="card alq-mini tono-blue" data-res="activos"><span class="alq-mini-ico">${icon('calendar')}</span><span><small>Activos</small><b>${d.activos}</b><em>En curso</em></span></button>
+        <button type="button" class="card alq-mini tono-purple" data-res="reservas"><span class="alq-mini-ico">${icon('clock')}</span><span><small>Reservas</small><b>${d.reservas}</b><em>Salidas próximas</em></span></button>
+        <button type="button" class="card alq-mini tono-coral ${d.vencidos ? 'alerta' : ''}" data-res="vencidos"><span class="alq-mini-ico">${icon('alert')}</span><span><small>Vencidos</small><b>${d.vencidos}</b><em>Requieren atención</em></span></button>
+        <button type="button" class="card alq-mini tono-orange" data-res="por_devolver"><span class="alq-mini-ico">${icon('undo')}</span><span><small>Por devolver</small><b>${d.porDevolver}</b><em>Entrega prevista hoy</em></span></button>`;
+    } catch (_) {
+      caja.innerHTML = '';
+    }
+  }
 
   const recargar = () => {
     l.recargar();
+    actualizarResumen();
     refrescarPendientes();
   };
 
-  c.addEventListener('click', e => {
-    const f = e.target.closest('[data-f]');
+  const aplicarFiltros = debounce(() => l.recargar(true), 220);
+  $('#qAlq', c).addEventListener('input', e => { filtros.texto = e.target.value; aplicarFiltros(); });
+  $('#canalAlq', c).addEventListener('change', e => { filtros.canal = e.target.value; l.recargar(true); });
+  $('#desdeAlq', c).addEventListener('change', e => {
+    filtros.desde = e.target.value;
+    const hasta = $('#hastaAlq', c);
+    if (filtros.desde) hasta.min = filtros.desde;
+    l.recargar(true);
+  });
+  $('#hastaAlq', c).addEventListener('change', e => {
+    filtros.hasta = e.target.value;
+    l.recargar(true);
+  });
+  $('#limpiarAlq', c).onclick = () => {
+    filtros.texto = filtros.canal = filtros.desde = filtros.hasta = '';
+    $('#qAlq', c).value = '';
+    $('#canalAlq', c).value = '';
+    $('#desdeAlq', c).value = '';
+    $('#hastaAlq', c).value = '';
+    $('#hastaAlq', c).removeAttribute('min');
+    l.recargar(true);
+  };
 
+  c.addEventListener('click', e => {
+    const resumen = e.target.closest('[data-res]');
+    if (resumen) {
+      filtro = resumen.dataset.res;
+      marcar();
+      cambiarQuery('alquileres', { filtro, cliente: clienteId, nombre: clienteNombre });
+      return l.recargar(true);
+    }
+
+    const f = e.target.closest('[data-f]');
     if (f) {
       filtro = f.dataset.f;
       marcar();
@@ -2089,7 +2284,6 @@ async function vAlquileres(c, ctx) {
 
     const b = e.target.closest('[data-acc]');
     if (!b) return;
-
     const a = l.nodos().find(x => x.id === +b.dataset.id);
     if (!a) return;
 
@@ -2102,7 +2296,24 @@ async function vAlquileres(c, ctx) {
   });
 
   marcar();
+  actualizarResumen();
   await l.recargar(true);
+}
+
+async function panelAlquileresCliente({ clienteId, filtro = 'todos', filtros = {}, first = 12, after = null, last = null, before = null }) {
+  const def = FILTROS_ALQ[filtro] || FILTROS_ALQ.todos;
+  const r = await panelTodas(p => Api.alquileres({ clienteId, ...def.args, ...p }));
+  let lista = r.nodes;
+  if (def.local) lista = lista.filter(def.local);
+  const q = (filtros.texto || '').trim().toLowerCase();
+  if (q) lista = lista.filter(a => textoAlquiler(a).includes(q));
+  if (filtros.canal) lista = lista.filter(a => a.canal === filtros.canal);
+  if (filtros.desde) lista = lista.filter(a => a.fechaInicio >= filtros.desde);
+  if (filtros.hasta) lista = lista.filter(a => a.fechaInicio <= filtros.hasta);
+  const cantidad = last || first;
+  const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
+  const nodes = lista.slice(inicio, inicio + cantidad);
+  return { nodes, totalCount: lista.length, pageInfo: { hasNextPage: inicio + cantidad < lista.length, endCursor: String(inicio + cantidad), hasPreviousPage: inicio > 0, startCursor: String(inicio) } };
 }
 
 function modificarAlquiler(a, alCambiar) {
@@ -2228,35 +2439,80 @@ function modificarAlquiler(a, alCambiar) {
 }
 
 function devolverAlquiler(a, alCambiar) {
+  const inspeccionKey = `autogo_inspeccion_dev_${a.id}`;
+  let fotosInspeccion = [];
+
   const m = UI.modal({
     titulo: `Registrar devolución #${a.id}`,
-    ancho: 560,
+    ancho: 720,
     cuerpo: `
-      <div class="resumen-veh">
-        <div class="foto-mini">${UI.sinFoto(true)}</div>
-        <div><b>${esc(a.vehiculo)} · ${esc(a.placa)}</b><span>${esc(a.clienteNombre)} · entrega pactada ${fmt.fecha(a.fechaFinPactada)}</span></div>
+      <div class="devolucion-cab">
+        <div class="devolucion-foto" data-dev-foto>${UI.sinFoto(true)}</div>
+        <div class="devolucion-identidad">
+          <span class="devolucion-eyebrow">VEHÍCULO A RECIBIR</span>
+          <h3>${esc(a.vehiculo)}</h3>
+          <p>${esc(a.placa)} · ${esc(a.clienteNombre)}</p>
+          <div class="devolucion-fechas">
+            <span><small>Salida</small><b>${fmt.fecha(a.fechaInicio)}</b></span>
+            <span><small>Entrega pactada</small><b>${fmt.fecha(a.fechaFinPactada)}</b></span>
+          </div>
+        </div>
+        <div class="devolucion-estado">${estadoAlquiler(a)}</div>
       </div>
 
-      <form class="form" id="fd" novalidate>
-        ${UI.campo({ name: 'fechaDevolucion', label: 'Fecha de devolución', tipo: 'date', value: hoy(), attrs: `min="${a.fechaInicio}" max="${hoy()}"` })}
+      <form class="form devolucion-form" id="fd" novalidate>
+        <section class="devolucion-bloque">
+          <div class="devolucion-bloque-h">
+            <div><span class="devolucion-num">1</span><div><b>Fecha y cargos</b><small>Confirma cuándo fue recibido el vehículo.</small></div></div>
+          </div>
+          ${UI.campo({ name: 'fechaDevolucion', label: 'Fecha de devolución', tipo: 'date', value: hoy(), attrs: `min="${a.fechaInicio}" max="${hoy()}"` })}
 
-        <dl class="dl">
-          <dt>Monto base</dt><dd data-k="base">…</dd>
-          <dt>Días de mora</dt><dd data-k="dias">…</dd>
-          <dt>Monto de mora</dt><dd data-k="mora">…</dd>
-        </dl>
-        <div class="total" style="margin-top:0"><span>Total del alquiler</span><b data-k="total">…</b></div>
+          <dl class="dl devolucion-costos">
+            <dt>Monto base</dt><dd data-k="base">…</dd>
+            <dt>Días de mora</dt><dd data-k="dias">…</dd>
+            <dt>Monto de mora</dt><dd data-k="mora">…</dd>
+          </dl>
+          <div class="total devolucion-total"><span>Total actual del alquiler</span><b data-k="total">…</b></div>
 
-        <div data-k="pago" hidden>
-          ${UI.campo({ name: 'metodoPagoMora', label: 'Método de pago de la mora', tipo: 'select', opciones: opcionesMetodo() })}
-        </div>
+          <div data-k="pago" hidden>
+            ${UI.campo({ name: 'metodoPagoMora', label: 'Método de pago de la mora', tipo: 'select', opciones: opcionesMetodo() })}
+          </div>
+        </section>
 
-        <div class="info-banda">${icon('info')}<span>Al registrar la devolución, el vehículo pasa a mantenimiento hasta el siguiente día laborable.</span></div>
+        <section class="devolucion-bloque">
+          <div class="devolucion-bloque-h">
+            <div><span class="devolucion-num">2</span><div><b>Inspección de devolución</b><small>Registra únicamente incidencias relevantes.</small></div></div>
+          </div>
+
+          <div class="devolucion-danos">
+            <span>¿Se encontraron daños?</span>
+            <div class="devolucion-opciones" role="radiogroup" aria-label="Daños encontrados">
+              <label><input type="radio" name="danos" value="NO" checked><span>No</span></label>
+              <label><input type="radio" name="danos" value="SI"><span>Sí</span></label>
+            </div>
+          </div>
+
+          <label class="campo devolucion-observaciones">
+            <span>Observaciones <small>(opcional)</small></span>
+            <textarea name="observaciones" rows="3" maxlength="500" placeholder="Ej.: rayón en puerta derecha, retrovisor golpeado, sin novedades..."></textarea>
+            <small class="campo-ayuda">Úsalo para dejar constancia de cualquier incidencia o comentario de la recepción.</small>
+          </label>
+
+          <div class="devolucion-fotos">
+            <div class="devolucion-fotos-h">
+              <div><b>Fotos de devolución</b><small>Opcional · sirven como respaldo visual de la inspección.</small></div>
+              <label class="btn ghost sm dev-subir-foto">${icon('camera')} Añadir fotos<input type="file" id="devFotos" accept="image/*" multiple hidden></label>
+            </div>
+            <div class="devolucion-fotos-grid" id="devFotosGrid"><div class="devolucion-fotos-vacio">${icon('camera')}<span>Aún no se han añadido fotos.</span></div></div>
+          </div>
+        </section>
+
+        <div class="info-banda devolucion-mantenimiento">${icon('info')}<span>Al registrar la devolución, el vehículo pasa automáticamente a <b>Mantenimiento</b> hasta el siguiente día laborable.</span></div>
 
         ${formErr}
-        <div class="modal-acc">
+        <div class="modal-acc devolucion-acciones">
           <button class="btn ghost" type="button" data-cerrar>Volver</button>
-          <button class="btn" type="submit" disabled>Registrar devolución</button>
+          <button class="btn" type="submit" disabled>${icon('check')} Revisar y registrar devolución</button>
         </div>
       </form>`
   });
@@ -2264,6 +2520,45 @@ function devolverAlquiler(a, alCambiar) {
   const f = $('#fd', m.el);
   const btn = $('[type=submit]', f);
   let cot = null;
+
+  // Cargar la foto real del vehículo cuando esté disponible.
+  if (a.vehiculoId) {
+    Api.vehiculo(a.vehiculoId).then(v => {
+      const caja = $('[data-dev-foto]', m.el);
+      if (caja) caja.innerHTML = fotoVeh(v);
+    }).catch(() => {});
+  }
+
+  const pintarFotos = () => {
+    const g = $('#devFotosGrid', m.el);
+    if (!g) return;
+    if (!fotosInspeccion.length) {
+      g.innerHTML = `<div class="devolucion-fotos-vacio">${icon('camera')}<span>Aún no se han añadido fotos.</span></div>`;
+      return;
+    }
+    g.innerHTML = fotosInspeccion.map((x, i) => `
+      <figure class="devolucion-foto-item">
+        <img src="${x.url}" alt="Foto de devolución ${i + 1}">
+        <button type="button" data-quitar-foto="${i}" aria-label="Quitar foto">${icon('x')}</button>
+      </figure>`).join('');
+  };
+
+  $('#devFotos', m.el).addEventListener('change', e => {
+    const archivos = [...e.target.files].filter(x => x.type.startsWith('image/')).slice(0, Math.max(0, 6 - fotosInspeccion.length));
+    archivos.forEach(file => fotosInspeccion.push({ file, url: URL.createObjectURL(file) }));
+    e.target.value = '';
+    pintarFotos();
+  });
+
+  $('#devFotosGrid', m.el).addEventListener('click', e => {
+    const b = e.target.closest('[data-quitar-foto]');
+    if (!b) return;
+    const i = +b.dataset.quitarFoto;
+    const x = fotosInspeccion[i];
+    if (x) URL.revokeObjectURL(x.url);
+    fotosInspeccion.splice(i, 1);
+    pintarFotos();
+  });
 
   async function cotizar() {
     UI.limpiarErrores(f);
@@ -2290,23 +2585,76 @@ function devolverAlquiler(a, alCambiar) {
   f.onsubmit = async e => {
     e.preventDefault();
     if (!cot) return;
-    UI.ocupado(btn, true);
+    UI.limpiarErrores(f);
 
-    try {
-      const r = await Api.registrarDevolucion({
-        alquilerId: a.id,
-        fechaDevolucion: f.fechaDevolucion.value || null,
-        metodoPagoMora: cot.diasMora > 0 ? f.metodoPagoMora.value : null
-      });
-
-      m.cerrar();
-      avisoOperacion(r.facturaId ? 'Devolución registrada. Se emitió la factura de mora.' : 'Devolución registrada sin cargos de mora.', r.facturaId);
-      refrescarPendientes();
-      if (alCambiar) alCambiar();
-    } catch (err) {
-      UI.ocupado(btn, false);
-      errorEnForm(f, err);
+    const danos = f.danos.value === 'SI';
+    const observaciones = f.observaciones.value.trim();
+    if (danos && !observaciones) {
+      const err = $('.form-err', f);
+      err.textContent = 'Describe brevemente los daños encontrados antes de continuar.';
+      err.style.display = 'block';
+      f.observaciones.focus();
+      return;
     }
+
+    const metodo = cot.diasMora > 0 ? f.metodoPagoMora.value : null;
+    const resumen = UI.modal({
+      titulo: 'Confirmar devolución',
+      ancho: 520,
+      cuerpo: `
+        <div class="devolucion-confirmar">
+          <div class="devolucion-confirmar-veh"><b>${esc(a.vehiculo)}</b><span>${esc(a.placa)} · ${esc(a.clienteNombre)}</span></div>
+          <div class="revision-grid">
+            <div><small>Fecha de devolución</small><b>${fmt.fecha(f.fechaDevolucion.value)}</b></div>
+            <div><small>Mora</small><b>${cot.diasMora ? `${cot.diasMora} día(s)` : 'Sin mora'}</b><span>${fmt.dinero(cot.montoMora)}</span></div>
+            <div><small>Inspección</small><b>${danos ? 'Con daños reportados' : 'Sin daños reportados'}</b><span>${fotosInspeccion.length} foto(s)</span></div>
+            <div><small>Pago de mora</small><b>${cot.diasMora ? etq(metodo) : 'No aplica'}</b></div>
+          </div>
+          ${observaciones ? `<div class="devolucion-confirmar-obs"><small>Observaciones</small><p>${esc(observaciones)}</p></div>` : ''}
+          <div class="revision-total"><span>Total actual del alquiler</span><b>${fmt.dinero(cot.montoTotal)}</b></div>
+          <div class="info-banda">${icon('info')}<span>El vehículo quedará en mantenimiento automáticamente después de registrar la devolución.</span></div>
+          <div class="modal-acc">
+            <button class="btn ghost" type="button" data-volver-dev>Volver y revisar</button>
+            <button class="btn" type="button" data-confirmar-dev>${icon('check')} Confirmar devolución</button>
+          </div>
+        </div>`
+    });
+
+    $('[data-volver-dev]', resumen.el).onclick = () => resumen.cerrar();
+    $('[data-confirmar-dev]', resumen.el).onclick = async () => {
+      const confirmar = $('[data-confirmar-dev]', resumen.el);
+      UI.ocupado(confirmar, true);
+      try {
+        const r = await Api.registrarDevolucion({
+          alquilerId: a.id,
+          fechaDevolucion: f.fechaDevolucion.value || null,
+          metodoPagoMora: metodo
+        });
+
+        // El backend actual aún no expone campos para inspección. Se conserva una
+        // referencia local de apoyo para el prototipo sin alterar DevolucionInput.
+        try {
+          localStorage.setItem(inspeccionKey, JSON.stringify({
+            alquilerId: a.id,
+            danos,
+            observaciones,
+            fotos: fotosInspeccion.map(x => x.file.name),
+            fechaRegistro: new Date().toISOString()
+          }));
+        } catch (_) {}
+
+        fotosInspeccion.forEach(x => URL.revokeObjectURL(x.url));
+        resumen.cerrar();
+        m.cerrar();
+        avisoOperacion(r.facturaId ? 'Devolución registrada. Se emitió la factura de mora.' : 'Devolución registrada sin cargos de mora.', r.facturaId);
+        refrescarPendientes();
+        if (alCambiar) alCambiar();
+      } catch (err) {
+        UI.ocupado(confirmar, false);
+        resumen.cerrar();
+        errorEnForm(f, err);
+      }
+    };
   };
 }
 
@@ -2325,35 +2673,60 @@ async function vNuevoAlquiler(c, ctx) {
     vehiculos: [],
     vehiculo: null,
     cot: null,
-    preVeh: +ctx.q.get('veh') || null
+    preVeh: +ctx.q.get('veh') || null,
+    metodoPago: METODOS[0] || 'EFECTIVO'
   };
   st.fin = ctx.q.get('hasta') && ctx.q.get('hasta') > st.ini ? ctx.q.get('hasta') : sumarDias(st.ini, 3);
 
   c.innerHTML = `
-    <div class="dos-col">
+    <div class="registro-alquiler-cab">
+      <div>
+        <span class="eyebrow">Proceso de mostrador</span>
+        <h2>Registrar un nuevo alquiler</h2>
+        <p>Selecciona el cliente, define las fechas, elige un vehículo disponible y revisa los datos antes de confirmar.</p>
+      </div>
+      <div class="registro-progreso" aria-label="Progreso del registro">
+        <span class="activo" data-prog="1"><i>1</i> Cliente</span>
+        <b></b>
+        <span data-prog="2"><i>2</i> Vehículo</span>
+        <b></b>
+        <span data-prog="3"><i>3</i> Confirmación</span>
+      </div>
+    </div>
+
+    <div class="dos-col registro-alquiler-layout">
       <div class="pasos">
-        <section class="card">
-          <div class="paso-h" id="p1"><i>1</i><h3>Cliente</h3></div>
+        <section class="card registro-paso">
+          <div class="paso-h" id="p1"><i>1</i><div><h3>Cliente</h3><small>Busca un cliente existente o registra uno nuevo.</small></div></div>
           <div id="cli"></div>
         </section>
 
-        <section class="card">
-          <div class="paso-h" id="p2"><i>2</i><h3>Fechas y vehículo</h3></div>
-          <form class="buscador" id="fv" novalidate style="margin-bottom:16px">
+        <section class="card registro-paso">
+          <div class="paso-h" id="p2"><i>2</i><div><h3>Fechas y vehículo</h3><small>Solo se mostrarán vehículos disponibles para el período seleccionado.</small></div></div>
+          <form class="buscador buscador-alquiler" id="fv" novalidate>
             ${UI.campo({ name: 'desde', label: 'Salida', tipo: 'date', value: st.ini, attrs: `min="${h}"` })}
             ${UI.campo({ name: 'hasta', label: 'Entrega', tipo: 'date', value: st.fin, attrs: `min="${sumarDias(st.ini, 1)}" max="${sumarDias(st.ini, 90)}"` })}
             ${UI.campo({ name: 'cat', label: 'Categoría', tipo: 'select', opciones: [{ valor: '', texto: 'Todas' }] })}
-            <button class="btn ghost" type="submit">${icon('search')} Buscar</button>
+            <button class="btn ghost buscar-disponibles" type="submit">${icon('search')} Buscar disponibles</button>
             ${formErr}
           </form>
           <div id="vehs"></div>
         </section>
       </div>
 
-      <aside class="card pegajoso" id="resumen"></aside>
+      <aside class="card pegajoso registro-resumen" id="resumen"></aside>
     </div>`;
 
   const fv = $('#fv', c);
+
+  const actualizarProgreso = () => {
+    const paso = st.cliente && st.vehiculo && st.cot ? 3 : st.cliente ? 2 : 1;
+    $$('[data-prog]', c).forEach(x => {
+      const n = +x.dataset.prog;
+      x.classList.toggle('activo', n === paso);
+      x.classList.toggle('hecho', n < paso);
+    });
+  };
 
   Api.categorias().then(cs => {
     if (!ctx.vigente()) return;
@@ -2366,13 +2739,31 @@ async function vNuevoAlquiler(c, ctx) {
   function pintarCliente() {
     const caja = $('#cli', c);
     $('#p1', c).classList.toggle('hecho', !!st.cliente);
+    actualizarProgreso();
 
     if (st.cliente) {
+      const cl = st.cliente;
+      const sinLicencia = !cl.licenciaConducir;
+      const inactivo = cl.activo === false;
       caja.innerHTML = `
-        <div class="elegido">
-          ${UI.avatar(st.cliente.nombre, 'sm')}
-          <div><b>${esc(st.cliente.nombre)}</b><small>${esc(st.cliente.cedula)}${st.cliente.telefono ? ' · ' + esc(st.cliente.telefono) : ''}</small></div>
-          <button class="btn ghost sm" type="button" data-cambiar>Cambiar</button>
+        <div class="cliente-seleccionado${inactivo ? ' cliente-inactivo' : ''}">
+          <div class="cliente-seleccionado-h">
+            ${UI.avatar(cl.nombre, 'sm')}
+            <div class="cliente-identidad">
+              <b>${esc(cl.nombre)}</b>
+              <span>${esc(cl.cedula)}</span>
+            </div>
+            ${badge(null, inactivo ? 'Inactivo' : 'Activo', inactivo ? 'bad' : 'ok')}
+            <button class="btn ghost sm" type="button" data-cambiar>Cambiar</button>
+          </div>
+          <div class="cliente-datos-grid">
+            <div><small>Teléfono</small><b>${cl.telefono ? esc(cl.telefono) : 'No registrado'}</b></div>
+            <div><small>Correo</small><b>${cl.correo ? esc(cl.correo) : 'No registrado'}</b></div>
+            <div><small>Licencia</small><b>${cl.licenciaConducir ? esc(cl.licenciaConducir) : 'No registrada'}</b></div>
+            <div><small>Cuenta</small><b>${cl.tieneCuenta ? 'Con acceso al portal' : 'Cliente de mostrador'}</b></div>
+          </div>
+          ${inactivo ? `<div class="info-banda alerta">${icon('alert')}<span>Este cliente está inactivo. Debes activarlo antes de registrar un alquiler.</span></div>` : ''}
+          ${!inactivo && sinLicencia ? `<div class="info-banda aviso">${icon('info')}<span>Este cliente no tiene una licencia de conducir registrada. Verifica el documento antes de confirmar el alquiler.</span></div>` : ''}
         </div>`;
       $('[data-cambiar]', caja).onclick = () => {
         st.cliente = null;
@@ -2383,7 +2774,7 @@ async function vNuevoAlquiler(c, ctx) {
     }
 
     caja.innerHTML = `
-      <div class="herramientas" style="margin-bottom:0">
+      <div class="herramientas cliente-buscador" style="margin-bottom:0">
         <div class="buscar">${icon('search')}<input type="search" id="qCli" placeholder="Buscar por nombre, cédula o correo" aria-label="Buscar cliente" autocomplete="off"></div>
         <button class="btn ghost" type="button" data-nuevo>${icon('plus')} Cliente nuevo</button>
       </div>
@@ -2396,7 +2787,7 @@ async function vNuevoAlquiler(c, ctx) {
     const buscar = debounce(async () => {
       const t = q.value.trim();
       if (t.length < 2) {
-        res.innerHTML = '';
+        res.innerHTML = '<p class="texto ayuda-busqueda">Escribe al menos 2 caracteres para buscar.</p>';
         return;
       }
 
@@ -2406,9 +2797,10 @@ async function vNuevoAlquiler(c, ctx) {
         const r = await Api.clientes({ texto: t, first: 6 });
         ultimos = r.nodes;
         res.innerHTML = ultimos.length ? ultimos.map(x => `
-          <button type="button" data-cli="${x.id}">
+          <button type="button" data-cli="${x.id}"${x.activo === false ? ' class="cliente-resultado-inactivo"' : ''}>
             ${UI.avatar(x.nombre, 'sm')}
-            <div><b>${esc(x.nombre)}</b><small>${esc(x.cedula)}${x.correo ? ' · ' + esc(x.correo) : ''}</small></div>
+            <div><b>${esc(x.nombre)}</b><small>${esc(x.cedula)}${x.telefono ? ' · ' + esc(x.telefono) : ''}${x.correo ? ' · ' + esc(x.correo) : ''}</small></div>
+            ${badge(null, x.activo === false ? 'Inactivo' : 'Seleccionar', x.activo === false ? 'bad' : 'neutro')}
           </button>`).join('') : '<p class="texto" style="color:var(--txt-3)">Sin resultados. Puedes registrarlo como cliente nuevo.</p>';
       } catch (e) {
         res.innerHTML = '';
@@ -2418,6 +2810,7 @@ async function vNuevoAlquiler(c, ctx) {
 
     q.addEventListener('input', buscar);
     q.focus();
+    res.innerHTML = '<p class="texto ayuda-busqueda">Busca el cliente antes de continuar.</p>';
 
     res.onclick = e => {
       const b = e.target.closest('[data-cli]');
@@ -2490,11 +2883,13 @@ async function vNuevoAlquiler(c, ctx) {
 
   function pintarVehiculos() {
     $('#p2', c).classList.toggle('hecho', !!st.vehiculo);
+    actualizarProgreso();
     $('#vehs', c).innerHTML = st.vehiculos.length
-      ? `<div class="veh-grid">${st.vehiculos.map(v => tarjetaVeh(v, {
+      ? `<div class="vehiculos-disponibles-cab"><span><b>${st.vehiculos.length}</b> vehículo(s) disponible(s)</span><small>${fmt.fecha(st.ini)} → ${fmt.fecha(st.fin)}</small></div><div class="veh-grid veh-grid-registro">${st.vehiculos.map(v => tarjetaVeh(v, {
         accion: 'elegir',
-        texto: st.vehiculo && st.vehiculo.id === v.id ? `${icon('check')} Elegido` : 'Elegir',
-        sel: st.vehiculo && st.vehiculo.id === v.id
+        texto: st.vehiculo && st.vehiculo.id === v.id ? `${icon('check')} Elegido` : 'Elegir vehículo',
+        sel: st.vehiculo && st.vehiculo.id === v.id,
+        registro: true
       })).join('')}</div>`
       : UI.vacio('No hay vehículos disponibles para esas fechas.', 'car');
   }
@@ -2518,54 +2913,108 @@ async function vNuevoAlquiler(c, ctx) {
 
   $('#vehs', c).addEventListener('click', e => {
     const b = e.target.closest('[data-elegir]');
-    if (!b) return;
-    const v = st.vehiculos.find(x => x.id === +b.dataset.elegir);
+    const card = e.target.closest('[data-card-veh]');
+    const id = b ? +b.dataset.elegir : card ? +card.dataset.cardVeh : null;
+    if (!id) return;
+    const v = st.vehiculos.find(x => x.id === id);
     if (v) elegirVehiculo(v);
   });
 
 
-  /* Resumen y confirmación */
+  /* Paso 3: resumen, revisión y confirmación */
 
-  function pintarResumen() {
-    const r = $('#resumen', c);
-    const listo = st.cliente && st.vehiculo && st.cot;
+  async function confirmarRegistro(fr) {
+    const v = st.vehiculo;
+    const cl = st.cliente;
+    const cot = st.cot;
+    const metodo = fr.metodoPago.value;
+    const estadoPrevisto = st.ini > hoy()
+      ? { texto: 'Reserva', tono: 'reserva' }
+      : (st.fin === hoy() ? { texto: 'Por devolver', tono: 'warn' } : { texto: 'Activo', tono: 'info' });
+    const datosVehiculo = [v.transmision ? etq(v.transmision) : null, v.color || null].filter(Boolean).join(' · ');
 
-    r.innerHTML = `
-      <div class="card-h"><h3>Resumen</h3></div>
-      <dl class="dl">
-        <dt>Cliente</dt><dd>${st.cliente ? esc(st.cliente.nombre) : '—'}</dd>
-        <dt>Vehículo</dt><dd>${st.vehiculo ? `${esc(st.vehiculo.marca)} ${esc(st.vehiculo.modelo)}` : '—'}</dd>
-        <dt>Placa</dt><dd>${st.vehiculo ? esc(st.vehiculo.placa) : '—'}</dd>
-        <dt>Salida</dt><dd>${fmt.fecha(st.ini)}</dd>
-        <dt>Entrega</dt><dd>${fmt.fecha(st.fin)}</dd>
-        <dt>Días</dt><dd>${st.cot ? st.cot.dias : '—'}</dd>
-        <dt>Precio por día</dt><dd>${st.cot ? fmt.dinero(st.cot.precioDia) : '—'}</dd>
-      </dl>
-      <div class="total"><span>Total</span><b>${st.cot ? fmt.dinero(st.cot.total) : '—'}</b></div>
+    const m = UI.modal({
+      titulo: 'Confirmar alquiler',
+      ancho: 700,
+      cuerpo: `
+        <div class="revision-alquiler revision-alquiler-final">
+          <div class="revision-cabecera">
+            <div>
+              <span class="eyebrow">Paso final</span>
+              <h3>Revisa los datos antes de registrar</h3>
+              <p>Confirma que el cliente, el vehículo, las fechas y el pago sean correctos.</p>
+            </div>
+            ${badge(null, estadoPrevisto.texto, estadoPrevisto.tono)}
+          </div>
 
-      <form class="form" id="fr" novalidate style="margin-top:18px">
-        ${UI.campo({ name: 'metodoPago', label: 'Método de pago', tipo: 'select', opciones: opcionesMetodo() })}
-        ${formErr}
-        <button class="btn block" type="submit"${listo ? '' : ' disabled'}>${icon('check')} Confirmar alquiler</button>
-      </form>`;
+          <section class="revision-vehiculo revision-bloque-principal">
+            <div class="revision-vehiculo-foto">${fotoVeh(v)}</div>
+            <div class="revision-vehiculo-datos">
+              <span class="revision-label">Vehículo</span>
+              <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
+              <p>${esc(v.anio)} · ${esc(v.categoria)} · Placa ${esc(v.placa)}</p>
+              ${datosVehiculo ? `<p class="revision-meta-extra">${esc(datosVehiculo)}</p>` : ''}
+              <div class="revision-tarifa"><b>${fmt.dinero(cot.precioDia)}</b><small>/ día</small></div>
+            </div>
+          </section>
 
-    const fr = $('#fr', r);
+          <div class="revision-secciones">
+            <section class="revision-seccion-card">
+              <div class="revision-seccion-head">${icon('user')}<span>Cliente</span></div>
+              <div class="revision-dato-principal"><b>${esc(cl.nombre)}</b><span>${esc(cl.cedula)}</span></div>
+              <div class="revision-mini-grid">
+                <div><small>Teléfono</small><b>${cl.telefono ? esc(cl.telefono) : 'No registrado'}</b></div>
+                <div><small>Correo</small><b>${cl.correo ? esc(cl.correo) : 'No registrado'}</b></div>
+                <div class="todo"><small>Licencia</small><b class="${cl.licenciaConducir ? '' : 'revision-aviso-texto'}">${cl.licenciaConducir ? esc(cl.licenciaConducir) : 'No registrada'}</b></div>
+              </div>
+            </section>
 
-    fr.onsubmit = async e => {
-      e.preventDefault();
-      UI.limpiarErrores(fr);
-      const btn = $('[type=submit]', fr);
+            <section class="revision-seccion-card">
+              <div class="revision-seccion-head">${icon('calendar')}<span>Período</span></div>
+              <div class="revision-periodo">
+                <div><small>Salida</small><b>${fmt.fecha(st.ini)}</b></div>
+                <span class="revision-flecha">→</span>
+                <div><small>Entrega</small><b>${fmt.fecha(st.fin)}</b></div>
+              </div>
+              <div class="revision-dias">${cot.dias} día(s) de alquiler</div>
+            </section>
+          </div>
+
+          ${!cl.licenciaConducir ? `<div class="info-banda aviso revision-alerta">${icon('info')}<span>La licencia de conducir no está registrada. Verifica físicamente la licencia antes de confirmar el alquiler.</span></div>` : ''}
+
+          <section class="revision-pago">
+            <div class="revision-seccion-head">${icon('receipt')}<span>Pago y total</span></div>
+            <div class="revision-pago-filas">
+              <div><span>Método de pago</span><b>${esc(metodoTxt(metodo))}</b></div>
+              <div><span>Tarifa diaria</span><b>${fmt.dinero(cot.precioDia)}</b></div>
+              <div><span>Días</span><b>${cot.dias}</b></div>
+              <div class="revision-subtotal"><span>Subtotal del alquiler</span><b>${fmt.dinero(cot.total)}</b></div>
+            </div>
+            <div class="revision-total revision-total-final"><span>Total actual</span><b>${fmt.dinero(cot.total)}</b></div>
+          </section>
+
+          <p class="revision-nota">Al confirmar se registrará el alquiler y se generará la factura correspondiente. Los impuestos se incorporarán cuando se configure el módulo de Facturación.</p>
+
+          <div class="modal-acc revision-acciones-finales">
+            <button class="btn ghost" type="button" data-cerrar>${icon('edit')} Volver y revisar</button>
+            <button class="btn" type="button" data-confirmar-final>${icon('check')} Confirmar alquiler</button>
+          </div>
+        </div>`
+    });
+
+    $('[data-confirmar-final]', m.el).onclick = async () => {
+      const btn = $('[data-confirmar-final]', m.el);
       UI.ocupado(btn, true);
-
       try {
         const op = await Api.crearAlquiler({
-          clienteId: st.cliente.id,
-          vehiculoId: st.vehiculo.id,
+          clienteId: cl.id,
+          vehiculoId: v.id,
           fechaInicio: st.ini,
           fechaFin: st.fin,
-          metodoPago: fr.metodoPago.value
+          metodoPago: metodo
         });
 
+        m.cerrar();
         modalExito({
           titulo: 'Alquiler registrado',
           texto: `Alquiler <b>#${op.alquiler.id}</b> de ${esc(op.alquiler.clienteNombre)} · ${esc(op.alquiler.vehiculo)} (${esc(op.alquiler.placa)}).`,
@@ -2579,11 +3028,77 @@ async function vNuevoAlquiler(c, ctx) {
       } catch (err) {
         UI.ocupado(btn, false);
         if (err.code === 'VEHICULO_NO_DISPONIBLE') {
+          m.cerrar();
           UI.toast('El vehículo ya no está disponible en esas fechas. Elige otro.', 'warn');
           return buscarVehiculos();
         }
-        errorEnForm(fr, err);
+        avisarError(err);
       }
+    };
+  }
+
+  function pintarResumen() {
+    const r = $('#resumen', c);
+    const clienteValido = st.cliente && st.cliente.activo !== false;
+    const listo = clienteValido && st.vehiculo && st.cot;
+    actualizarProgreso();
+
+    const veh = st.vehiculo;
+    const cl = st.cliente;
+
+    r.innerHTML = `
+      <div class="registro-resumen-h">
+        <div><span class="eyebrow">Paso 3</span><h3>Resumen del alquiler</h3></div>
+        ${listo ? badge(null, 'Listo para revisar', 'ok') : badge(null, 'Pendiente', 'neutro')}
+      </div>
+
+      ${veh ? `
+        <div class="resumen-vehiculo-registro">
+          <div class="resumen-vehiculo-foto">${fotoVeh(veh)}</div>
+          <div>
+            <b>${esc(veh.marca)} ${esc(veh.modelo)}</b>
+            <span>${esc(veh.anio)} · ${esc(veh.categoria)}</span>
+            <small>Placa ${esc(veh.placa)}${veh.transmision ? ' · ' + esc(veh.transmision) : ''}${veh.color ? ' · ' + esc(veh.color) : ''}</small>
+          </div>
+        </div>` : `
+        <div class="resumen-vacio-registro">${icon('car')}<div><b>Selecciona un vehículo</b><span>La información y cotización aparecerán aquí.</span></div></div>`}
+
+      <div class="resumen-seccion">
+        <span class="resumen-seccion-titulo">Cliente</span>
+        <div class="resumen-fila"><span>Nombre</span><b>${cl ? esc(cl.nombre) : '—'}</b></div>
+        <div class="resumen-fila"><span>Cédula</span><b>${cl ? esc(cl.cedula) : '—'}</b></div>
+        ${cl ? `<div class="resumen-fila"><span>Licencia</span><b class="${cl.licenciaConducir ? '' : 'texto-aviso'}">${cl.licenciaConducir ? esc(cl.licenciaConducir) : 'No registrada'}</b></div>` : ''}
+      </div>
+
+      <div class="resumen-seccion">
+        <span class="resumen-seccion-titulo">Período</span>
+        <div class="resumen-fila"><span>Salida</span><b>${fmt.fecha(st.ini)}</b></div>
+        <div class="resumen-fila"><span>Entrega</span><b>${fmt.fecha(st.fin)}</b></div>
+        <div class="resumen-fila"><span>Días</span><b>${st.cot ? st.cot.dias : '—'}</b></div>
+      </div>
+
+      <div class="resumen-seccion costo-alquiler">
+        <span class="resumen-seccion-titulo">Costos</span>
+        <div class="resumen-fila"><span>Precio por día</span><b>${st.cot ? fmt.dinero(st.cot.precioDia) : '—'}</b></div>
+        <div class="resumen-fila"><span>Subtotal actual</span><b>${st.cot ? fmt.dinero(st.cot.total) : '—'}</b></div>
+      </div>
+
+      <div class="total total-registro"><span>Total</span><b>${st.cot ? fmt.dinero(st.cot.total) : '—'}</b></div>
+
+      <form class="form" id="fr" novalidate>
+        ${UI.campo({ name: 'metodoPago', label: 'Método de pago', tipo: 'select', value: st.metodoPago, opciones: opcionesMetodo() })}
+        ${cl && cl.activo === false ? `<div class="form-err" style="display:block">El cliente está inactivo y no puede continuar.</div>` : formErr}
+        <button class="btn block" type="submit"${listo ? '' : ' disabled'}>${icon('check')} Revisar y confirmar</button>
+      </form>`;
+
+    const fr = $('#fr', r);
+    fr.metodoPago.addEventListener('change', () => { st.metodoPago = fr.metodoPago.value; });
+    fr.onsubmit = e => {
+      e.preventDefault();
+      UI.limpiarErrores(fr);
+      st.metodoPago = fr.metodoPago.value;
+      if (!listo) return;
+      confirmarRegistro(fr);
     };
   }
 

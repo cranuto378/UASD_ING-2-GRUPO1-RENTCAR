@@ -4116,17 +4116,17 @@ html:not([data-tema="noche"]) .panel-admin .menu-usuario a:hover { background:#e
 ========================================================= */
 
 /* Transición conjunta: el cambio de tema se percibe como un cambio de luz. */
-body.entorno-admin,
-body.entorno-admin .fondo::before,
-body.entorno-admin .fondo::after,
-body.entorno-admin .app,
-body.entorno-admin .side,
-body.entorno-admin .card,
-body.entorno-admin .modal,
-body.entorno-admin .menu-usuario,
-body.entorno-admin input,
-body.entorno-admin select,
-body.entorno-admin textarea {
+body:is(.entorno-admin,.entorno-cliente),
+body:is(.entorno-admin,.entorno-cliente) .fondo::before,
+body:is(.entorno-admin,.entorno-cliente) .fondo::after,
+body:is(.entorno-admin,.entorno-cliente) .app,
+body:is(.entorno-admin,.entorno-cliente) .side,
+body:is(.entorno-admin,.entorno-cliente) .card,
+body:is(.entorno-admin,.entorno-cliente) .modal,
+body:is(.entorno-admin,.entorno-cliente) .menu-usuario,
+body:is(.entorno-admin,.entorno-cliente) input,
+body:is(.entorno-admin,.entorno-cliente) select,
+body:is(.entorno-admin,.entorno-cliente) textarea {
     transition:
         background-color .38s ease,
         background .38s ease,
@@ -4140,7 +4140,7 @@ body.entorno-admin textarea {
 /* -----------------------------
    DAY · ambiente luminoso
 ----------------------------- */
-html:not([data-tema="noche"]) body.entorno-admin {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) {
     --txt: #172747;
     --txt-2: #475b7a;
     --txt-3: #60718b;
@@ -4161,11 +4161,11 @@ html:not([data-tema="noche"]) body.entorno-admin {
 }
 
 /* La imagen original vuelve a estar presente en cualquier módulo admin. */
-html:not([data-tema="noche"]) body.entorno-admin .fondo {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .fondo {
     background: #e5ebf4;
 }
 
-html:not([data-tema="noche"]) body.entorno-admin .fondo::before {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .fondo::before {
     display: block !important;
     inset: -76px;
     background: var(--foto) center 68% / cover no-repeat;
@@ -4175,7 +4175,7 @@ html:not([data-tema="noche"]) body.entorno-admin .fondo::before {
 }
 
 /* Capa de luz: aclara el fondo sin esconder la fotografía. */
-html:not([data-tema="noche"]) body.entorno-admin .fondo::after {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .fondo::after {
     background:
         radial-gradient(48% 42% at 12% 8%, rgba(255,255,255,.68), transparent 72%),
         radial-gradient(42% 38% at 88% 4%, rgba(221,233,251,.58), transparent 72%),
@@ -4183,7 +4183,7 @@ html:not([data-tema="noche"]) body.entorno-admin .fondo::after {
         linear-gradient(180deg, rgba(242,247,253,.54), rgba(226,235,246,.68));
 }
 
-html:not([data-tema="noche"]) body.entorno-admin .app {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .app {
     background: rgba(244, 248, 253, .54) !important;
     border-color: rgba(255,255,255,.7);
     box-shadow:
@@ -4193,7 +4193,7 @@ html:not([data-tema="noche"]) body.entorno-admin .app {
     backdrop-filter: blur(26px) saturate(125%);
 }
 
-html:not([data-tema="noche"]) body.entorno-admin .side {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .side {
     background: rgba(233, 240, 250, .50) !important;
     border-right-color: rgba(102, 127, 163, .15);
     box-shadow: inset -1px 0 0 rgba(255,255,255,.32);
@@ -4202,7 +4202,7 @@ html:not([data-tema="noche"]) body.entorno-admin .side {
 }
 
 /* Contenido: vidrio más calmado que navegación y elementos flotantes. */
-html:not([data-tema="noche"]) body.entorno-admin .card {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .card {
     background: rgba(255, 255, 255, .52) !important;
     border-color: rgba(255,255,255,.66) !important;
     box-shadow:
@@ -4213,7 +4213,7 @@ html:not([data-tema="noche"]) body.entorno-admin .card {
 }
 
 /* KPI: conserva su acento, pero ahora deja respirar el ambiente. */
-html:not([data-tema="noche"]) body.entorno-admin .panel-kpi {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .panel-kpi {
     background:
         linear-gradient(135deg,
             color-mix(in srgb, var(--acento) 11%, rgba(255,255,255,.66)),
@@ -4222,9 +4222,9 @@ html:not([data-tema="noche"]) body.entorno-admin .panel-kpi {
 }
 
 /* Inputs y filtros deben sentirse incrustados en el mismo material. */
-html:not([data-tema="noche"]) body.entorno-admin input,
-html:not([data-tema="noche"]) body.entorno-admin select,
-html:not([data-tema="noche"]) body.entorno-admin textarea {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) input,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) select,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) textarea {
     background-color: rgba(255,255,255,.42);
     color: var(--txt);
     border-color: rgba(101,127,163,.22);
@@ -4233,23 +4233,23 @@ html:not([data-tema="noche"]) body.entorno-admin textarea {
     backdrop-filter: blur(12px);
 }
 
-html:not([data-tema="noche"]) body.entorno-admin input:hover,
-html:not([data-tema="noche"]) body.entorno-admin select:hover,
-html:not([data-tema="noche"]) body.entorno-admin textarea:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) input:hover,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) select:hover,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) textarea:hover {
     background-color: rgba(255,255,255,.56);
 }
 
-html:not([data-tema="noche"]) body.entorno-admin input:focus,
-html:not([data-tema="noche"]) body.entorno-admin select:focus,
-html:not([data-tema="noche"]) body.entorno-admin textarea:focus {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) input:focus,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) select:focus,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) textarea:focus {
     background-color: rgba(255,255,255,.70);
 }
 
 /* Floating / Thick Glass */
-html:not([data-tema="noche"]) body.entorno-admin .modal,
-html:not([data-tema="noche"]) body.entorno-admin .menu-usuario,
-html:not([data-tema="noche"]) body.entorno-admin .aviso,
-html:not([data-tema="noche"]) body.entorno-admin .tip {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .modal,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .menu-usuario,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .aviso,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .tip {
     background: rgba(250,252,255,.68) !important;
     border-color: rgba(255,255,255,.78) !important;
     color: var(--txt);
@@ -4260,22 +4260,22 @@ html:not([data-tema="noche"]) body.entorno-admin .tip {
     backdrop-filter: blur(30px) saturate(132%);
 }
 
-html:not([data-tema="noche"]) body.entorno-admin .modal-bg {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .modal-bg {
     background: rgba(74, 91, 117, .22);
     -webkit-backdrop-filter: blur(7px);
     backdrop-filter: blur(7px);
 }
 
 /* Tablas: no crear otra placa opaca dentro de la tarjeta. */
-html:not([data-tema="noche"]) body.entorno-admin .tabla tbody tr:hover,
-html:not([data-tema="noche"]) body.entorno-admin .adm-tabla tbody tr:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .tabla tbody tr:hover,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .adm-tabla tbody tr:hover {
     background: rgba(232, 241, 254, .44);
 }
 
 /* -----------------------------
    NIGHT · misma escena, menos luz
 ----------------------------- */
-html[data-tema="noche"] body.entorno-admin {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) {
     --glass: rgba(8, 15, 31, .50);
     --glass-2: rgba(18, 29, 52, .45);
     --glass-3: rgba(24, 38, 65, .60);
@@ -4289,11 +4289,11 @@ html[data-tema="noche"] body.entorno-admin {
     color-scheme: dark;
 }
 
-html[data-tema="noche"] body.entorno-admin .fondo {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .fondo {
     background: #050b16;
 }
 
-html[data-tema="noche"] body.entorno-admin .fondo::before {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .fondo::before {
     display: block !important;
     inset: -76px;
     background: var(--foto) center 68% / cover no-repeat;
@@ -4302,7 +4302,7 @@ html[data-tema="noche"] body.entorno-admin .fondo::before {
     transform: scale(1.11);
 }
 
-html[data-tema="noche"] body.entorno-admin .fondo::after {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .fondo::after {
     background:
         radial-gradient(46% 42% at 12% 8%, rgba(53,92,151,.20), transparent 72%),
         radial-gradient(42% 38% at 88% 4%, rgba(59,78,139,.16), transparent 72%),
@@ -4310,7 +4310,7 @@ html[data-tema="noche"] body.entorno-admin .fondo::after {
         linear-gradient(180deg, rgba(5,11,24,.60), rgba(3,8,18,.78));
 }
 
-html[data-tema="noche"] body.entorno-admin .app {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .app {
     background: rgba(7, 15, 32, .56) !important;
     border-color: rgba(255,255,255,.12);
     box-shadow:
@@ -4320,7 +4320,7 @@ html[data-tema="noche"] body.entorno-admin .app {
     backdrop-filter: blur(27px) saturate(125%);
 }
 
-html[data-tema="noche"] body.entorno-admin .side {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .side {
     background: rgba(5, 12, 27, .52) !important;
     border-right-color: rgba(255,255,255,.075);
     box-shadow: inset -1px 0 0 rgba(255,255,255,.035);
@@ -4328,7 +4328,7 @@ html[data-tema="noche"] body.entorno-admin .side {
     backdrop-filter: blur(30px) saturate(128%);
 }
 
-html[data-tema="noche"] body.entorno-admin .card {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .card {
     background: rgba(17, 27, 49, .50) !important;
     border-color: rgba(255,255,255,.11) !important;
     box-shadow:
@@ -4338,7 +4338,7 @@ html[data-tema="noche"] body.entorno-admin .card {
     backdrop-filter: blur(18px) saturate(120%);
 }
 
-html[data-tema="noche"] body.entorno-admin .panel-kpi {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .panel-kpi {
     background:
         linear-gradient(135deg,
             color-mix(in srgb, var(--acento) 11%, rgba(13,23,43,.60)),
@@ -4346,9 +4346,9 @@ html[data-tema="noche"] body.entorno-admin .panel-kpi {
     border-color: color-mix(in srgb, var(--acento) 28%, rgba(255,255,255,.08)) !important;
 }
 
-html[data-tema="noche"] body.entorno-admin input,
-html[data-tema="noche"] body.entorno-admin select,
-html[data-tema="noche"] body.entorno-admin textarea {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) input,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) select,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) textarea {
     background-color: rgba(255,255,255,.065);
     border-color: rgba(255,255,255,.11);
     color-scheme: dark;
@@ -4356,10 +4356,10 @@ html[data-tema="noche"] body.entorno-admin textarea {
     backdrop-filter: blur(12px);
 }
 
-html[data-tema="noche"] body.entorno-admin .modal,
-html[data-tema="noche"] body.entorno-admin .menu-usuario,
-html[data-tema="noche"] body.entorno-admin .aviso,
-html[data-tema="noche"] body.entorno-admin .tip {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .modal,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .menu-usuario,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .aviso,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .tip {
     background: rgba(8, 17, 35, .72) !important;
     border-color: rgba(255,255,255,.13) !important;
     box-shadow:
@@ -4369,43 +4369,43 @@ html[data-tema="noche"] body.entorno-admin .tip {
     backdrop-filter: blur(32px) saturate(128%);
 }
 
-html[data-tema="noche"] body.entorno-admin .modal-bg {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .modal-bg {
     background: rgba(0, 4, 12, .48);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
 }
 
-html[data-tema="noche"] body.entorno-admin .tabla tbody tr:hover,
-html[data-tema="noche"] body.entorno-admin .adm-tabla tbody tr:hover {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .tabla tbody tr:hover,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .adm-tabla tbody tr:hover {
     background: rgba(255,255,255,.045);
 }
 
 /* En pantallas pequeñas el drawer sigue siendo vidrio, no una placa sólida. */
 @media (max-width: 860px) {
-    html:not([data-tema="noche"]) body.entorno-admin .admin-shell .side {
+    html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .admin-shell .side {
         background: rgba(235,241,250,.78) !important;
     }
 
-    html[data-tema="noche"] body.entorno-admin .admin-shell .side {
+    html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .admin-shell .side {
         background: rgba(6,13,29,.80) !important;
     }
 }
 
 /* Respeta accesibilidad si el sistema pide menos transparencia. */
 @media (prefers-reduced-transparency: reduce) {
-    html:not([data-tema="noche"]) body.entorno-admin .app,
-    html:not([data-tema="noche"]) body.entorno-admin .side,
-    html:not([data-tema="noche"]) body.entorno-admin .card,
-    html:not([data-tema="noche"]) body.entorno-admin .modal,
-    html:not([data-tema="noche"]) body.entorno-admin .menu-usuario {
+    html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .app,
+    html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .side,
+    html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .card,
+    html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .modal,
+    html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .menu-usuario {
         background: #eef3f9 !important;
     }
 
-    html[data-tema="noche"] body.entorno-admin .app,
-    html[data-tema="noche"] body.entorno-admin .side,
-    html[data-tema="noche"] body.entorno-admin .card,
-    html[data-tema="noche"] body.entorno-admin .modal,
-    html[data-tema="noche"] body.entorno-admin .menu-usuario {
+    html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .app,
+    html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .side,
+    html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .card,
+    html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .modal,
+    html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .menu-usuario {
         background: #0b1425 !important;
     }
 }
@@ -4420,7 +4420,7 @@ html[data-tema="noche"] body.entorno-admin .adm-tabla tbody tr:hover {
 ========================================================= */
 
 /* ---------- DAY: texto, iconografía y controles ---------- */
-html:not([data-tema="noche"]) body.entorno-admin {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) {
     --txt: #172747;
     --txt-2: #475b7a;
     --txt-3: #667792;
@@ -4432,49 +4432,49 @@ html:not([data-tema="noche"]) body.entorno-admin {
     --info: #2d68c4;
 }
 
-html:not([data-tema="noche"]) body.entorno-admin :focus-visible {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) :focus-visible {
     outline-color: #2f6fcf;
 }
 
 /* Logo: la versión del recurso es blanca; en DAY debe oscurecerse. */
-html:not([data-tema="noche"]) body.entorno-admin .side-logo img,
-html:not([data-tema="noche"]) body.entorno-admin .marca img {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .side-logo img,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .marca img {
     filter: brightness(0) saturate(100%) invert(18%) sepia(19%) saturate(1635%) hue-rotate(178deg) brightness(90%) contrast(94%);
 }
 
 /* Navegación: nunca blanco sobre Glass claro. */
-html:not([data-tema="noche"]) body.entorno-admin .nav a {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .nav a {
     color: #435b7d;
 }
-html:not([data-tema="noche"]) body.entorno-admin .nav a:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .nav a:hover {
     color: #214f91;
     background: rgba(218,231,249,.58);
 }
-html:not([data-tema="noche"]) body.entorno-admin .nav a.act {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .nav a.act {
     color: #1e55a5 !important;
     background: rgba(255,255,255,.58) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.80);
 }
-html:not([data-tema="noche"]) body.entorno-admin .nav a.act::before {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .nav a.act::before {
     background: #2f70cf;
 }
 
 /* Iconos de cabecera, campana, tema, menú móvil y acciones genéricas. */
-html:not([data-tema="noche"]) body.entorno-admin .icon-btn,
-html:not([data-tema="noche"]) body.entorno-admin .menu-movil {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .icon-btn,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .menu-movil {
     color: #35577f !important;
 }
-html:not([data-tema="noche"]) body.entorno-admin .icon-btn:hover,
-html:not([data-tema="noche"]) body.entorno-admin .menu-movil:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .icon-btn:hover,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .menu-movil:hover {
     color: #174d93 !important;
     background: rgba(225,236,251,.62);
 }
-html:not([data-tema="noche"]) body.entorno-admin .acciones .icon-btn:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .acciones .icon-btn:hover {
     color: #174d93;
 }
 
 /* Avatar conserva aspecto Glass, pero sus iniciales deben leerse. */
-html:not([data-tema="noche"]) body.entorno-admin .avatar {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .avatar {
     color: #294b79;
     background: linear-gradient(140deg, rgba(255,255,255,.76), rgba(222,232,247,.52));
     border-color: rgba(255,255,255,.78);
@@ -4482,129 +4482,129 @@ html:not([data-tema="noche"]) body.entorno-admin .avatar {
 }
 
 /* Botones secundarios / Glass. El botón primario sigue usando --pill. */
-html:not([data-tema="noche"]) body.entorno-admin .btn.ghost {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .btn.ghost {
     color: #294c7c;
     background: rgba(238,244,253,.58);
     border-color: rgba(93,121,159,.22);
 }
-html:not([data-tema="noche"]) body.entorno-admin .btn.ghost:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .btn.ghost:hover {
     color: #174d93;
     background: rgba(255,255,255,.76);
 }
-html:not([data-tema="noche"]) body.entorno-admin .btn.danger {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .btn.danger {
     color: #b43248;
     background: rgba(214,65,86,.08);
     border-color: rgba(190,55,75,.24);
 }
-html:not([data-tema="noche"]) body.entorno-admin .btn.danger:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .btn.danger:hover {
     background: rgba(214,65,86,.14);
 }
 
 /* Enlaces que antes estaban forzados a blanco. */
-html:not([data-tema="noche"]) body.entorno-admin .link {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .link {
     color: #245ca9;
     border-bottom-color: rgba(36,92,169,.34);
 }
-html:not([data-tema="noche"]) body.entorno-admin .link:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .link:hover {
     color: #174d93;
     border-bottom-color: #174d93;
 }
 
 /* Formularios: texto, placeholder, flecha de select y estados focus. */
-html:not([data-tema="noche"]) body.entorno-admin input,
-html:not([data-tema="noche"]) body.entorno-admin select,
-html:not([data-tema="noche"]) body.entorno-admin textarea {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) input,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) select,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) textarea {
     color: #1d3152 !important;
     caret-color: #245fae;
 }
-html:not([data-tema="noche"]) body.entorno-admin input::placeholder,
-html:not([data-tema="noche"]) body.entorno-admin textarea::placeholder {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) input::placeholder,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) textarea::placeholder {
     color: #8290a5;
     opacity: 1;
 }
-html:not([data-tema="noche"]) body.entorno-admin select {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475b7a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
-html:not([data-tema="noche"]) body.entorno-admin option {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) option {
     color: #172747;
     background: #f7f9fc;
 }
-html:not([data-tema="noche"]) body.entorno-admin input:focus,
-html:not([data-tema="noche"]) body.entorno-admin select:focus,
-html:not([data-tema="noche"]) body.entorno-admin textarea:focus {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) input:focus,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) select:focus,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) textarea:focus {
     border-color: rgba(47,111,207,.62) !important;
     box-shadow: 0 0 0 4px rgba(47,111,207,.11);
 }
-html:not([data-tema="noche"]) body.entorno-admin input[type=checkbox] {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) input[type=checkbox] {
     accent-color: #2f70cf;
 }
-html:not([data-tema="noche"]) body.entorno-admin .ver-pass:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .ver-pass:hover {
     color: #174d93;
     background: rgba(222,233,249,.58);
 }
 
 /* Textos internos que tenían #fff fijo. */
-html:not([data-tema="noche"]) body.entorno-admin .nota-demo b,
-html:not([data-tema="noche"]) body.entorno-admin .nota-demo button,
-html:not([data-tema="noche"]) body.entorno-admin .leyenda b,
-html:not([data-tema="noche"]) body.entorno-admin .fac-meta b {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .nota-demo b,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .nota-demo button,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .leyenda b,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .fac-meta b {
     color: #1d3152;
 }
-html:not([data-tema="noche"]) body.entorno-admin .nota-demo {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .nota-demo {
     border-color: rgba(72,98,134,.28);
 }
 
 /* Segmentos, filtros y pequeños controles circulares. */
-html:not([data-tema="noche"]) body.entorno-admin .segmentos button:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .segmentos button:hover {
     color: #174d93;
 }
-html:not([data-tema="noche"]) body.entorno-admin .filtro-activo a {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .filtro-activo a {
     color: #315982;
 }
-html:not([data-tema="noche"]) body.entorno-admin .filtro-activo a:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .filtro-activo a:hover {
     color: #174d93;
     background: rgba(218,231,249,.66);
 }
 
 /* Badge neutro: los estados .ok/.info/.warn/.bad conservan su semántica. */
-html:not([data-tema="noche"]) body.entorno-admin .badge:not(.ok):not(.info):not(.warn):not(.bad) {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .badge:not(.ok):not(.info):not(.warn):not(.bad) {
     color: #405675;
     background: rgba(226,235,248,.56);
     border-color: rgba(91,119,158,.20);
 }
 
 /* Menú de usuario / dropdown. */
-html:not([data-tema="noche"]) body.entorno-admin .menu-usuario a,
-html:not([data-tema="noche"]) body.entorno-admin .menu-usuario button {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .menu-usuario a,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .menu-usuario button {
     color: #435975;
 }
-html:not([data-tema="noche"]) body.entorno-admin .menu-usuario a:hover,
-html:not([data-tema="noche"]) body.entorno-admin .menu-usuario button:hover {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .menu-usuario a:hover,
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .menu-usuario button:hover {
     color: #174d93;
     background: rgba(221,233,249,.62);
 }
 
 /* Administradores: el icono VER era blanco sobre una superficie casi blanca. */
-html:not([data-tema="noche"]) body.entorno-admin .ab-ver {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .ab-ver {
     color: #3c5f87;
     background: rgba(238,244,252,.60);
     border-color: rgba(92,120,158,.20);
 }
-html:not([data-tema="noche"]) body.entorno-admin .ab-ver:hover:not(:disabled) {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .ab-ver:hover:not(:disabled) {
     color: #174d93;
     background: rgba(221,233,249,.72);
 }
-html:not([data-tema="noche"]) body.entorno-admin .ab-edit {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .ab-edit {
     color: #2869c3;
 }
 
 /* Código/contraseña temporal dentro de modal claro. */
-html:not([data-tema="noche"]) body.entorno-admin .clave-caja {
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .clave-caja {
     background: rgba(230,237,247,.58);
 }
 
 /* ---------- NIGHT: normalización explícita de contraste ---------- */
-html[data-tema="noche"] body.entorno-admin {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) {
     --txt: #f3f6ff;
     --txt-2: rgba(229,236,249,.76);
     --txt-3: rgba(203,214,233,.58);
@@ -4616,39 +4616,39 @@ html[data-tema="noche"] body.entorno-admin {
     --info: #a5c8ff;
     color: var(--txt);
 }
-html[data-tema="noche"] body.entorno-admin input,
-html[data-tema="noche"] body.entorno-admin select,
-html[data-tema="noche"] body.entorno-admin textarea {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) input,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) select,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) textarea {
     color: #f3f6ff;
     caret-color: #a5c8ff;
 }
-html[data-tema="noche"] body.entorno-admin input::placeholder,
-html[data-tema="noche"] body.entorno-admin textarea::placeholder {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) input::placeholder,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) textarea::placeholder {
     color: rgba(218,227,243,.48);
     opacity: 1;
 }
-html[data-tema="noche"] body.entorno-admin option {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) option {
     color: #eef3ff;
     background: #111a2e;
 }
-html[data-tema="noche"] body.entorno-admin .nav a.act,
-html[data-tema="noche"] body.entorno-admin .nav a:hover,
-html[data-tema="noche"] body.entorno-admin .icon-btn,
-html[data-tema="noche"] body.entorno-admin .menu-movil {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .nav a.act,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .nav a:hover,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .icon-btn,
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .menu-movil {
     color: #f3f6ff;
 }
-html[data-tema="noche"] body.entorno-admin .avatar {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .avatar {
     color: #fff;
 }
-html[data-tema="noche"] body.entorno-admin .ab-ver {
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .ab-ver {
     color: #eaf0ff;
 }
 
 /* Disabled sigue visible como control deshabilitado, no como texto perdido. */
-body.entorno-admin .btn:disabled,
-body.entorno-admin button:disabled,
-body.entorno-admin input:disabled,
-body.entorno-admin select:disabled {
+body:is(.entorno-admin,.entorno-cliente) .btn:disabled,
+body:is(.entorno-admin,.entorno-cliente) button:disabled,
+body:is(.entorno-admin,.entorno-cliente) input:disabled,
+body:is(.entorno-admin,.entorno-cliente) select:disabled {
     opacity: .48;
 }
 
@@ -4913,4 +4913,682 @@ html[data-tema="noche"] .notif-cargando { color: #8d9ab0; }
     }
     .notif-herramientas { align-items: flex-start; flex-direction: column; gap: 8px; }
     .notif-lista { max-height: calc(100vh - 230px); }
+}
+
+/* =========================================================
+   ALQUILERES · gestión operativa
+========================================================= */
+.alq-resumen{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+  margin-bottom:16px;
+}
+.alq-mini{
+  appearance:none;
+  width:100%;
+  min-height:112px;
+  padding:18px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  text-align:left;
+  color:var(--txt);
+  border:1px solid var(--borde);
+  cursor:pointer;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.alq-mini:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--azul) 38%,var(--borde));}
+.alq-mini > span:last-child{display:grid;gap:2px;min-width:0;}
+.alq-mini small{font-size:12px;font-weight:700;color:var(--txt-2);text-transform:uppercase;letter-spacing:.04em;}
+.alq-mini b{font-size:26px;line-height:1.05;color:var(--txt);}
+.alq-mini em{font-style:normal;font-size:12px;color:var(--txt-3);}
+.alq-mini-ico{
+  width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;
+  background:color-mix(in srgb,var(--azul) 14%,transparent);
+  color:var(--azul);
+}
+.alq-mini-ico .ic{width:20px;height:20px;}
+.alq-mini.alerta .alq-mini-ico{background:rgba(235,87,87,.13);color:#d84a4a;}
+.alq-mini .skeleton{height:14px;width:70%;border-radius:10px;background:color-mix(in srgb,var(--txt) 8%,transparent);}
+
+.alq-herramientas{align-items:flex-start;}
+.alq-filtros{
+  padding:14px;
+  display:grid;
+  grid-template-columns:minmax(260px,1.6fr) minmax(150px,.75fr) minmax(140px,.7fr) minmax(140px,.7fr) auto;
+  gap:10px;
+  align-items:end;
+  margin-bottom:16px;
+}
+.alq-filtros .buscar{width:100%;}
+.alq-filtros select,.alq-filtros input[type="date"]{width:100%;}
+.alq-fecha{display:grid;gap:6px;}
+.alq-fecha > span{font-size:11px;font-weight:700;color:var(--txt-3);text-transform:uppercase;letter-spacing:.04em;}
+.tabla-alquileres .alq-subestado,.tabla-alquileres .alq-atraso{display:block;margin-top:4px;font-size:11px;font-weight:700;}
+.tabla-alquileres .alq-subestado{color:var(--azul);}
+.tabla-alquileres .alq-atraso{color:#d84a4a;}
+.tabla-alquileres tr.fila-alerta td{background:color-mix(in srgb,#e95757 5%,transparent);}
+.tabla-alquileres tr.fila-reserva td{background:color-mix(in srgb,#8b5cf6 5%,transparent);}
+.tabla-alquileres tr.fila-por-devolver td{background:color-mix(in srgb,#e7a92d 5%,transparent);}
+.tabla-alquileres tr.fila-cancelado td{background:color-mix(in srgb,#7b8798 4%,transparent); color:color-mix(in srgb,var(--txt) 82%,#7b8798);}
+.tabla-alquileres tr.fila-alerta td:first-child{box-shadow:inset 3px 0 0 color-mix(in srgb,#e95757 72%,transparent);}
+.tabla-alquileres tr.fila-reserva td:first-child{box-shadow:inset 3px 0 0 color-mix(in srgb,#8b5cf6 68%,transparent);}
+.tabla-alquileres tr.fila-por-devolver td:first-child{box-shadow:inset 3px 0 0 color-mix(in srgb,#e7a92d 72%,transparent);}
+.tabla-alquileres tr.fila-cancelado td:first-child{box-shadow:inset 3px 0 0 color-mix(in srgb,#7b8798 58%,transparent);}
+
+html[data-tema="noche"] .alq-mini.alerta .alq-mini-ico{background:rgba(255,101,101,.13);color:#ff8585;}
+html[data-tema="noche"] .tabla-alquileres .alq-atraso{color:#ff8f8f;}
+html[data-tema="noche"] .tabla-alquileres tr.fila-alerta td{background:color-mix(in srgb,#ff7d7d 6%,transparent);}
+html[data-tema="noche"] .tabla-alquileres tr.fila-reserva td{background:color-mix(in srgb,#a78bfa 6%,transparent);}
+html[data-tema="noche"] .tabla-alquileres tr.fila-por-devolver td{background:color-mix(in srgb,#f0b84d 6%,transparent);}
+html[data-tema="noche"] .tabla-alquileres tr.fila-cancelado td{background:color-mix(in srgb,#9aa6b6 5%,transparent); color:color-mix(in srgb,var(--txt) 78%,#9aa6b6);}
+html[data-tema="noche"] .tabla-alquileres tr.fila-alerta td:first-child{box-shadow:inset 3px 0 0 rgba(255,125,125,.75);}
+html[data-tema="noche"] .tabla-alquileres tr.fila-reserva td:first-child{box-shadow:inset 3px 0 0 rgba(167,139,250,.78);}
+html[data-tema="noche"] .tabla-alquileres tr.fila-por-devolver td:first-child{box-shadow:inset 3px 0 0 rgba(240,184,77,.78);}
+html[data-tema="noche"] .tabla-alquileres tr.fila-cancelado td:first-child{box-shadow:inset 3px 0 0 rgba(154,166,182,.55);}
+
+@media(max-width:1050px){
+  .alq-resumen{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .alq-filtros{grid-template-columns:1fr 1fr 1fr;}
+  .alq-filtros .buscar{grid-column:1/-1;}
+}
+@media(max-width:650px){
+  .alq-resumen{grid-template-columns:1fr 1fr;gap:10px;}
+  .alq-mini{min-height:96px;padding:14px;gap:10px;}
+  .alq-mini b{font-size:22px;}
+  .alq-mini-ico{width:38px;height:38px;border-radius:12px;}
+  .alq-filtros{grid-template-columns:1fr;}
+  .alq-filtros .buscar{grid-column:auto;}
+}
+
+/* =========================================================
+   OCT 2026 · SCROLL INTERNO + SEMÁNTICA DE RESÚMENES
+   Una sola barra visible dentro de la aplicación.
+========================================================= */
+html.shell-activa,
+body.shell-activa {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.shell-activa .app {
+    max-height: calc(100vh - 48px);
+}
+
+/* Barra propia de la zona de contenido: el borde transparente hace que
+   el thumb parezca flotar dentro del panel y no quede cortado por el radio. */
+.main {
+    scrollbar-gutter: stable;
+    scrollbar-width: auto;
+    scrollbar-color: rgba(71, 100, 139, .48) transparent;
+}
+.main::-webkit-scrollbar { width: 18px; }
+.main::-webkit-scrollbar-track { background: transparent; }
+.main::-webkit-scrollbar-thumb {
+    min-height: 58px;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: rgba(71, 100, 139, .48);
+    background-clip: padding-box;
+}
+.main::-webkit-scrollbar-thumb:hover {
+    background: rgba(52, 82, 124, .68);
+    background-clip: padding-box;
+}
+html[data-tema="noche"] .main {
+    scrollbar-color: rgba(194, 211, 238, .36) transparent;
+}
+html[data-tema="noche"] .main::-webkit-scrollbar-thumb {
+    background: rgba(194, 211, 238, .36);
+    background-clip: padding-box;
+}
+html[data-tema="noche"] .main::-webkit-scrollbar-thumb:hover {
+    background: rgba(214, 226, 246, .52);
+    background-clip: padding-box;
+}
+
+/* El sidebar conserva scroll independiente solo si realmente lo necesita,
+   pero su barra se mantiene discreta. */
+.side { scrollbar-width: none; }
+.side::-webkit-scrollbar { width: 0; height: 0; }
+
+/* Colores semánticos compartidos por los módulos. */
+.tono-orange { --acento:#d97706; }
+.alq-mini { --res-acento:#2563eb; }
+.alq-mini.tono-blue { --res-acento:#2563eb; }
+.alq-mini.tono-green { --res-acento:#0f9f6e; }
+.alq-mini.tono-purple { --res-acento:#7652c7; }
+.alq-mini.tono-coral { --res-acento:#d9435d; }
+.alq-mini.tono-orange { --res-acento:#c47a12; }
+.alq-mini .alq-mini-ico {
+    background: color-mix(in srgb, var(--res-acento) 13%, transparent);
+    color: var(--res-acento);
+    border: 1px solid color-mix(in srgb, var(--res-acento) 22%, transparent);
+}
+.alq-mini:hover {
+    border-color: color-mix(in srgb, var(--res-acento) 38%, var(--borde));
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--res-acento) 9%, transparent), var(--brillo);
+}
+.alq-mini.alerta .alq-mini-ico {
+    background: color-mix(in srgb, var(--res-acento) 13%, transparent);
+    color: var(--res-acento);
+}
+html[data-tema="noche"] .alq-mini.tono-blue { --res-acento:#72aefc; }
+html[data-tema="noche"] .alq-mini.tono-green { --res-acento:#52d5a6; }
+html[data-tema="noche"] .alq-mini.tono-purple { --res-acento:#b49af5; }
+html[data-tema="noche"] .alq-mini.tono-coral { --res-acento:#ff8193; }
+html[data-tema="noche"] .alq-mini.tono-orange { --res-acento:#f1b45d; }
+
+/* Inicio del cliente: mismo lenguaje de resumen que la administración. */
+.cliente-kpi {
+    --acento:#2563eb;
+    position: relative;
+    overflow: hidden;
+    border-color: color-mix(in srgb, var(--acento) 24%, var(--borde));
+}
+.cliente-kpi.tono-blue { --acento:#2563eb; }
+.cliente-kpi.tono-green { --acento:#0f9f6e; }
+.cliente-kpi.tono-purple { --acento:#7652c7; }
+.cliente-kpi.tono-orange { --acento:#c47a12; }
+.cliente-kpi .etq { align-items: center; }
+.cliente-kpi-ico {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 11px;
+    color: var(--acento);
+    background: color-mix(in srgb, var(--acento) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--acento) 22%, transparent);
+    flex: none;
+}
+.cliente-kpi-ico .ic { width: 17px; height: 17px; }
+html[data-tema="noche"] .cliente-kpi.tono-blue { --acento:#72aefc; }
+html[data-tema="noche"] .cliente-kpi.tono-green { --acento:#52d5a6; }
+html[data-tema="noche"] .cliente-kpi.tono-purple { --acento:#b49af5; }
+html[data-tema="noche"] .cliente-kpi.tono-orange { --acento:#f1b45d; }
+
+/* Detalle del alquiler con identidad visual del vehículo. */
+.detalle-alq-head {
+    display: grid;
+    grid-template-columns: 150px minmax(0,1fr) auto;
+    gap: 16px;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 18px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--glass-2) 78%, transparent);
+    border: 1px solid var(--borde-2);
+}
+.detalle-alq-foto {
+    height: 104px;
+    border-radius: 15px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--glass-3) 70%, transparent);
+    border: 1px solid var(--borde-2);
+}
+.detalle-alq-foto img,
+.detalle-alq-foto .sin-foto {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.detalle-alq-identidad { min-width: 0; display: grid; gap: 5px; }
+.detalle-alq-identidad > b { font-size: 17px; line-height: 1.2; }
+.detalle-alq-identidad > span:not(.detalle-alq-eyebrow) { color: var(--txt-2); font-size: 12px; }
+.detalle-alq-eyebrow {
+    font-size: 10px;
+    letter-spacing: .10em;
+    font-weight: 800;
+    color: var(--txt-3);
+}
+.detalle-alq-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 3px; }
+.detalle-alq-meta span {
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    color: var(--txt-2);
+    background: color-mix(in srgb, var(--glass-3) 70%, transparent);
+    border: 1px solid var(--borde-2);
+}
+.detalle-alq-estado { align-self: start; }
+
+@media (max-width: 650px) {
+    body.shell-activa .app { max-height: none; }
+    body.shell-activa { overflow: auto; height: auto; }
+    .detalle-alq-head { grid-template-columns: 1fr; }
+    .detalle-alq-foto { height: 160px; }
+    .detalle-alq-estado { position: absolute; margin: 10px; justify-self: end; }
+}
+
+
+/* =========================================================
+   OCT 2026 · REGISTRAR ALQUILER
+   Flujo de mostrador + revisión previa a confirmación
+========================================================= */
+.registro-alquiler-cab{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:28px;
+    margin-bottom:22px;
+}
+.registro-alquiler-cab h2{font-size:24px; margin:3px 0 6px;}
+.registro-alquiler-cab p{color:var(--txt-2); max-width:720px;}
+.eyebrow{
+    display:inline-block;
+    font-size:11px;
+    line-height:1;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--txt-3);
+}
+.registro-progreso{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 12px;
+    border:1px solid var(--borde-2);
+    border-radius:999px;
+    background:var(--glass);
+    backdrop-filter:blur(18px) saturate(135%);
+    -webkit-backdrop-filter:blur(18px) saturate(135%);
+    white-space:nowrap;
+}
+.registro-progreso span{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--txt-3); font-weight:700;}
+.registro-progreso span i{
+    width:23px; height:23px; border-radius:50%; display:grid; place-items:center;
+    font-style:normal; background:var(--glass-3); border:1px solid var(--borde-2);
+}
+.registro-progreso b{width:24px; height:1px; background:var(--borde);}
+.registro-progreso span.activo{color:var(--txt);}
+.registro-progreso span.activo i{background:color-mix(in srgb,var(--info) 16%,transparent); color:var(--info); border-color:color-mix(in srgb,var(--info) 32%,transparent);}
+.registro-progreso span.hecho{color:var(--ok);}
+.registro-progreso span.hecho i{background:color-mix(in srgb,var(--ok) 16%,transparent); color:var(--ok); border-color:color-mix(in srgb,var(--ok) 30%,transparent);}
+
+.registro-alquiler-layout{grid-template-columns:minmax(0,1.65fr) minmax(340px,.78fr);}
+.registro-paso{padding:22px;}
+.registro-paso .paso-h{align-items:flex-start; margin-bottom:18px;}
+.registro-paso .paso-h small{display:block; color:var(--txt-3); margin-top:3px; font-size:12px; font-weight:500;}
+.buscador-alquiler{margin-bottom:18px; align-items:end;}
+.buscador-alquiler .buscar-disponibles{min-height:43px;}
+
+.cliente-seleccionado{
+    padding:16px;
+    border:1px solid var(--borde-2);
+    border-radius:18px;
+    background:color-mix(in srgb,var(--glass-3) 78%,transparent);
+}
+.cliente-seleccionado-h{display:flex; align-items:center; gap:12px;}
+.cliente-identidad{flex:1; min-width:0;}
+.cliente-identidad b{display:block; font-size:15px;}
+.cliente-identidad span{display:block; color:var(--txt-3); font-size:12px; margin-top:2px;}
+.cliente-datos-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px 18px;
+    padding-top:14px;
+    margin-top:14px;
+    border-top:1px solid var(--borde-2);
+}
+.cliente-datos-grid div{min-width:0;}
+.cliente-datos-grid small{display:block; color:var(--txt-3); font-size:11px; margin-bottom:3px;}
+.cliente-datos-grid b{display:block; font-size:12px; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.cliente-seleccionado .info-banda{margin-top:14px;}
+.info-banda.aviso{background:color-mix(in srgb,#d97706 10%,var(--glass)); border-color:color-mix(in srgb,#d97706 24%,var(--borde));}
+.info-banda.aviso .ic{color:#d97706;}
+.info-banda.alerta{background:color-mix(in srgb,var(--bad) 10%,var(--glass)); border-color:color-mix(in srgb,var(--bad) 24%,var(--borde));}
+.info-banda.alerta .ic{color:var(--bad);}
+.ayuda-busqueda{color:var(--txt-3); padding:8px 2px; font-size:12px;}
+.resultados-cli button .badge{margin-left:auto; flex:0 0 auto;}
+.cliente-resultado-inactivo{opacity:.76;}
+
+.vehiculos-disponibles-cab{display:flex; justify-content:space-between; align-items:center; gap:12px; margin:4px 0 12px; color:var(--txt-2); font-size:12px;}
+.vehiculos-disponibles-cab b{color:var(--txt);}
+.vehiculos-disponibles-cab small{color:var(--txt-3);}
+.veh-grid-registro{
+    grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+    gap:16px;
+}
+.veh-grid-registro .veh-card-registro{
+    position:relative;
+    cursor:pointer;
+    overflow:hidden;
+    border-color:var(--borde-2);
+    background:color-mix(in srgb,var(--glass-3) 84%,transparent);
+    transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,background .2s ease;
+}
+.veh-grid-registro .veh-card-registro:hover{
+    transform:translateY(-4px);
+    border-color:color-mix(in srgb,var(--info) 28%,var(--borde));
+    box-shadow:0 14px 32px rgba(24,48,86,.09);
+}
+.veh-grid-registro .veh-card-registro .veh-foto{height:176px;}
+.veh-foto-etiquetas{
+    position:absolute;
+    top:10px;
+    left:10px;
+    right:10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    pointer-events:none;
+}
+.veh-foto-etiquetas .badge{position:static;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+.veh-grid-registro .veh-foto-etiquetas .badge.neutro{
+    background:rgba(18,28,48,.44);
+    border-color:rgba(255,255,255,.18);
+    color:#fff;
+}
+.veh-grid-registro .veh-foto-etiquetas .badge.ok{
+    background:rgba(14,97,61,.70);
+    border-color:rgba(178,255,214,.28);
+    color:#e8fff3;
+}
+.veh-seleccion-check{
+    position:absolute;
+    left:50%;
+    bottom:10px;
+    transform:translateX(-50%);
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 11px;
+    border-radius:999px;
+    background:rgba(39,88,180,.86);
+    border:1px solid rgba(255,255,255,.3);
+    color:#fff;
+    font-size:11px;
+    font-weight:800;
+    box-shadow:0 7px 20px rgba(25,62,132,.22);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+}
+.veh-seleccion-check .ic{width:14px;height:14px;}
+.veh-titulo-linea{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.veh-datos-rapidos{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:8px;
+}
+.veh-datos-rapidos span{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:5px 8px;
+    border-radius:999px;
+    background:var(--glass);
+    border:1px solid var(--borde-2);
+    color:var(--txt-2);
+    font-size:10.5px;
+    line-height:1;
+}
+.veh-datos-rapidos .ic{width:12px;height:12px;}
+.veh-grid-registro .veh-pie{align-items:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--borde-2);}
+.veh-grid-registro .precio small{display:block;color:var(--txt-3);font-size:10px;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em;font-weight:700;}
+.veh-grid-registro .veh-card.sel{
+    border-color:color-mix(in srgb,var(--info) 62%,var(--borde));
+    background:color-mix(in srgb,var(--info) 7%,var(--glass-3));
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--info) 13%,transparent),0 16px 36px rgba(24,48,86,.12);
+}
+.veh-grid-registro .veh-card.sel::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    border-radius:inherit;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+}
+.veh-grid-registro .veh-btn-elegido{box-shadow:0 0 0 2px color-mix(in srgb,var(--info) 12%,transparent);}
+html[data-tema="noche"] .veh-grid-registro .veh-card-registro{
+    background:color-mix(in srgb,var(--glass-3) 90%,transparent);
+}
+html[data-tema="noche"] .veh-grid-registro .veh-card-registro:hover{
+    border-color:color-mix(in srgb,var(--info) 36%,var(--borde));
+    box-shadow:0 16px 38px rgba(0,0,0,.20);
+}
+html[data-tema="noche"] .veh-grid-registro .veh-card.sel{
+    background:color-mix(in srgb,var(--info) 9%,var(--glass-3));
+    border-color:color-mix(in srgb,var(--info) 58%,var(--borde));
+}
+
+.registro-resumen{padding:20px; top:8px;}
+.registro-resumen-h{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px;}
+.registro-resumen-h h3{font-size:17px; margin-top:4px;}
+.resumen-vehiculo-registro{
+    display:grid;
+    grid-template-columns:108px minmax(0,1fr);
+    gap:13px;
+    padding:11px;
+    margin-bottom:16px;
+    border-radius:16px;
+    background:var(--glass-3);
+    border:1px solid var(--borde-2);
+}
+.resumen-vehiculo-foto{height:78px; border-radius:12px; overflow:hidden; background:var(--glass); display:grid; place-items:center;}
+.resumen-vehiculo-foto img{width:100%; height:100%; object-fit:cover;}
+.resumen-vehiculo-registro b{display:block; margin:5px 0 2px;}
+.resumen-vehiculo-registro span,.resumen-vehiculo-registro small{display:block; color:var(--txt-3); font-size:11px; line-height:1.45;}
+.resumen-vacio-registro{display:flex; gap:11px; align-items:center; padding:15px; margin-bottom:16px; border:1px dashed var(--borde); border-radius:16px; color:var(--txt-3);}
+.resumen-vacio-registro .ic{width:24px; height:24px;}
+.resumen-vacio-registro b{display:block; color:var(--txt-2); font-size:12px;}
+.resumen-vacio-registro span{display:block; font-size:11px; margin-top:2px;}
+.resumen-seccion{padding:13px 0; border-top:1px solid var(--borde-2);}
+.resumen-seccion-titulo{display:block; margin-bottom:8px; color:var(--txt-3); font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;}
+.resumen-fila{display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin:7px 0; font-size:12px;}
+.resumen-fila span{color:var(--txt-2);}
+.resumen-fila b{text-align:right; font-weight:650;}
+.resumen-fila .texto-aviso{color:#d97706;}
+.total-registro{margin:0 0 16px;}
+.registro-resumen .form{margin-top:0;}
+
+.revision-alquiler{display:grid; gap:16px;}
+.revision-vehiculo{
+    display:grid;
+    grid-template-columns:170px minmax(0,1fr);
+    gap:16px;
+    align-items:center;
+    padding:12px;
+    border:1px solid var(--borde-2);
+    background:var(--glass-3);
+    border-radius:18px;
+}
+.revision-vehiculo-foto{height:112px; overflow:hidden; border-radius:14px; background:var(--glass); display:grid; place-items:center;}
+.revision-vehiculo-foto img{width:100%; height:100%; object-fit:cover;}
+.revision-vehiculo h3{font-size:19px; margin:4px 0 3px;}
+.revision-vehiculo p{color:var(--txt-3); font-size:12px; margin-bottom:8px;}
+.revision-vehiculo b{font-size:16px;}
+.revision-vehiculo b small{color:var(--txt-3); font-size:11px; font-weight:600;}
+.revision-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;}
+.revision-grid>div{padding:12px; border:1px solid var(--borde-2); border-radius:14px; background:var(--glass);}
+.revision-grid small,.revision-grid span{display:block; color:var(--txt-3); font-size:11px;}
+.revision-grid b{display:block; margin:4px 0 2px; font-size:12px;}
+.revision-total{display:flex; justify-content:space-between; align-items:end; padding:15px 0 2px; border-top:1px solid var(--borde-2);}
+.revision-total span{color:var(--txt-2);}
+.revision-total b{font-size:26px; letter-spacing:-.025em;}
+.revision-nota{font-size:11px; color:var(--txt-3); margin-top:-8px;}
+
+
+/* Confirmación final del registro de alquiler */
+.revision-alquiler-final{gap:14px;}
+.revision-cabecera{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding-bottom:4px;}
+.revision-cabecera h3{font-size:20px;margin:4px 0 5px;letter-spacing:-.02em;}
+.revision-cabecera p{font-size:12px;color:var(--txt-3);max-width:520px;line-height:1.5;}
+.revision-bloque-principal{padding:14px;}
+.revision-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--txt-3);}
+.revision-meta-extra{margin-top:-3px!important;}
+.revision-tarifa{display:flex;align-items:baseline;gap:5px;margin-top:8px;}
+.revision-tarifa b{font-size:20px;}
+.revision-tarifa small{font-size:11px;color:var(--txt-3);}
+.revision-secciones{display:grid;grid-template-columns:1.15fr .85fr;gap:10px;}
+.revision-seccion-card,.revision-pago{padding:14px;border:1px solid var(--borde-2);border-radius:16px;background:var(--glass);}
+.revision-seccion-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;color:var(--txt-2);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.055em;}
+.revision-seccion-head .ic{width:16px;height:16px;color:var(--azul);}
+.revision-dato-principal b,.revision-dato-principal span{display:block;}
+.revision-dato-principal b{font-size:14px;margin-bottom:2px;}
+.revision-dato-principal span{font-size:11px;color:var(--txt-3);}
+.revision-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--borde-2);}
+.revision-mini-grid .todo{grid-column:1/-1;}
+.revision-mini-grid small,.revision-mini-grid b{display:block;}
+.revision-mini-grid small{font-size:10px;color:var(--txt-3);margin-bottom:3px;}
+.revision-mini-grid b{font-size:11px;overflow-wrap:anywhere;}
+.revision-aviso-texto{color:#b9780e;}
+.revision-periodo{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;}
+.revision-periodo>div:last-child{text-align:right;}
+.revision-periodo small,.revision-periodo b{display:block;}
+.revision-periodo small{font-size:10px;color:var(--txt-3);margin-bottom:4px;}
+.revision-periodo b{font-size:12px;}
+.revision-flecha{color:var(--txt-3);font-weight:800;}
+.revision-dias{margin-top:13px;padding-top:10px;border-top:1px solid var(--borde-2);font-size:11px;font-weight:700;color:var(--txt-2);}
+.revision-alerta{margin:0;}
+.revision-pago{padding:15px;}
+.revision-pago-filas{display:grid;gap:8px;}
+.revision-pago-filas>div{display:flex;justify-content:space-between;gap:20px;font-size:12px;}
+.revision-pago-filas span{color:var(--txt-2);}
+.revision-pago-filas b{text-align:right;}
+.revision-pago-filas .revision-subtotal{padding-top:9px;margin-top:2px;border-top:1px solid var(--borde-2);}
+.revision-total-final{margin-top:12px;padding-top:13px;}
+.revision-total-final b{font-size:28px;}
+.revision-acciones-finales{margin-top:0;}
+html[data-tema="noche"] .revision-seccion-card,html[data-tema="noche"] .revision-pago{box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
+@media(max-width:700px){
+  .revision-cabecera{display:grid;}
+  .revision-secciones{grid-template-columns:1fr;}
+  .revision-mini-grid{grid-template-columns:1fr;}
+  .revision-mini-grid .todo{grid-column:auto;}
+  .revision-periodo{grid-template-columns:1fr;}
+  .revision-periodo>div:last-child{text-align:left;}
+  .revision-flecha{transform:rotate(90deg);width:max-content;margin-left:4px;}
+  .revision-acciones-finales{display:grid;grid-template-columns:1fr;}
+  .revision-acciones-finales .btn{width:100%;justify-content:center;}
+}
+
+html[data-tema="noche"] .cliente-seleccionado,
+html[data-tema="noche"] .revision-vehiculo,
+html[data-tema="noche"] .revision-grid>div{box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
+
+@media (max-width:1180px){
+    .registro-alquiler-cab{display:block;}
+    .registro-progreso{margin-top:16px; width:max-content; max-width:100%;}
+    .registro-alquiler-layout{grid-template-columns:1fr;}
+    .registro-resumen{position:relative; top:auto;}
+}
+@media (max-width:720px){
+    .registro-progreso{width:100%; overflow:auto; justify-content:flex-start;}
+    .registro-progreso b{width:14px;}
+    .cliente-datos-grid,.revision-grid{grid-template-columns:1fr;}
+    .revision-vehiculo{grid-template-columns:1fr;}
+    .revision-vehiculo-foto{height:170px;}
+    .resumen-vehiculo-registro{grid-template-columns:92px minmax(0,1fr);}
+}
+
+/* Estado operativo único de alquileres */
+.badge.reserva {
+  color: #7652c7;
+  background: rgba(118,82,199,.10);
+  border-color: rgba(118,82,199,.24);
+}
+html[data-tema="noche"] .badge.reserva {
+  color: #c6b6ff;
+  background: rgba(167,139,250,.13);
+  border-color: rgba(198,182,255,.28);
+}
+
+.badge.cancelado {
+  color:#758196;
+  background:rgba(117,129,150,.10);
+  border-color:rgba(117,129,150,.24);
+}
+html[data-tema="noche"] .badge.cancelado {
+  color:#aeb8c7;
+  background:rgba(174,184,199,.10);
+  border-color:rgba(174,184,199,.20);
+}
+.tabla-alquileres .alq-entrega-hoy {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #a96a08;
+}
+html[data-tema="noche"] .tabla-alquileres .alq-entrega-hoy {
+  color: #f5c76d;
+}
+
+/* =========================================================
+   OCT 2026 · REGISTRAR DEVOLUCIÓN
+   Inspección simplificada + revisión final.
+========================================================= */
+.devolucion-cab{
+  display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:16px;align-items:center;
+  padding:13px;margin-bottom:16px;border:1px solid var(--borde-2);border-radius:20px;background:var(--glass-3);
+}
+.devolucion-foto{height:104px;border-radius:15px;overflow:hidden;background:var(--glass);display:grid;place-items:center;}
+.devolucion-foto img{width:100%;height:100%;object-fit:cover;}
+.devolucion-eyebrow{font-size:9px;font-weight:800;letter-spacing:.09em;color:var(--txt-3);}
+.devolucion-identidad h3{font-size:20px;margin:4px 0 2px;}
+.devolucion-identidad>p{font-size:12px;color:var(--txt-3);margin-bottom:10px;}
+.devolucion-fechas{display:flex;gap:16px;flex-wrap:wrap;}
+.devolucion-fechas span{display:grid;gap:2px;}
+.devolucion-fechas small{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--txt-3);}
+.devolucion-fechas b{font-size:11px;}
+.devolucion-estado{align-self:start;}
+.devolucion-form{gap:14px;}
+.devolucion-bloque{padding:16px;border:1px solid var(--borde-2);border-radius:18px;background:var(--glass-2);}
+.devolucion-bloque-h{margin-bottom:14px;}
+.devolucion-bloque-h>div{display:flex;align-items:center;gap:10px;}
+.devolucion-bloque-h b,.devolucion-bloque-h small{display:block;}
+.devolucion-bloque-h b{font-size:13px;}
+.devolucion-bloque-h small{font-size:11px;color:var(--txt-3);margin-top:2px;}
+.devolucion-num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--info) 15%,transparent);color:var(--info);font-size:11px;font-weight:800;}
+.devolucion-costos{margin-top:8px;}
+.devolucion-total{margin-top:8px;}
+.devolucion-danos{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:11px 12px;border:1px solid var(--borde-2);border-radius:14px;background:var(--glass);font-size:12px;font-weight:650;}
+.devolucion-opciones{display:flex;gap:7px;}
+.devolucion-opciones label{cursor:pointer;}
+.devolucion-opciones input{position:absolute;opacity:0;pointer-events:none;}
+.devolucion-opciones span{display:block;padding:7px 14px;border:1px solid var(--borde);border-radius:999px;color:var(--txt-2);font-size:11px;font-weight:750;background:var(--glass);}
+.devolucion-opciones input:checked+span{border-color:color-mix(in srgb,var(--info) 55%,var(--borde));background:color-mix(in srgb,var(--info) 12%,var(--glass));color:var(--info);box-shadow:0 0 0 2px color-mix(in srgb,var(--info) 8%,transparent);}
+.devolucion-observaciones{display:grid;gap:7px;margin-top:12px;}
+.devolucion-observaciones>span{font-size:11px;font-weight:700;color:var(--txt-2);}
+.devolucion-observaciones>span small{font-weight:500;color:var(--txt-3);}
+.devolucion-observaciones textarea{resize:vertical;min-height:82px;}
+.campo-ayuda{font-size:10px;color:var(--txt-3);line-height:1.45;}
+.devolucion-fotos{margin-top:13px;padding-top:13px;border-top:1px solid var(--borde-2);}
+.devolucion-fotos-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;}
+.devolucion-fotos-h b,.devolucion-fotos-h small{display:block;}
+.devolucion-fotos-h b{font-size:12px;}
+.devolucion-fotos-h small{font-size:10px;color:var(--txt-3);margin-top:2px;}
+.dev-subir-foto{cursor:pointer;}
+.devolucion-fotos-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;}
+.devolucion-fotos-vacio{grid-column:1/-1;min-height:74px;border:1px dashed var(--borde);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--txt-3);font-size:11px;background:var(--glass);}
+.devolucion-fotos-vacio .ic{width:18px;height:18px;}
+.devolucion-foto-item{position:relative;height:92px;border-radius:13px;overflow:hidden;background:var(--glass);border:1px solid var(--borde-2);}
+.devolucion-foto-item img{width:100%;height:100%;object-fit:cover;}
+.devolucion-foto-item button{position:absolute;right:6px;top:6px;width:27px;height:27px;border:1px solid rgba(255,255,255,.28);border-radius:50%;display:grid;place-items:center;background:rgba(12,18,30,.58);color:#fff;backdrop-filter:blur(10px);}
+.devolucion-foto-item button .ic{width:13px;height:13px;}
+.devolucion-mantenimiento{margin-top:0;}
+.devolucion-confirmar{display:grid;gap:14px;}
+.devolucion-confirmar-veh{padding:12px 14px;border:1px solid var(--borde-2);border-radius:14px;background:var(--glass-3);}
+.devolucion-confirmar-veh b,.devolucion-confirmar-veh span{display:block;}
+.devolucion-confirmar-veh b{font-size:14px;}
+.devolucion-confirmar-veh span{font-size:11px;color:var(--txt-3);margin-top:3px;}
+.devolucion-confirmar-obs{padding:12px 14px;border:1px solid var(--borde-2);border-radius:14px;background:var(--glass);}
+.devolucion-confirmar-obs small{font-size:9px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.06em;font-weight:750;}
+.devolucion-confirmar-obs p{font-size:12px;line-height:1.55;margin-top:5px;white-space:pre-wrap;}
+html[data-tema="noche"] .devolucion-bloque,
+html[data-tema="noche"] .devolucion-cab{box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
+@media(max-width:650px){
+  .devolucion-cab{grid-template-columns:1fr;}
+  .devolucion-foto{height:170px;}
+  .devolucion-estado{position:absolute;margin:10px;}
+  .devolucion-danos,.devolucion-fotos-h{align-items:flex-start;flex-direction:column;}
+  .devolucion-fotos-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
