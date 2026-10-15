@@ -8,8 +8,8 @@
 
 const Demo = (() => {
   const CLAVE = 'autogo.demo.db';
-  const VERSION = 5;
-  const PERFILES = ['Administrador', 'Facturación', 'Operaciones', 'Soporte'];
+  const VERSION = 6;
+  const PERFILES = ['Superadministrador', 'Administrador', 'Operador', 'Consulta'];
 
   class Fallo extends Error {
     constructor(code, message) {
@@ -115,7 +115,7 @@ const Demo = (() => {
     ];
 
     const usuarios = [
-      { id: 1, nombre: 'Administrador AutoGo', correo: 'admin@autogo.com', password: 'Admin2026', rol: 'ADMINISTRADOR', debeCambiarPassword: false, clienteId: null, activo: true },
+      { id: 1, nombre: 'Administrador AutoGo', correo: 'admin@autogo.com', password: 'Admin2026', rol: 'ADMINISTRADOR', perfil: 'Superadministrador', debeCambiarPassword: false, clienteId: null, activo: true },
       { id: 2, nombre: 'Ana Familia', correo: 'ana@correo.com', password: 'Clave2026', rol: 'CLIENTE', debeCambiarPassword: false, clienteId: 1, activo: true }
     ];
 
@@ -176,16 +176,16 @@ const Demo = (() => {
     });
 
     db.usuarios.forEach(u => {
-      if (u.rol === 'ADMINISTRADOR' && !u.perfil) u.perfil = 'Administrador';
+      if (u.rol === 'ADMINISTRADOR' && !u.perfil) u.perfil = u.id === 1 ? 'Superadministrador' : 'Administrador';
     });
 
     db.usuarios.push(
       a('Juan Pérez', 'juan.perez@autogo.com', 'Administrador', true, 1, '22:35'),
-      a('María Sánchez', 'maria.sanchez@autogo.com', 'Facturación', true, 1, '20:12'),
-      a('Luis Castillo', 'luis.castillo@autogo.com', 'Operaciones', true, 3, '16:21'),
+      a('María Sánchez', 'maria.sanchez@autogo.com', 'Administrador', true, 1, '20:12'),
+      a('Luis Castillo', 'luis.castillo@autogo.com', 'Operador', true, 3, '16:21'),
       a('Ana Rodríguez', 'ana.rodriguez@autogo.com', 'Administrador', true, 2, '21:44'),
-      a('Carlos Méndez', 'carlos.mendez@autogo.com', 'Soporte', false, 6, '11:18'),
-      a('Daniel López', 'daniel.lopez@autogo.com', 'Operaciones', true, 1, '14:07')
+      a('Carlos Méndez', 'carlos.mendez@autogo.com', 'Consulta', false, 6, '11:18'),
+      a('Daniel López', 'daniel.lopez@autogo.com', 'Operador', true, 1, '14:07')
     );
   }
 
@@ -266,6 +266,15 @@ const Demo = (() => {
         f.impuesto = Number(f.impuesto) || 0;
         f.retencion = Number(f.retencion) || 0;
         f.desgloseModo = f.desgloseModo || 'HISTORICO';
+      });
+      db.version = VERSION;
+      guardar();
+    }
+
+    if (db && db.seq && db.version === 5) {
+      const mapa = { 'Facturación':'Administrador', 'Operaciones':'Operador', 'Soporte':'Consulta' };
+      (db.usuarios || []).forEach(u => {
+        if (u.rol === 'ADMINISTRADOR') u.perfil = u.id === 1 ? 'Superadministrador' : (mapa[u.perfil] || u.perfil || 'Administrador');
       });
       db.version = VERSION;
       guardar();
@@ -514,7 +523,7 @@ const Demo = (() => {
   const adminesActivos = () => db.usuarios.filter(x => x.rol === 'ADMINISTRADOR' && x.activo).length;
 
   const vUsuario = u => ({
-    id: u.id, nombre: u.nombre, correo: u.correo, rol: u.rol,
+    id: u.id, nombre: u.nombre, correo: u.correo, rol: u.rol, perfil: u.perfil || null,
     debeCambiarPassword: u.debeCambiarPassword, clienteId: u.clienteId
   });
 
@@ -570,6 +579,17 @@ const Demo = (() => {
 
   const admin = ctx => requiere(ctx, 'ADMINISTRADOR');
   const cliente = ctx => requiere(ctx, 'CLIENTE');
+  const PERMISOS = {
+    'Superadministrador':['*'],
+    'Administrador':['dashboard.ver','alquileres.ver','alquileres.crear','alquileres.editar','alquileres.cancelar','alquileres.devolver','clientes.ver','clientes.crear','clientes.editar','flota.ver','flota.crear','flota.editar','flota.estado','flota.foto','facturas.ver','reportes.ver','configuracion.ver'],
+    'Operador':['dashboard.ver','alquileres.ver','alquileres.crear','alquileres.editar','alquileres.cancelar','alquileres.devolver','clientes.ver','clientes.crear','clientes.editar','flota.ver','flota.estado','facturas.ver'],
+    'Consulta':['dashboard.ver','alquileres.ver','clientes.ver','flota.ver','facturas.ver','reportes.ver']
+  };
+  function permiso(ctx, p) {
+    const u = admin(ctx); const ps = PERMISOS[u.perfil || 'Administrador'] || [];
+    if (!(ps.includes('*') || ps.includes(p))) falla('AUTH_NOT_AUTHORIZED','No tienes permiso para realizar esta operación.');
+    return u;
+  }
 
   function alquilerPropio(ctx, id) {
     const u = requiere(ctx);
@@ -666,7 +686,7 @@ const Demo = (() => {
     },
 
     crearAdministrador({ input }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'administradores.gestionar');
       const correo = validarCorreo(input.correo, true);
       if (!input.nombre || !input.nombre.trim()) falla('DATO_INVALIDO', 'El nombre es obligatorio.');
       validarPassword(input.passwordTemporal);
@@ -686,7 +706,7 @@ const Demo = (() => {
     },
 
     administradores(v, ctx) {
-      admin(ctx);
+      permiso(ctx, 'administradores.gestionar');
       const t = plano(v.texto);
       return db.usuarios
         .filter(x => x.rol === 'ADMINISTRADOR')
@@ -697,13 +717,17 @@ const Demo = (() => {
     },
 
     actualizarAdministrador({ id, input }, ctx) {
-      const yo = admin(ctx);
+      const yo = permiso(ctx, 'administradores.gestionar');
       const u = db.usuarios.find(x => x.id === id && x.rol === 'ADMINISTRADOR');
       if (!u) falla('NO_ENCONTRADO', 'El administrador no existe.');
       if (!input.nombre || !input.nombre.trim()) falla('DATO_INVALIDO', 'El nombre es obligatorio.');
       if (!PERFILES.includes(input.perfil)) falla('DATO_INVALIDO', 'El rol no es válido.');
 
       const activo = input.activo !== false;
+      if (u.perfil === 'Superadministrador' && input.perfil !== 'Superadministrador') {
+        const otros = db.usuarios.filter(x => x.rol === 'ADMINISTRADOR' && x.activo && x.perfil === 'Superadministrador' && x.id !== u.id);
+        if (!otros.length) falla('REGLA_NEGOCIO','Debe quedar al menos un Superadministrador activo.');
+      }
       if (!activo && u.activo) {
         if (u.id === yo.id) falla('REGLA_NEGOCIO', 'No puedes desactivar tu propia cuenta.');
         if (adminesActivos() <= 1) falla('REGLA_NEGOCIO', 'Debe quedar al menos un administrador activo.');
@@ -714,7 +738,7 @@ const Demo = (() => {
     },
 
     restablecerClaveAdministrador({ id, passwordTemporal }, ctx) {
-      const yo = admin(ctx);
+      const yo = permiso(ctx, 'administradores.gestionar');
       const u = db.usuarios.find(x => x.id === id && x.rol === 'ADMINISTRADOR');
       if (!u) falla('NO_ENCONTRADO', 'El administrador no existe.');
       if (u.id === yo.id) falla('REGLA_NEGOCIO', 'Para cambiar tu propia contraseña usa la opción "Cambiar contraseña".');
@@ -725,7 +749,7 @@ const Demo = (() => {
     },
 
     eliminarAdministrador({ id }, ctx) {
-      const yo = admin(ctx);
+      const yo = permiso(ctx, 'administradores.gestionar');
       const u = db.usuarios.find(x => x.id === id && x.rol === 'ADMINISTRADOR');
       if (!u) falla('NO_ENCONTRADO', 'El administrador no existe.');
       if (u.id === yo.id) falla('REGLA_NEGOCIO', 'No puedes eliminar tu propia cuenta.');
@@ -762,7 +786,7 @@ const Demo = (() => {
     },
 
     ingresosWallet(v, ctx) {
-      admin(ctx);
+      permiso(ctx, 'facturas.ver');
       const local = iso => {
         const d = new Date(iso);
         d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -800,7 +824,7 @@ const Demo = (() => {
     },
 
     vehiculos(v, ctx) {
-      admin(ctx);
+      permiso(ctx, 'flota.ver');
       const t = plano(v.texto);
       const lista = db.vehiculos
         .filter(x => v.incluirInactivos || x.activo)
@@ -812,7 +836,7 @@ const Demo = (() => {
     },
 
     crearCategoria({ nombre }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'configuracion.editar');
       if (!nombre || !nombre.trim()) falla('DATO_INVALIDO', 'El nombre es obligatorio.');
       if (db.categorias.some(x => plano(x.nombre) === plano(nombre.trim()))) falla('CATEGORIA_DUPLICADA', 'Ya existe una categoría con ese nombre.');
       const cat = { id: db.seq.categoria++, nombre: nombre.trim() };
@@ -821,7 +845,7 @@ const Demo = (() => {
     },
 
     crearVehiculo({ input }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'flota.crear');
       const datos = validarVehiculo(input);
       const veh = { id: db.seq.vehiculo++, ...datos, estadoOperativo: 'DISPONIBLE', mantenimientoHasta: null, fotoUrl: null, activo: true };
       db.vehiculos.push(veh);
@@ -829,7 +853,7 @@ const Demo = (() => {
     },
 
     actualizarVehiculo({ id, input }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'flota.editar');
       const veh = vehiculoDe(id);
       if (!veh) falla('NO_ENCONTRADO', 'El vehículo no existe.');
       Object.assign(veh, validarVehiculo(input, id));
@@ -837,7 +861,7 @@ const Demo = (() => {
     },
 
     cambiarEstadoVehiculo({ input }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'flota.estado');
       const veh = vehiculoDe(input.vehiculoId);
       if (!veh) falla('NO_ENCONTRADO', 'El vehículo no existe.');
       if (estadoActual(veh) === 'ALQUILADO') falla('REGLA_NEGOCIO', 'No se puede cambiar el estado de un vehículo alquilado; primero registra la devolución.');
@@ -848,7 +872,7 @@ const Demo = (() => {
     },
 
     async subirFotoVehiculo({ id, foto }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'flota.foto');
       const veh = vehiculoDe(id);
       if (!veh) falla('NO_ENCONTRADO', 'El vehículo no existe.');
       if (!foto || !/\.(jpe?g|png|webp)$/i.test(foto.name)) falla('DATO_INVALIDO', 'La foto debe ser jpg, jpeg, png o webp.');
@@ -865,7 +889,7 @@ const Demo = (() => {
     },
 
     desactivarVehiculo({ id }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'flota.editar');
       const veh = vehiculoDe(id);
       if (!veh) falla('NO_ENCONTRADO', 'El vehículo no existe.');
       if (db.alquileres.some(a => a.vehiculoId === id && a.estado === 'ACTIVO')) {
@@ -876,7 +900,7 @@ const Demo = (() => {
     },
 
     reactivarVehiculo({ id }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'flota.editar');
       const veh = vehiculoDe(id);
       if (!veh) falla('NO_ENCONTRADO', 'El vehículo no existe.');
       veh.activo = true;
@@ -886,7 +910,7 @@ const Demo = (() => {
 
 
     clientes(v, ctx) {
-      admin(ctx);
+      permiso(ctx, 'clientes.ver');
       const t = plano(v.texto);
       const td = String(v.texto || '').replace(/\D/g, '');
       const lista = db.clientes
@@ -910,14 +934,14 @@ const Demo = (() => {
     },
 
     crearCliente({ input }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'clientes.crear');
       const c = { id: db.seq.cliente++, ...validarCliente(input), activo: true, tieneCuenta: false, fechaCreacion: new Date().toISOString() };
       db.clientes.push(c);
       return c;
     },
 
     actualizarCliente({ id, input }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'clientes.editar');
       const c = clienteDe(id);
       if (!c) falla('NO_ENCONTRADO', 'El cliente no existe.');
       Object.assign(c, validarCliente(input, id));
@@ -925,7 +949,7 @@ const Demo = (() => {
     },
 
     desactivarCliente({ id }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'clientes.editar');
       const c = clienteDe(id);
       if (!c) falla('NO_ENCONTRADO', 'El cliente no existe.');
       if (db.alquileres.some(a => a.clienteId === id && a.estado === 'ACTIVO')) {
@@ -940,6 +964,7 @@ const Demo = (() => {
     crearAlquiler({ input }, ctx) {
       const u = requiere(ctx);
       const esAdmin = u.rol === 'ADMINISTRADOR';
+      if (esAdmin) permiso(ctx, 'alquileres.crear');
       const clienteId = esAdmin ? input.clienteId : u.clienteId;
 
       if (esAdmin && !clienteId) falla('DATO_INVALIDO', 'Selecciona el cliente.');
@@ -975,7 +1000,7 @@ const Demo = (() => {
     },
 
     alquileres(v, ctx) {
-      admin(ctx);
+      permiso(ctx, 'alquileres.ver');
       let lista = db.alquileres
         .filter(a => !v.clienteId || a.clienteId === v.clienteId)
         .filter(a => !v.vehiculoId || a.vehiculoId === v.vehiculoId)
@@ -995,7 +1020,7 @@ const Demo = (() => {
     },
 
     modificarAlquiler({ input }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'alquileres.editar');
       const a = db.alquileres.find(x => x.id === input.alquilerId);
       if (!a) falla('NO_ENCONTRADO', 'El alquiler no existe.');
       activo(a);
@@ -1068,7 +1093,7 @@ const Demo = (() => {
     },
 
     registrarDevolucion({ input }, ctx) {
-      admin(ctx);
+      permiso(ctx, 'alquileres.devolver');
       const a = db.alquileres.find(x => x.id === input.alquilerId);
       if (!a) falla('NO_ENCONTRADO', 'El alquiler no existe.');
       activo(a);
@@ -1091,7 +1116,7 @@ const Demo = (() => {
 
 
     facturas(v, ctx) {
-      admin(ctx);
+      permiso(ctx, 'facturas.ver');
       const local = iso => {
         const d = new Date(iso);
         d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -1127,7 +1152,7 @@ const Demo = (() => {
     },
 
     dashboard(v, ctx) {
-      admin(ctx);
+      permiso(ctx, 'dashboard.ver');
       const h = hoy();
       const estados = db.vehiculos.filter(x => x.activo).map(estadoActual);
       const cuenta = e => estados.filter(x => x === e).length;

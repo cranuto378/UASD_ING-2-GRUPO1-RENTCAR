@@ -156,7 +156,7 @@ const Api = (() => {
 
   /* Campos */
 
-  const USUARIO = 'id nombre correo rol debeCambiarPassword clienteId';
+  const USUARIO = 'id nombre correo rol perfil debeCambiarPassword clienteId';
   const AUTH = `token expiraEnUtc usuario { ${USUARIO} }`;
   const CATEGORIA = 'id nombre';
   // color, transmisión, capacidad y observaciones: solo en demo o si config.js tiene VEHICULO_EXTRA: true

@@ -6040,3 +6040,29 @@ html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .factura .fac-h
 .side-cerrar-sesion:hover{background:var(--glass-3);color:var(--txt);}
 html:not([data-tema="noche"]) body.entorno-cliente .side-cerrar-sesion:hover{background:rgba(225,236,251,.62);}
 html[data-tema="noche"] body.entorno-cliente .side-cerrar-sesion:hover{background:rgba(255,255,255,.06);}
+
+
+/* =========================================================
+   REPORTES + HISTORIAL DE CONFIGURACIÓN
+========================================================= */
+.rep-filtros{
+  display:grid;grid-template-columns:minmax(160px,.7fr) minmax(160px,.7fr) auto auto;
+  gap:12px;align-items:end;padding:16px;margin-bottom:16px;
+}
+.rep-filtros label{display:grid;gap:6px}.rep-filtros label>span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--txt-3)}
+.rep-filtros input{width:100%}
+.rep-resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.rep-mini{min-height:112px;padding:16px;display:flex;align-items:center;gap:14px}
+.rep-mini>span:last-child{min-width:0;display:grid;gap:3px}.rep-mini small{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--txt-3)}
+.rep-mini b{font-size:21px;line-height:1.1;letter-spacing:-.025em}.rep-mini em{font-size:11px;font-style:normal;color:var(--txt-3)}
+.rep-mini-ico{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto;background:color-mix(in srgb,var(--info) 11%,transparent);color:var(--info);border:1px solid color-mix(in srgb,var(--info) 21%,transparent)}
+.rep-mini-ico .ic{width:20px;height:20px}
+.rep-mini.tono-green .rep-mini-ico{color:#24976e;background:rgba(53,188,135,.10);border-color:rgba(53,188,135,.22)}
+.rep-mini.tono-orange .rep-mini-ico{color:#b97719;background:rgba(224,157,56,.11);border-color:rgba(224,157,56,.23)}
+.rep-mini.tono-purple .rep-mini-ico{color:#7652c7;background:rgba(118,82,199,.10);border-color:rgba(118,82,199,.23)}
+.rep-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.rep-card{padding:18px;min-width:0}.rep-card.rep-ancha{grid-column:1/-1}.rep-card-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:15px}.rep-card-h h3{font-size:16px;margin-bottom:3px}.rep-card-h p{font-size:11px;color:var(--txt-3)}
+.rep-barras{display:grid;gap:14px}.rep-bar-label{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:6px;font-size:12px}.rep-bar-label span{color:var(--txt-2)}.rep-bar-label b{font-size:12px}.rep-barras i{display:block;height:8px;border-radius:999px;background:color-mix(in srgb,var(--txt) 7%,transparent);overflow:hidden}.rep-barras i span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,color-mix(in srgb,var(--info) 76%,#fff),var(--info))}.rep-barras-estados i span{background:linear-gradient(90deg,#8b6bd7,#6f93d7)}
+.config-historial{display:grid;gap:0;border-top:1px solid var(--borde-2);margin-top:8px}.config-hist-item{display:grid;grid-template-columns:180px minmax(0,1fr);gap:16px;padding:13px 2px;border-bottom:1px solid var(--borde-2)}.config-hist-item>div:first-child b,.config-hist-item>div:first-child small{display:block}.config-hist-item>div:first-child b{font-size:11px}.config-hist-item>div:first-child small{font-size:10px;color:var(--txt-3);margin-top:3px}.config-hist-cambios{display:flex;gap:7px;flex-wrap:wrap}.config-hist-cambios span{font-size:10.5px;padding:5px 8px;border:1px solid var(--borde-2);border-radius:999px;background:var(--glass-3);color:var(--txt-2)}.config-hist-cambios s{color:var(--txt-3)}.vacio-mini{padding:18px 2px;color:var(--txt-3);font-size:11px}
+html[data-tema="noche"] .rep-mini.tono-purple .rep-mini-ico{color:#c6b6ff;background:rgba(167,139,250,.12)}
+@media(max-width:1100px){.rep-resumen{grid-template-columns:repeat(2,minmax(0,1fr))}.rep-filtros{grid-template-columns:1fr 1fr}.rep-filtros .btn{width:100%}.config-hist-item{grid-template-columns:1fr}}
+@media(max-width:720px){.rep-resumen,.rep-grid{grid-template-columns:1fr}.rep-card.rep-ancha{grid-column:auto}.rep-filtros{grid-template-columns:1fr}.rep-mini{min-height:92px}.rep-card{padding:14px}}

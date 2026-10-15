@@ -17,6 +17,32 @@ const usuario = () => (Api.sesion() || {}).usuario;
 const esAdmin = () => !!usuario() && /^admin/i.test(usuario().rol);
 const inicio = () => (!Api.sesion() ? 'login' : esAdmin() ? 'dashboard' : 'inicio');
 
+/* Roles y permisos administrativos */
+const PERMISOS_ROL = Object.freeze({
+  'Superadministrador': ['*'],
+  'Administrador': [
+    'dashboard.ver','alquileres.ver','alquileres.crear','alquileres.editar','alquileres.cancelar','alquileres.devolver',
+    'clientes.ver','clientes.crear','clientes.editar','flota.ver','flota.crear','flota.editar','flota.estado','flota.foto',
+    'facturas.ver','reportes.ver','configuracion.ver'
+  ],
+  'Operador': [
+    'dashboard.ver','alquileres.ver','alquileres.crear','alquileres.editar','alquileres.cancelar','alquileres.devolver',
+    'clientes.ver','clientes.crear','clientes.editar','flota.ver','flota.estado','facturas.ver'
+  ],
+  'Consulta': ['dashboard.ver','alquileres.ver','clientes.ver','flota.ver','facturas.ver','reportes.ver']
+});
+const perfilActual = () => {
+  if (!esAdmin()) return null;
+  const p = usuario()?.perfil || 'Superadministrador';
+  return PERMISOS_ROL[p] ? p : 'Administrador';
+};
+const puede = permiso => {
+  if (!esAdmin()) return false;
+  const ps = PERMISOS_ROL[perfilActual()] || [];
+  return ps.includes('*') || ps.includes(permiso);
+};
+const soloSi = (permiso, html) => puede(permiso) ? html : '';
+
 const opcionesMetodo = (vacio) =>
   (vacio ? [{ valor: '', texto: vacio }] : []).concat(METODOS.map(m => ({ valor: m, texto: etq(m) })));
 
@@ -60,6 +86,19 @@ function guardarConfigFinanciera(cfg) {
   return limpia;
 }
 
+const CONFIG_FINANCIERA_HIST_KEY = 'autogo_config_financiera_hist_v1';
+function leerHistorialConfigFinanciera() {
+  try { return JSON.parse(localStorage.getItem(CONFIG_FINANCIERA_HIST_KEY) || '[]'); }
+  catch (_) { return []; }
+}
+function registrarCambioConfigFinanciera(anterior, nueva) {
+  const cambios = Object.keys(CONFIG_FINANCIERA_DEFAULT).filter(k => Number(anterior[k]) !== Number(nueva[k]));
+  if (!cambios.length) return;
+  const hist = leerHistorialConfigFinanciera();
+  hist.unshift({ fecha: new Date().toISOString(), usuario: usuario()?.nombre || 'Administrador', anterior, nueva, cambios });
+  localStorage.setItem(CONFIG_FINANCIERA_HIST_KEY, JSON.stringify(hist.slice(0, 50)));
+}
+
 
 /* =========================================================
    RUTAS
@@ -83,14 +122,15 @@ const RUTAS = {
   'perfil': { vista: vPerfil, acceso: 'sesion', titulo: 'Mi perfil' },
   'factura': { vista: vFactura, acceso: 'sesion', titulo: 'Factura', nav: () => (esAdmin() ? 'facturas' : 'mis-facturas') },
 
-  'dashboard': { vista: vDashboard, acceso: 'admin', titulo: 'Panel de control', sub: 'Resumen de la flota, los alquileres y los ingresos.' },
-  'nuevo-alquiler': { vista: vNuevoAlquiler, acceso: 'admin', titulo: 'Registrar alquiler', sub: 'Registro de alquiler en mostrador.' },
-  'alquileres': { vista: vAlquileres, acceso: 'admin', titulo: 'Gestionar alquileres', sub: 'Modifica, cancela o registra devoluciones.' },
-  'flota': { vista: vFlota, acceso: 'admin', titulo: 'Flota', sub: 'Vehículos, estados y fotos.' },
-  'clientes': { vista: vClientes, acceso: 'admin', titulo: 'Clientes', sub: 'Clientes del portal y de mostrador.' },
-  'facturas': { vista: vFacturas, acceso: 'admin', titulo: 'Facturación', sub: 'Facturas emitidas. No se editan ni se eliminan.' },
-  'configuracion': { vista: vConfiguracion, acceso: 'admin', titulo: 'Configuración', sub: 'Parámetros generales del sistema.' },
-  'administradores': { vista: vAdministradores, acceso: 'admin', titulo: 'Administradores', sub: 'Alta de nuevos usuarios administradores.' }
+  'dashboard': { vista: vDashboard, acceso: 'admin', permiso: 'dashboard.ver', titulo: 'Panel de control', sub: 'Resumen de la flota, los alquileres y los ingresos.' },
+  'nuevo-alquiler': { vista: vNuevoAlquiler, acceso: 'admin', permiso: 'alquileres.crear', titulo: 'Registrar alquiler', sub: 'Registro de alquiler en mostrador.' },
+  'alquileres': { vista: vAlquileres, acceso: 'admin', permiso: 'alquileres.ver', titulo: 'Gestionar alquileres', sub: 'Modifica, cancela o registra devoluciones.' },
+  'flota': { vista: vFlota, acceso: 'admin', permiso: 'flota.ver', titulo: 'Flota', sub: 'Vehículos, estados y fotos.' },
+  'clientes': { vista: vClientes, acceso: 'admin', permiso: 'clientes.ver', titulo: 'Clientes', sub: 'Clientes del portal y de mostrador.' },
+  'facturas': { vista: vFacturas, acceso: 'admin', permiso: 'facturas.ver', titulo: 'Facturación', sub: 'Facturas emitidas. No se editan ni se eliminan.' },
+  'reportes': { vista: vReportes, acceso: 'admin', permiso: 'reportes.ver', titulo: 'Reportes', sub: 'Indicadores, actividad e ingresos del período seleccionado.' },
+  'configuracion': { vista: vConfiguracion, acceso: 'admin', permiso: 'configuracion.ver', titulo: 'Configuración', sub: 'Parámetros generales del sistema.' },
+  'administradores': { vista: vAdministradores, acceso: 'admin', permiso: 'administradores.gestionar', titulo: 'Administradores', sub: 'Alta de nuevos usuarios administradores.' }
 };
 
 const NAV = {
@@ -158,6 +198,7 @@ async function render() {
   }
   if (def.acceso === 'cliente' && esAdmin()) return ir('dashboard');
   if (def.acceso === 'admin' && !esAdmin()) return ir(inicio());
+  if (esAdmin() && def.permiso && !puede(def.permiso)) { UI.toast('No tienes permiso para acceder a este módulo.', 'warn'); return ir('dashboard'); }
 
   const id = ++renderId;
   const forzado = !!(s && s.usuario.debeCambiarPassword);
@@ -294,17 +335,17 @@ function montarShell(ruta, def) {
 }
 
 function pintarNav(activa) {
-  const items = !Api.sesion() ? NAV.publico : esAdmin() ? NAV.admin : NAV.cliente;
+  const itemsBase = !Api.sesion() ? NAV.publico : esAdmin() ? NAV.admin : NAV.cliente;
+  const items = esAdmin() ? itemsBase.filter(([r]) => !RUTAS[r]?.permiso || puede(RUTAS[r].permiso)) : itemsBase;
 
   $('#nav').innerHTML = items.map(([r, texto, ic]) => {
-    if (esAdmin() && r === 'alquileres') return `<details class="nav-grupo" ${['alquileres','nuevo-alquiler'].includes(activa) ? 'open' : ''}><summary title="Alquileres">${icon(ic)}<span>Alquileres</span><b class="nav-chevron">⌄</b></summary><div class="nav-sub"><a href="#/nuevo-alquiler" class="${activa === 'nuevo-alquiler' ? 'act' : ''}"><span>Registrar alquiler</span></a><a href="#/alquileres" class="${activa === 'alquileres' ? 'act' : ''}"><span>Gestionar alquileres</span></a></div></details>`;
-    if (r === 'reportes') return `<button type="button" class="nav-pendiente" data-modulo-pendiente="${esc(texto)}" title="${esc(texto)}: pendiente de implementar">${icon(ic)}<span>${esc(texto)}<small>Próximamente</small></span></button>`;
+    if (esAdmin() && r === 'alquileres') return `<details class="nav-grupo" ${['alquileres','nuevo-alquiler'].includes(activa) ? 'open' : ''}><summary title="Alquileres">${icon(ic)}<span>Alquileres</span><b class="nav-chevron">⌄</b></summary><div class="nav-sub">${soloSi('alquileres.crear', `<a href="#/nuevo-alquiler" class="${activa === 'nuevo-alquiler' ? 'act' : ''}"><span>Registrar alquiler</span></a>`)}<a href="#/alquileres" class="${activa === 'alquileres' ? 'act' : ''}"><span>Gestionar alquileres</span></a></div></details>`;
     return `<a href="#/${r}" class="${r === activa ? 'act' : ''}" title="${esc(texto)}"${r === activa ? ' aria-current="page"' : ''}>${icon(ic)}<span>${esc(texto)}</span></a>`;
   }).join('');
   const u = usuario();
   $('#sidePie').innerHTML = u ? `
-    <button class="yo" type="button" data-menu aria-haspopup="menu" aria-expanded="false" aria-label="Abrir opciones de mi cuenta" title="Mi cuenta">${UI.avatar(u.nombre)}<div><b>${esc(u.nombre)}</b><small>${esc(u.rol)}</small></div></button>
-    ${!esAdmin() ? `<button class="side-cerrar-sesion" type="button" data-salir>${icon('logout')}<span>Cerrar sesión</span></button>` : ''}` : '';
+    <button class="yo" type="button" data-menu aria-haspopup="menu" aria-expanded="false" aria-label="Abrir opciones de mi cuenta" title="Mi cuenta">${UI.avatar(u.nombre)}<div><b>${esc(u.nombre)}</b><small>${esc(esAdmin() ? perfilActual() : u.rol)}</small></div></button>
+    <button class="side-cerrar-sesion" type="button" data-salir>${icon('logout')}<span>Cerrar sesión</span></button>` : '';
 
 }
 
@@ -2290,7 +2331,7 @@ async function vAlquileres(c, ctx) {
   const vehiculoNombre = ctx.q.get('vehiculoNombre');
   const filtros = { texto: '', canal: '', desde: '', hasta: '' };
 
-  ctx.acciones(`<a class="btn" href="#/nuevo-alquiler${clienteId ? '?cliente=' + clienteId : ''}">${icon('plus')} Nuevo alquiler</a>`);
+  ctx.acciones(soloSi('alquileres.crear', `<a class="btn" href="#/nuevo-alquiler${clienteId ? '?cliente=' + clienteId : ''}">${icon('plus')} Nuevo alquiler</a>`));
 
   c.innerHTML = `
     <div class="alq-resumen" id="alqResumen">
@@ -2347,9 +2388,9 @@ async function vAlquileres(c, ctx) {
               <td>${estadoAlquiler(a)}</td>
               <td><div class="acciones">
                 <button class="icon-btn" type="button" data-acc="ver" data-id="${a.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
-                <button class="icon-btn" type="button" data-acc="modificar" data-id="${a.id}" title="Modificar" aria-label="Modificar"${a.estado === 'ACTIVO' ? '' : ' disabled'}>${icon('edit')}</button>
-                <button class="icon-btn" type="button" data-acc="devolver" data-id="${a.id}" title="Registrar devolución" aria-label="Registrar devolución"${puedeDevolver(a) ? '' : ' disabled'}>${icon('undo')}</button>
-                <button class="icon-btn" type="button" data-acc="cancelar" data-id="${a.id}" title="Cancelar" aria-label="Cancelar"${puedeCancelar(a) ? '' : ' disabled'}>${icon('ban')}</button>
+                ${soloSi('alquileres.editar', `<button class="icon-btn" type="button" data-acc="modificar" data-id="${a.id}" title="Modificar" aria-label="Modificar"${a.estado === 'ACTIVO' ? '' : ' disabled'}>${icon('edit')}</button>`)}
+                ${soloSi('alquileres.devolver', `<button class="icon-btn" type="button" data-acc="devolver" data-id="${a.id}" title="Registrar devolución" aria-label="Registrar devolución"${puedeDevolver(a) ? '' : ' disabled'}>${icon('undo')}</button>`)}
+                ${soloSi('alquileres.cancelar', `<button class="icon-btn" type="button" data-acc="cancelar" data-id="${a.id}" title="Cancelar" aria-label="Cancelar"${puedeCancelar(a) ? '' : ' disabled'}>${icon('ban')}</button>`)}
               </div></td>
             </tr>`).join('')}
           </tbody>
@@ -3426,7 +3467,7 @@ async function vFlota(c, ctx) {
   const estadoPanel = ESTADOS_PANEL_FLOTA.includes(ctx.q.get('estado')) ? ctx.q.get('estado') : null;
   const filtros = { texto: '', categoriaId: '' };
 
-  ctx.acciones(`<button class="btn" type="button" data-nuevo-veh>${icon('plus')} Nuevo vehículo</button>`);
+  ctx.acciones(soloSi('flota.crear', `<button class="btn" type="button" data-nuevo-veh>${icon('plus')} Nuevo vehículo</button>`));
 
   c.innerHTML = `
     <div class="flota-resumen" id="flotaResumen">
@@ -3472,10 +3513,10 @@ async function vFlota(c, ctx) {
               <td><div class="acciones">
                 <button class="icon-btn" type="button" data-acc="ver" data-id="${v.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
                 <button class="icon-btn" type="button" data-acc="historial" data-id="${v.id}" title="Historial" aria-label="Historial">${icon('clock')}</button>
-                <button class="icon-btn" type="button" data-acc="editar" data-id="${v.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>
-                <button class="icon-btn" type="button" data-acc="estado" data-id="${v.id}" title="Cambiar estado" aria-label="Cambiar estado"${v.activo ? '' : ' disabled'}>${icon('pulse')}</button>
-                <button class="icon-btn" type="button" data-acc="foto" data-id="${v.id}" title="Foto" aria-label="Subir foto">${icon('camera')}</button>
-                <button class="icon-btn" type="button" data-acc="${v.activo ? 'baja' : 'reactivar'}" data-id="${v.id}" title="${v.activo ? 'Desactivar' : 'Reactivar'}" aria-label="${v.activo ? 'Desactivar' : 'Reactivar'}">${icon(v.activo ? 'ban' : 'undo')}</button>
+                ${soloSi('flota.editar', `<button class="icon-btn" type="button" data-acc="editar" data-id="${v.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>`)}
+                ${soloSi('flota.estado', `<button class="icon-btn" type="button" data-acc="estado" data-id="${v.id}" title="Cambiar estado" aria-label="Cambiar estado"${v.activo ? '' : ' disabled'}>${icon('pulse')}</button>`)}
+                ${soloSi('flota.foto', `<button class="icon-btn" type="button" data-acc="foto" data-id="${v.id}" title="Foto" aria-label="Subir foto">${icon('camera')}</button>`)}
+                ${soloSi('flota.editar', `<button class="icon-btn" type="button" data-acc="${v.activo ? 'baja' : 'reactivar'}" data-id="${v.id}" title="${v.activo ? 'Desactivar' : 'Reactivar'}" aria-label="${v.activo ? 'Desactivar' : 'Reactivar'}">${icon(v.activo ? 'ban' : 'undo')}</button>`)}
               </div></td>
             </tr>`).join('')}
           </tbody>
@@ -3955,10 +3996,113 @@ function nuevaCategoria(alGuardar) {
 
 
 /* =========================================================
+   REPORTES
+========================================================= */
+
+const isoFechaLocal = d => {
+  const x = new Date(d);
+  const y = x.getFullYear(), m = String(x.getMonth()+1).padStart(2,'0'), dia = String(x.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dia}`;
+};
+
+function descargarCsv(nombre, filas) {
+  const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+  const csv = filas.map(f => f.map(q).join(',')).join('\r\n');
+  const blob = new Blob(['\ufeff'+csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1500);
+}
+
+async function vReportes(c, ctx) {
+  const ahora = new Date();
+  const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+  const estado = { desde: isoFechaLocal(inicioMes), hasta: hoy(), facturas:[], alquileres:[], vehiculos:[], clientes:[] };
+
+  ctx.acciones(`<button class="btn ghost" type="button" data-exportar>${icon('download')} Exportar CSV</button>`);
+  c.innerHTML = `
+    <div class="card rep-filtros">
+      <label><span>Desde</span><input type="date" id="repDesde" value="${estado.desde}"></label>
+      <label><span>Hasta</span><input type="date" id="repHasta" value="${estado.hasta}"></label>
+      <button class="btn" type="button" id="repAplicar">${icon('pulse')} Actualizar reporte</button>
+      <button class="btn ghost" type="button" id="repMes">Mes actual</button>
+    </div>
+    <div class="rep-resumen" id="repResumen">${Array.from({length:4},()=>'<div class="card rep-mini"><span class="skeleton"></span></div>').join('')}</div>
+    <div class="rep-grid">
+      <section class="card rep-card"><div class="rep-card-h"><div><h3>Ingresos por tipo</h3><p>Distribución de facturación del período.</p></div></div><div id="repTipos"></div></section>
+      <section class="card rep-card"><div class="rep-card-h"><div><h3>Estado de alquileres</h3><p>Situación operativa de los alquileres del período.</p></div></div><div id="repEstados"></div></section>
+      <section class="card rep-card rep-ancha"><div class="rep-card-h"><div><h3>Vehículos con mayor actividad</h3><p>Ranking por cantidad de alquileres.</p></div></div><div id="repVehiculos"></div></section>
+      <section class="card rep-card rep-ancha"><div class="rep-card-h"><div><h3>Actividad reciente</h3><p>Facturas emitidas dentro del período seleccionado.</p></div></div><div id="repActividad"></div></section>
+    </div>`;
+
+  const rangoOk=()=>{
+    const d=$('#repDesde',c).value, h=$('#repHasta',c).value;
+    if(!d||!h||d>h){ UI.toast('Revisa el rango de fechas.','warn'); return false; }
+    estado.desde=d; estado.hasta=h; return true;
+  };
+  const dentro=(iso)=> iso && String(iso).slice(0,10)>=estado.desde && String(iso).slice(0,10)<=estado.hasta;
+  const suma=a=>Math.round(a.reduce((t,x)=>t+Number(x||0),0)*100)/100;
+
+  async function cargar() {
+    $('#repResumen',c).innerHTML=Array.from({length:4},()=>'<div class="card rep-mini"><span class="skeleton"></span></div>').join('');
+    try {
+      const [fac, alq, veh, cli] = await Promise.all([
+        panelTodas(p=>Api.facturas({desde:estado.desde,hasta:estado.hasta,...p})),
+        panelTodas(p=>Api.alquileres({...p})),
+        panelTodas(p=>Api.vehiculos({incluirInactivos:true,...p})),
+        panelTodas(p=>Api.clientes({incluirInactivos:true,...p}))
+      ]);
+      if(!ctx.vigente())return;
+      estado.facturas=fac.nodes;
+      estado.alquileres=alq.nodes.filter(a=>dentro(a.fechaInicio)||dentro(a.fechaCreacion));
+      estado.vehiculos=veh.nodes; estado.clientes=cli.nodes;
+      pintar();
+    } catch(err){ avisarError(err); }
+  }
+
+  function pintar() {
+    const f=estado.facturas, a=estado.alquileres;
+    const total=suma(f.map(x=>x.monto));
+    const positivos=suma(f.filter(x=>Number(x.monto)>0).map(x=>x.monto));
+    const creditos=Math.abs(suma(f.filter(x=>Number(x.monto)<0).map(x=>x.monto)));
+    const clientesN=new Set(a.map(x=>x.clienteId)).size;
+    $('#repResumen',c).innerHTML=`
+      <div class="card rep-mini tono-blue"><span class="rep-mini-ico">${icon('receipt')}</span><span><small>Facturado neto</small><b>${fmt.dinero(total)}</b><em>${f.length} documento(s)</em></span></div>
+      <div class="card rep-mini tono-green"><span class="rep-mini-ico">${icon('calendar')}</span><span><small>Alquileres</small><b>${a.length}</b><em>${clientesN} cliente(s)</em></span></div>
+      <div class="card rep-mini tono-orange"><span class="rep-mini-ico">${icon('wallet')}</span><span><small>Facturación positiva</small><b>${fmt.dinero(positivos)}</b><em>Antes de notas de crédito</em></span></div>
+      <div class="card rep-mini tono-purple"><span class="rep-mini-ico">${icon('undo')}</span><span><small>Notas de crédito</small><b>${fmt.dinero(creditos)}</b><em>Créditos emitidos</em></span></div>`;
+
+    const tipos={}; f.forEach(x=>{const k=etq(x.tipo||'OTRO'); tipos[k]=(tipos[k]||0)+Number(x.monto||0)});
+    const maxTipo=Math.max(1,...Object.values(tipos).map(Math.abs));
+    $('#repTipos',c).innerHTML=Object.keys(tipos).length?`<div class="rep-barras">${Object.entries(tipos).sort((x,y)=>Math.abs(y[1])-Math.abs(x[1])).map(([k,v])=>`<div><div class="rep-bar-label"><span>${esc(k)}</span><b>${fmt.dinero(v)}</b></div><i><span style="width:${Math.max(3,Math.abs(v)/maxTipo*100)}%"></span></i></div>`).join('')}</div>`:UI.vacio('No hay facturas en este período.','receipt');
+
+    const estados={}; a.forEach(x=>{const k=estadoOperativoAlquiler(x).texto; estados[k]=(estados[k]||0)+1});
+    const maxE=Math.max(1,...Object.values(estados));
+    $('#repEstados',c).innerHTML=Object.keys(estados).length?`<div class="rep-barras rep-barras-estados">${Object.entries(estados).sort((x,y)=>y[1]-x[1]).map(([k,v])=>`<div><div class="rep-bar-label"><span>${esc(k)}</span><b>${v}</b></div><i><span style="width:${Math.max(5,v/maxE*100)}%"></span></i></div>`).join('')}</div>`:UI.vacio('No hay alquileres en este período.','calendar');
+
+    const ranking={}; a.forEach(x=>{const k=x.vehiculoId; if(!ranking[k])ranking[k]={nombre:x.vehiculo,placa:x.placa,n:0,monto:0}; ranking[k].n++; ranking[k].monto+=Number(x.montoTotal||x.montoBase||0)});
+    const top=Object.values(ranking).sort((x,y)=>y.n-x.n||y.monto-x.monto).slice(0,8);
+    $('#repVehiculos',c).innerHTML=top.length?`<div class="tabla-wrap"><table class="tabla"><thead><tr><th>#</th><th>Vehículo</th><th>Placa</th><th class="num">Alquileres</th><th class="num">Monto relacionado</th></tr></thead><tbody>${top.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.nombre)}</b></td><td>${esc(x.placa)}</td><td class="num">${x.n}</td><td class="num">${fmt.dinero(x.monto)}</td></tr>`).join('')}</tbody></table></div>`:UI.vacio('No hay actividad de vehículos en este período.','car');
+
+    $('#repActividad',c).innerHTML=f.length?`<div class="tabla-wrap"><table class="tabla"><thead><tr><th>No.</th><th>Fecha</th><th>Tipo</th><th>Cliente</th><th>Vehículo</th><th class="num">Monto</th></tr></thead><tbody>${f.slice(0,15).map(x=>`<tr><td><a href="#/factura/${x.id}">#${String(x.id).padStart(4,'0')}</a></td><td>${fmt.fechaHora(x.fechaEmision)}</td><td>${badge(x.tipo)}</td><td>${esc(x.clienteNombre)}</td><td>${esc(x.vehiculo)}</td><td class="num ${Number(x.monto)<0?'negativo':''}">${fmt.dinero(x.monto)}</td></tr>`).join('')}</tbody></table></div>`:UI.vacio('No hay actividad financiera en este período.','receipt');
+  }
+
+  $('#repAplicar',c).onclick=()=>{if(rangoOk())cargar()};
+  $('#repMes',c).onclick=()=>{$('#repDesde',c).value=isoFechaLocal(inicioMes);$('#repHasta',c).value=hoy();rangoOk();cargar()};
+  $('[data-exportar]').onclick=()=>{
+    if(!estado.facturas.length&&!estado.alquileres.length)return UI.toast('No hay datos para exportar.','warn');
+    const filas=[['AUTOGO - REPORTE',`${estado.desde} a ${estado.hasta}`],[],['FACTURAS'],['No.','Fecha','Tipo','Cliente','Vehículo','Método','Monto'],...estado.facturas.map(x=>[x.id,x.fechaEmision,etq(x.tipo),x.clienteNombre,x.vehiculo,metodoTxt(x.metodoPago),x.monto]),[],['ALQUILERES'],['No.','Cliente','Vehículo','Salida','Entrega','Estado','Monto'],...estado.alquileres.map(x=>[x.id,x.clienteNombre,x.vehiculo,x.fechaInicio,x.fechaDevolucion||x.fechaFinPactada,estadoOperativoAlquiler(x).texto,x.montoTotal])];
+    descargarCsv(`AutoGo_Reporte_${estado.desde}_${estado.hasta}.csv`,filas);
+  };
+  await cargar();
+}
+
+/* =========================================================
    CONFIGURACIÓN
 ========================================================= */
 
 async function vConfiguracion(c, ctx) {
+  const puedeEditarConfig = puede('configuracion.editar');
   let categorias = [];
   let fin = leerConfigFinanciera();
 
@@ -4004,6 +4148,11 @@ async function vConfiguracion(c, ctx) {
               <button class="btn" type="submit">${icon('check')} Guardar parámetros</button>
             </div>
           </form>
+        </section>
+
+        <section class="card config-card">
+          <div class="config-card-h"><div><span class="config-card-ico">${icon('clock')}</span><div><h3>Historial de parámetros financieros</h3><p>Registro de cambios para saber desde cuándo estuvo vigente cada configuración.</p></div></div></div>
+          <div id="configHistFin" class="config-historial"></div>
         </section>
       </div>
 
@@ -4062,6 +4211,17 @@ async function vConfiguracion(c, ctx) {
   $$('input[type="number"]', ffin).forEach(i => i.addEventListener('input', pintarResumenFin));
   pintarResumenFin();
 
+  const pintarHistorialFin = () => {
+    const caja = $('#configHistFin', c);
+    const hist = leerHistorialConfigFinanciera();
+    const nombres = { impuestoPct:'Impuesto', retencionPct:'Retención', recargoMoraPct:'Mora', retiroWalletClientePct:'Retiro Wallet' };
+    caja.innerHTML = hist.length ? hist.slice(0,12).map(h => `
+      <div class="config-hist-item">
+        <div><b>${fmt.fechaHora(h.fecha)}</b><small>${esc(h.usuario || 'Administrador')}</small></div>
+        <div class="config-hist-cambios">${(h.cambios||[]).map(k=>`<span>${nombres[k]||k}: <s>${Number(h.anterior?.[k]||0).toFixed(2)}%</s> → <b>${Number(h.nueva?.[k]||0).toFixed(2)}%</b></span>`).join('')}</div>
+      </div>`).join('') : `<div class="vacio-mini">Aún no hay cambios registrados. Las operaciones anteriores conservan sus propias tasas.</div>`;
+  };
+
   ffin.onsubmit = e => {
     e.preventDefault();
     UI.limpiarErrores(ffin);
@@ -4069,11 +4229,15 @@ async function vConfiguracion(c, ctx) {
     for (const [campo, valor] of Object.entries(x)) {
       if (valor < 0 || valor > 100) return UI.errorCampo(ffin, campo, 'Debe estar entre 0 y 100 %.');
     }
+    const anterior = { ...fin };
     fin = guardarConfigFinanciera(x);
+    registrarCambioConfigFinanciera(anterior, fin);
     pintarResumenFin();
+    pintarHistorialFin();
     UI.toast('Parámetros de facturación guardados.', 'ok');
   };
 
+  pintarHistorialFin();
   await cargar();
 }
 
@@ -4198,7 +4362,7 @@ async function vClientes(c, ctx) {
   let filtro = ['todos','activos','portal','mostrador','inactivos'].includes(ctx.q.get('filtro')) ? ctx.q.get('filtro') : 'todos';
   const filtros = { texto: '' };
 
-  ctx.acciones(`<button class="btn" type="button" data-nuevo-cli>${icon('plus')} Nuevo cliente</button>`);
+  ctx.acciones(soloSi('clientes.crear', `<button class="btn" type="button" data-nuevo-cli>${icon('plus')} Nuevo cliente</button>`));
 
   c.innerHTML = `
     <div class="clientes-resumen" id="clientesResumen">
@@ -4245,10 +4409,10 @@ async function vClientes(c, ctx) {
               <td>${x.activo !== false ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'neutro')}</td>
               <td><div class="acciones">
                 <button class="icon-btn" type="button" data-acc="ver" data-id="${x.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
-                <button class="icon-btn" type="button" data-acc="editar" data-id="${x.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>
+                ${soloSi('clientes.editar', `<button class="icon-btn" type="button" data-acc="editar" data-id="${x.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>`)}
                 <a class="icon-btn" href="#/alquileres?cliente=${x.id}&nombre=${encodeURIComponent(x.nombre)}" title="Ver alquileres" aria-label="Ver alquileres">${icon('calendar')}</a>
-                <a class="icon-btn" href="#/nuevo-alquiler?cliente=${x.id}" title="Nuevo alquiler" aria-label="Nuevo alquiler"${x.activo !== false ? '' : ' hidden'}>${icon('plusCircle')}</a>
-                <button class="icon-btn" type="button" data-acc="baja" data-id="${x.id}" title="Desactivar" aria-label="Desactivar"${x.activo !== false ? '' : ' disabled'}>${icon('ban')}</button>
+                ${soloSi('alquileres.crear', `<a class="icon-btn" href="#/nuevo-alquiler?cliente=${x.id}" title="Nuevo alquiler" aria-label="Nuevo alquiler"${x.activo !== false ? '' : ' hidden'}>${icon('plusCircle')}</a>`)}
+                ${soloSi('clientes.editar', `<button class="icon-btn" type="button" data-acc="baja" data-id="${x.id}" title="Desactivar" aria-label="Desactivar"${x.activo !== false ? '' : ' disabled'}>${icon('ban')}</button>`)}
               </div></td>
             </tr>`).join('')}
           </tbody>
@@ -4276,7 +4440,7 @@ async function vClientes(c, ctx) {
   $('#qCli', c).addEventListener('input', e => { filtros.texto = e.target.value.trim(); nuevaBusqueda(); });
   $('#limpiarCli', c).onclick = () => { filtros.texto = ''; $('#qCli', c).value = ''; l.recargar(true); };
 
-  $('[data-nuevo-cli]').onclick = () => editarCliente(null, () => recargar());
+  $('[data-nuevo-cli]')?.addEventListener('click', () => editarCliente(null, () => recargar()));
 
   c.addEventListener('click', e => {
     const f = e.target.closest('[data-cf]');
@@ -4547,8 +4711,8 @@ function vAdministradoresBasico(c) {
    ADMINISTRADORES (gestión completa: lista, rol y estado)
 ========================================================= */
 
-const PERFILES_ADM = ['Administrador', 'Facturación', 'Operaciones', 'Soporte'];
-const SLUG_PERFIL = { 'Administrador': 'admin', 'Facturación': 'fact', 'Operaciones': 'oper', 'Soporte': 'sop' };
+const PERFILES_ADM = ['Superadministrador', 'Administrador', 'Operador', 'Consulta'];
+const SLUG_PERFIL = { 'Superadministrador': 'super', 'Administrador': 'admin', 'Operador': 'oper', 'Consulta': 'consulta' };
 
 const svgAdm = d => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const ICO_ADM = {
@@ -4758,7 +4922,8 @@ function vAdministradores(c, ctx) {
             <div class="adm-col">
               ${UI.campo({ name: 'nombre', label: 'Nombre completo', requerido: true, placeholder: 'Ej. Juan Pérez Gómez', attrs: 'autocomplete="off"' })}
               ${UI.campo({ name: 'correo', label: 'Correo electrónico', tipo: 'email', requerido: true, placeholder: 'ejemplo@correo.com', attrs: 'autocomplete="off"' })}
-              ${UI.campo({ name: 'perfil', label: 'Rol', tipo: 'select', requerido: true, value: 'Administrador', ayuda: 'Identifica la función del administrador.', opciones: PERFILES_ADM.map(x => ({ valor: x, texto: x })) })}
+              ${UI.campo({ name: 'perfil', label: 'Rol', tipo: 'select', requerido: true, value: 'Operador', ayuda: 'El rol determina qué módulos y acciones puede usar.', opciones: PERFILES_ADM.map(x => ({ valor: x, texto: x })) })}
+              <div class="rol-ayuda"><small><b>Superadministrador:</b> acceso total · <b>Administrador:</b> gestión general sin administradores ni cambios críticos · <b>Operador:</b> operación diaria · <b>Consulta:</b> solo lectura.</small></div>
             </div>
 
             <div class="adm-col">
