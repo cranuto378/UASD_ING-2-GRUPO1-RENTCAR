@@ -1,8 +1,0 @@
-# Backend .NET
-backend/AutoGo.Backend/**/bin/
-backend/AutoGo.Backend/**/obj/
-backend/AutoGo.Backend/**/.vs/
-
-# Config
-*.user
-appsettings.Development.json
