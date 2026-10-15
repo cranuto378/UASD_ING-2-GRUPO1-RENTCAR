@@ -79,6 +79,7 @@ const RUTAS = {
   'inicio': { vista: vInicioCliente, acceso: 'cliente', titulo: 'Inicio' },
   'mis-alquileres': { vista: vMisAlquileres, acceso: 'cliente', titulo: 'Mis alquileres', sub: 'Consulta, revisa o cancela tus reservas.' },
   'mis-facturas': { vista: vMisFacturas, acceso: 'cliente', titulo: 'Mis facturas', sub: 'Todas las facturas y notas de crédito de tus alquileres.' },
+  'wallet': { vista: vWalletGo, acceso: 'cliente', titulo: 'Wallet GO', sub: 'Consulta tu saldo, créditos, usos y retiros.' },
   'perfil': { vista: vPerfil, acceso: 'sesion', titulo: 'Mi perfil' },
   'factura': { vista: vFactura, acceso: 'sesion', titulo: 'Factura', nav: () => (esAdmin() ? 'facturas' : 'mis-facturas') },
 
@@ -107,8 +108,7 @@ const NAV = {
     ['inicio', 'Inicio', 'home'],
     ['catalogo', 'Catálogo', 'car'],
     ['mis-alquileres', 'Mis alquileres', 'calendar'],
-    ['mis-facturas', 'Mis facturas', 'receipt'],
-    ['perfil', 'Mi perfil', 'user']
+    ['mis-facturas', 'Mis facturas', 'receipt']
   ],
   publico: [
     ['catalogo', 'Catálogo', 'car'],
@@ -302,7 +302,9 @@ function pintarNav(activa) {
     return `<a href="#/${r}" class="${r === activa ? 'act' : ''}" title="${esc(texto)}"${r === activa ? ' aria-current="page"' : ''}>${icon(ic)}<span>${esc(texto)}</span></a>`;
   }).join('');
   const u = usuario();
-  $('#sidePie').innerHTML = u ? `<button class="yo" type="button" data-menu aria-haspopup="menu" aria-expanded="false" aria-label="Abrir opciones de mi cuenta" title="Mi cuenta">${UI.avatar(u.nombre)}<div><b>${esc(u.nombre)}</b><small>${esc(u.rol)}</small></div></button><button type="button" class="pie-accion" data-salir title="Cerrar sesión">${icon('logout')}<span>Cerrar sesión</span></button>` : '';
+  $('#sidePie').innerHTML = u ? `
+    <button class="yo" type="button" data-menu aria-haspopup="menu" aria-expanded="false" aria-label="Abrir opciones de mi cuenta" title="Mi cuenta">${UI.avatar(u.nombre)}<div><b>${esc(u.nombre)}</b><small>${esc(u.rol)}</small></div></button>
+    ${!esAdmin() ? `<button class="side-cerrar-sesion" type="button" data-salir>${icon('logout')}<span>Cerrar sesión</span></button>` : ''}` : '';
 
 }
 
@@ -311,7 +313,7 @@ function pintarFijas() {
   const noLeidas = notificacionesCache ? notificacionesCache.filter(n => !n.leida).length : (pendientes || 0);
   $('#accFijas').innerHTML = `<button class="icon-btn cuadro" type="button" data-tema-global aria-label="Cambiar modo día o noche">${document.documentElement.getAttribute('data-tema') === 'noche' ? '☀' : '☾'}</button>` +
     (esAdmin() ? `<button class="icon-btn campana" type="button" data-notificaciones aria-haspopup="dialog" aria-expanded="false" title="Notificaciones" aria-label="Notificaciones${noLeidas ? ': '+noLeidas+' sin leer' : ''}">${icon('bell')}${noLeidas ? `<span class="punto">${Math.min(noLeidas,99)}</span>` : ''}</button>` : '') +
-    (!u ? '<a class="btn sm" href="#/login">Iniciar sesión</a>' : !esAdmin() ? `<button class="icon-btn" type="button" data-menu aria-label="Mi cuenta">${icon('user')}</button>` : '');
+    (!u ? '<a class="btn sm" href="#/login">Iniciar sesión</a>' : '');
 }
 
 
@@ -512,11 +514,14 @@ async function refrescarPendientes() {
 
 /* Menú de usuario */
 
-function abrirMenu(btn) {
+async function abrirMenu(btn) {
   cerrarMenu();
 
   const u = usuario();
   if (!u) return;
+
+  const walletCuenta = !esAdmin() ? await Api.miWallet().catch(() => null) : null;
+  if (!btn.isConnected) return;
 
   const m = document.createElement('div');
   m.className = 'menu-usuario';
@@ -528,8 +533,8 @@ function abrirMenu(btn) {
       <div><b>${esc(u.nombre)}</b><small>${esc(u.correo)}</small></div>
     </div>
     <a href="#/perfil" role="menuitem">${icon('user')}Mi perfil</a>
-    <a href="#/cambiar-password" role="menuitem">${icon('lock')}Cambiar contraseña</a>
-    ${!esAdmin() ? `<button type="button" role="menuitem" data-salir>${icon('logout')}Cerrar sesión</button>` : ''}`;
+    ${!esAdmin() && Number(walletCuenta?.saldo || 0) > 0 ? `<a href="#/wallet" role="menuitem">${icon('wallet')}Wallet GO <span class="menu-saldo">${fmt.dinero(walletCuenta.saldo)}</span></a>` : ''}
+    <a href="#/cambiar-password" role="menuitem">${icon('lock')}Cambiar contraseña</a>`;
 
   document.body.appendChild(m);
   btn.setAttribute('aria-expanded', 'true');
@@ -1332,7 +1337,7 @@ async function vInicioCliente(c, ctx) {
 
   c.innerHTML = UI.cargando(4);
 
-  const [alquileres, facturas] = await Promise.all([Api.misAlquileres(), Api.misFacturas()]);
+  const [alquileres, facturas, wallet] = await Promise.all([Api.misAlquileres(), Api.misFacturas(), Api.miWallet().catch(() => null)]);
   if (!ctx.vigente()) return;
 
   const h = hoy();
@@ -1355,7 +1360,7 @@ async function vInicioCliente(c, ctx) {
         <div class="card kpi cliente-kpi tono-blue"><span class="etq"><span class="cliente-kpi-ico">${icon('car')}</span> En curso</span><span class="valor">${enCurso.length}</span><span class="nota">Alquileres activos</span></div>
         <div class="card kpi cliente-kpi tono-purple"><span class="etq"><span class="cliente-kpi-ico">${icon('calendar')}</span> Reservas</span><span class="valor">${reservas.length}</span><span class="nota">Próximas salidas</span></div>
         <div class="card kpi cliente-kpi tono-orange"><span class="etq"><span class="cliente-kpi-ico">${icon('clock')}</span> Próxima entrega</span><span class="valor">${proxima ? fmt.fechaCorta(proxima) : '—'}</span><span class="nota">${proxima ? fmt.fecha(proxima) : 'Sin entregas pendientes'}</span></div>
-        <div class="card kpi cliente-kpi tono-green"><span class="etq"><span class="cliente-kpi-ico">${icon('wallet')}</span> Total facturado</span><span class="valor">${fmt.dinero(facturado)}</span><span class="nota">${facturas.length} factura(s)</span></div>
+        ${Number(wallet?.saldo || 0) > 0 ? `<a class="card kpi cliente-kpi tono-green cliente-kpi-link" href="#/wallet"><span class="etq"><span class="cliente-kpi-ico">${icon('wallet')}</span> Wallet GO</span><span class="valor">${fmt.dinero(wallet.saldo)}</span><span class="nota">Saldo disponible</span></a>` : ''}
       </div>
 
       <div class="dos-col">
@@ -1375,7 +1380,6 @@ async function vInicioCliente(c, ctx) {
           <div class="accesos">
             <a class="acceso" href="#/catalogo">${icon('search')}<b>Catálogo</b><small>Vehículos libres por fechas</small></a>
             <a class="acceso" href="#/mis-facturas">${icon('receipt')}<b>Facturas</b><small>Consulta e imprime</small></a>
-            <a class="acceso" href="#/perfil">${icon('user')}<b>Mi perfil</b><small>Tus datos de cliente</small></a>
             <a class="acceso" href="#/cambiar-password">${icon('lock')}<b>Seguridad</b><small>Cambia tu contraseña</small></a>
           </div>
         </section>
@@ -1737,7 +1741,8 @@ function tarjetaWallet(w) {
       <div class="wallet-saldo">${fmt.dinero(saldo)}</div>
       <p class="wallet-nota">Aquí se guardan créditos por cancelaciones y devoluciones anticipadas. Úsalos en tu próximo alquiler; si el saldo no alcanza, pagas la diferencia.</p>
       <div class="wallet-acc">
-        <a class="btn" href="#/catalogo">${icon('car')} Hacer reserva</a>
+        <a class="btn" href="#/wallet">${icon('wallet')} Ver Wallet GO</a>
+        <a class="btn ghost" href="#/catalogo">${icon('car')} Reservar</a>
         <button class="btn ghost" type="button" data-retiro${saldo > 0 ? '' : ' disabled'}>${icon('logout')} Retiro</button>
       </div>
       ${movs.length ? `<ul class="wallet-mov">${movs.map(m => `
@@ -1746,6 +1751,81 @@ function tarjetaWallet(w) {
           <span class="${m.tipo === 'ABONO' ? 'mas' : 'menos'}">${m.tipo === 'ABONO' ? '+' : '−'} ${fmt.dinero(m.monto)}</span>
         </li>`).join('')}</ul>` : ''}
     </section>`;
+}
+
+async function vWalletGo(c, ctx) {
+  ctx.acciones(`<a class="btn" href="#/catalogo">${icon('car')} Usar saldo en un alquiler</a>`);
+  c.innerHTML = `<div class="wallet-page">${UI.cargando(5)}</div>`;
+
+  const w = await Api.miWallet();
+  if (!ctx.vigente()) return;
+
+  const movimientos = (w.movimientos || []).slice();
+  const sumaTipo = tipo => movimientos.filter(m => m.tipo === tipo).reduce((t,m) => t + Number(m.monto || 0), 0);
+  const totAbonos = sumaTipo('ABONO');
+  const totUsos = sumaTipo('USO');
+  const totRetiros = sumaTipo('RETIRO');
+
+  c.innerHTML = `
+    <div class="wallet-page">
+      <section class="wallet-hero card">
+        <div class="wallet-hero-main">
+          <span class="wallet-eyebrow">Saldo disponible</span>
+          <strong>${fmt.dinero(Number(w.saldo) || 0)}</strong>
+          <p>Tu saldo puede utilizarse en futuros alquileres. Los créditos provienen de cancelaciones y devoluciones anticipadas.</p>
+          <div class="wallet-hero-actions">
+            <a class="btn" href="#/catalogo">${icon('car')} Hacer una reserva</a>
+            <button class="btn ghost" type="button" data-wallet-retirar${Number(w.saldo) > 0 ? '' : ' disabled'}>${icon('logout')} Retirar saldo</button>
+          </div>
+        </div>
+        <div class="wallet-hero-info">
+          <span>Retiro en efectivo</span>
+          <b>Recibes ${Number(w.porcentajeRetiro || 0).toFixed(2)} %</b>
+          <small>La retención solo se aplica al retirar. Si utilizas Wallet GO en un alquiler, aprovechas el saldo completo.</small>
+        </div>
+      </section>
+
+      <div class="wallet-resumen">
+        <button class="card wallet-mini tono-green act" type="button" data-wallet-f="todos"><span class="wallet-mini-ico">${icon('wallet')}</span><span><small>Saldo actual</small><b>${fmt.dinero(Number(w.saldo)||0)}</b><em>${movimientos.length} movimiento(s)</em></span></button>
+        <button class="card wallet-mini tono-blue" type="button" data-wallet-f="ABONO"><span class="wallet-mini-ico">${icon('plus')}</span><span><small>Créditos</small><b>${fmt.dinero(totAbonos)}</b><em>Abonos recibidos</em></span></button>
+        <button class="card wallet-mini tono-purple" type="button" data-wallet-f="USO"><span class="wallet-mini-ico">${icon('car')}</span><span><small>Usado</small><b>${fmt.dinero(totUsos)}</b><em>Aplicado a alquileres</em></span></button>
+        <button class="card wallet-mini tono-orange" type="button" data-wallet-f="RETIRO"><span class="wallet-mini-ico">${icon('logout')}</span><span><small>Retiros</small><b>${fmt.dinero(totRetiros)}</b><em>Solicitudes realizadas</em></span></button>
+      </div>
+
+      <section class="card wallet-historial">
+        <div class="card-h"><div><h3>Movimientos de Wallet GO</h3><p>Créditos, usos en alquileres y retiros.</p></div></div>
+        <div id="walletMovs"></div>
+      </section>
+    </div>`;
+
+  let filtro = 'todos';
+  const caja = $('#walletMovs', c);
+  const pintar = () => {
+    $$('[data-wallet-f]', c).forEach(b => b.classList.toggle('act', b.dataset.walletF === filtro));
+    const lista = filtro === 'todos' ? movimientos : movimientos.filter(m => m.tipo === filtro);
+    caja.innerHTML = lista.length ? `<div class="wallet-tabla-wrap"><table class="tabla wallet-tabla">
+      <thead><tr><th>Fecha</th><th>Movimiento</th><th>Concepto</th><th>Alquiler</th><th class="num">Monto</th></tr></thead>
+      <tbody>${lista.map(m => {
+        const positivo = m.tipo === 'ABONO';
+        const tono = m.tipo === 'ABONO' ? 'ok' : (m.tipo === 'USO' ? 'info' : 'warn');
+        return `<tr>
+          <td class="nowrap">${fmt.fechaHora(m.fecha)}</td>
+          <td>${badge(null, etq(m.tipo), tono)}</td>
+          <td class="principal"><b>${esc(m.concepto)}</b></td>
+          <td>${m.alquilerId ? `<a class="link" href="#/mis-alquileres">#${m.alquilerId}</a>` : '—'}</td>
+          <td class="num wallet-monto ${positivo ? 'positivo' : 'negativo'}">${positivo ? '+' : '−'} ${fmt.dinero(Math.abs(Number(m.monto)||0))}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>` : UI.vacio('No hay movimientos en esta categoría.', 'wallet');
+  };
+
+  c.addEventListener('click', e => {
+    const f = e.target.closest('[data-wallet-f]');
+    if (f) { filtro = f.dataset.walletF; pintar(); return; }
+    const r = e.target.closest('[data-wallet-retirar]');
+    if (r) retirarWallet(w, () => render());
+  });
+
+  pintar();
 }
 
 async function retirarWallet(w, alCambiar) {
