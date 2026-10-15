@@ -761,6 +761,15 @@ const Demo = (() => {
       return true;
     },
 
+    reactivarVehiculo({ id }, ctx) {
+      admin(ctx);
+      const veh = vehiculoDe(id);
+      if (!veh) falla('NO_ENCONTRADO', 'El vehículo no existe.');
+      veh.activo = true;
+      if (veh.estadoOperativo === 'FUERA_DE_SERVICIO') veh.estadoOperativo = 'DISPONIBLE';
+      return vVehiculo(veh);
+    },
+
 
     clientes(v, ctx) {
       admin(ctx);

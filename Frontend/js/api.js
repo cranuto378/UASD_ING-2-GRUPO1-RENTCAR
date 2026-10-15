@@ -308,6 +308,9 @@ const Api = (() => {
     desactivarVehiculo: id => pedir('desactivarVehiculo',
       `mutation DesactivarVehiculo($id: Int!) { desactivarVehiculo(id: $id) }`, { id }),
 
+    reactivarVehiculo: id => pedir('reactivarVehiculo',
+      `mutation ReactivarVehiculo($id: Int!) { reactivarVehiculo(id: $id) { ${VEHICULO} } }`, { id }),
+
 
     /* Clientes */
 

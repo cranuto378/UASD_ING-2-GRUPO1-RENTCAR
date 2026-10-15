@@ -5592,3 +5592,200 @@ html[data-tema="noche"] .devolucion-cab{box-shadow:inset 0 1px 0 rgba(255,255,25
   .devolucion-danos,.devolucion-fotos-h{align-items:flex-start;flex-direction:column;}
   .devolucion-fotos-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
+
+
+/* =========================================================
+   OCT 2026 · FLOTA · RESUMEN, ESTADOS Y DETALLE
+========================================================= */
+.flota-resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+.flota-mini{min-height:104px;padding:16px;display:flex;align-items:center;gap:13px;position:relative;overflow:hidden;}
+.flota-mini{width:100%;text-align:left;cursor:pointer;font:inherit;color:inherit;appearance:none;-webkit-appearance:none;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;}
+.flota-mini:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--acento) 38%,var(--borde));}
+.flota-mini:focus-visible{outline:2px solid color-mix(in srgb,var(--acento) 72%,transparent);outline-offset:3px;}
+.flota-mini.act{border-color:color-mix(in srgb,var(--acento) 65%,var(--borde));box-shadow:0 0 0 2px color-mix(in srgb,var(--acento) 13%,transparent),0 14px 34px rgba(24,48,86,.09);background:color-mix(in srgb,var(--acento) 5%,var(--glass-2));}
+.flota-mini::after{content:"";position:absolute;width:92px;height:92px;border-radius:50%;right:-34px;top:-34px;background:color-mix(in srgb,var(--acento) 10%,transparent);filter:blur(4px);pointer-events:none;}
+.flota-mini-ico{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:0 0 42px;color:var(--acento);background:color-mix(in srgb,var(--acento) 10%,var(--glass));border:1px solid color-mix(in srgb,var(--acento) 22%,var(--borde-2));}
+.flota-mini-ico .ic{width:20px;height:20px;}
+.flota-mini small,.flota-mini em{display:block;color:var(--txt-3);font-style:normal;}
+.flota-mini small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.045em;}
+.flota-mini b{display:block;font-size:25px;line-height:1.05;margin:4px 0;}
+.flota-mini em{font-size:11px;}
+
+.tabla tr.fila-veh-disponible td{background:color-mix(in srgb,#18a36b 4.5%,transparent);}
+.tabla tr.fila-veh-alquilado td{background:color-mix(in srgb,#3978d7 4.5%,transparent);}
+.tabla tr.fila-veh-mantenimiento td{background:color-mix(in srgb,#d79a22 5.5%,transparent);}
+.tabla tr.fila-veh-fuera td{background:color-mix(in srgb,#dc5367 5.5%,transparent);}
+.tabla tr.fila-veh-inactivo td{background:color-mix(in srgb,#7b8495 5%,transparent);color:var(--txt-2);}
+.tabla tr.fila-veh-disponible td:first-child{box-shadow:inset 3px 0 0 rgba(24,163,107,.62);}
+.tabla tr.fila-veh-alquilado td:first-child{box-shadow:inset 3px 0 0 rgba(57,120,215,.62);}
+.tabla tr.fila-veh-mantenimiento td:first-child{box-shadow:inset 3px 0 0 rgba(215,154,34,.70);}
+.tabla tr.fila-veh-fuera td:first-child{box-shadow:inset 3px 0 0 rgba(220,83,103,.68);}
+.tabla tr.fila-veh-inactivo td:first-child{box-shadow:inset 3px 0 0 rgba(123,132,149,.55);}
+html[data-tema="noche"] .tabla tr.fila-veh-disponible td{background:color-mix(in srgb,#52d5a6 5.5%,transparent);}
+html[data-tema="noche"] .tabla tr.fila-veh-alquilado td{background:color-mix(in srgb,#72aefc 5.5%,transparent);}
+html[data-tema="noche"] .tabla tr.fila-veh-mantenimiento td{background:color-mix(in srgb,#f1b45d 6%,transparent);}
+html[data-tema="noche"] .tabla tr.fila-veh-fuera td{background:color-mix(in srgb,#ff8193 6%,transparent);}
+
+.detalle-veh{display:grid;grid-template-columns:230px minmax(0,1fr);gap:18px;align-items:center;}
+.detalle-veh-foto{height:160px;border-radius:18px;overflow:hidden;background:var(--glass-3);border:1px solid var(--borde-2);display:grid;place-items:center;}
+.detalle-veh-foto img{width:100%;height:100%;object-fit:cover;}
+.detalle-veh-foto .sin-foto,.detalle-veh-foto .auto-svg{width:100%;height:100%;}
+.detalle-veh-eyebrow{display:block;color:var(--txt-3);font-size:10px;font-weight:800;letter-spacing:.08em;}
+.detalle-veh-info h3{font-size:24px;margin:5px 0 3px;letter-spacing:-.02em;}
+.detalle-veh-info p{color:var(--txt-2);margin-bottom:10px;}
+.detalle-veh-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:16px;}
+.detalle-veh-grid>div{padding:12px;border-radius:14px;background:var(--glass-3);border:1px solid var(--borde-2);}
+.detalle-veh-grid small{display:block;color:var(--txt-3);font-size:10px;text-transform:uppercase;letter-spacing:.045em;font-weight:750;}
+.detalle-veh-grid b{display:block;margin-top:4px;font-size:12px;}
+.detalle-veh-obs{margin-top:12px;padding:13px;border-radius:14px;background:var(--glass-3);border:1px solid var(--borde-2);}
+.detalle-veh-obs small{display:block;color:var(--txt-3);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.045em;margin-bottom:5px;}
+.detalle-veh-obs p{color:var(--txt-2);font-size:12px;line-height:1.55;}
+@media(max-width:900px){.flota-resumen{grid-template-columns:repeat(2,minmax(0,1fr));}.detalle-veh-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:620px){.flota-resumen{grid-template-columns:1fr 1fr;}.flota-mini{padding:13px;min-height:96px}.detalle-veh{grid-template-columns:1fr}.detalle-veh-foto{height:190px}.detalle-veh-grid{grid-template-columns:1fr 1fr}.detalle-veh-info h3{font-size:21px}}
+
+
+/* =========================================================
+   OCT 2026 · CONFIGURACIÓN · CATEGORÍAS DE VEHÍCULOS
+========================================================= */
+.config-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(280px,.42fr);
+  gap:16px;
+  align-items:start;
+}
+.config-card{padding:18px;}
+.config-card-h{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px;}
+.config-card-h>div{display:flex;align-items:flex-start;gap:11px;}
+.config-card-ico{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;color:var(--info);background:color-mix(in srgb,var(--info) 10%,var(--glass));border:1px solid color-mix(in srgb,var(--info) 22%,var(--borde-2));flex:0 0 40px;}
+.config-card-ico .ic{width:19px;height:19px;}
+.config-card-h h3{font-size:16px;margin:1px 0 3px;}
+.config-card-h p{font-size:11px;color:var(--txt-3);line-height:1.45;}
+.categorias-lista{display:grid;gap:8px;}
+.categoria-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border:1px solid var(--borde-2);border-radius:14px;background:var(--glass-3);}
+.categoria-item>div{display:flex;align-items:center;gap:10px;min-width:0;}
+.categoria-item .categoria-dot{width:9px;height:9px;border-radius:50%;background:var(--info);box-shadow:0 0 0 4px color-mix(in srgb,var(--info) 10%,transparent);flex:0 0 9px;}
+.categoria-item b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.categoria-item small{font-size:10px;color:var(--txt-3);white-space:nowrap;}
+.config-info{padding:18px;}
+.config-info h3{font-size:15px;margin-bottom:8px;}
+.config-info p{font-size:11px;line-height:1.6;color:var(--txt-2);}
+.config-info .info-banda{margin-top:14px;}
+html[data-tema="noche"] .categoria-item{box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
+@media(max-width:900px){.config-grid{grid-template-columns:1fr;}}
+
+
+/* =========================================================
+   FLOTA · HISTORIAL DEL VEHÍCULO
+========================================================= */
+.historial-veh-cargando{min-height:180px;display:grid;place-items:center;gap:10px;color:var(--txt-3);}
+.historial-veh-cargando .skeleton{width:60%;height:16px;border-radius:999px;background:color-mix(in srgb,var(--txt) 8%,transparent);}
+.historial-veh-head{display:grid;grid-template-columns:130px minmax(0,1fr);gap:16px;align-items:center;margin-bottom:14px;}
+.historial-veh-foto{height:92px;border-radius:16px;overflow:hidden;background:var(--glass);border:1px solid var(--borde-2);display:grid;place-items:center;}
+.historial-veh-foto img{width:100%;height:100%;object-fit:cover;}
+.historial-veh-head h3{margin:4px 0 8px;font-size:21px;}
+.historial-veh-resumen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 18px;}
+.historial-veh-resumen>div{padding:13px 14px;border-radius:14px;border:1px solid var(--borde-2);background:var(--glass-3);}
+.historial-veh-resumen small{display:block;color:var(--txt-3);font-size:10px;text-transform:uppercase;font-weight:800;letter-spacing:.04em;}
+.historial-veh-resumen b{display:block;margin-top:5px;font-size:20px;}
+.historial-veh-lista{display:grid;gap:0;max-height:390px;overflow:auto;padding-right:4px;}
+.historial-veh-item{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;position:relative;}
+.historial-veh-linea{position:relative;display:flex;justify-content:center;}
+.historial-veh-linea:after{content:"";position:absolute;top:14px;bottom:-1px;width:1px;background:var(--borde-2);}
+.historial-veh-item:last-child .historial-veh-linea:after{display:none;}
+.historial-veh-linea span{width:9px;height:9px;border-radius:50%;margin-top:14px;background:var(--azul);box-shadow:0 0 0 4px color-mix(in srgb,var(--azul) 12%,transparent);z-index:1;}
+.historial-veh-contenido{padding:9px 0 15px;border-bottom:1px solid var(--borde-2);}
+.historial-veh-item:last-child .historial-veh-contenido{border-bottom:0;}
+.historial-veh-titulo{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.historial-veh-contenido p{margin:4px 0;color:var(--txt-2);font-size:12px;}
+.historial-veh-meta{display:flex;justify-content:space-between;gap:12px;color:var(--txt-3);font-size:11px;}
+.historial-veh-meta b{color:var(--txt-2);}
+@media(max-width:650px){.historial-veh-head{grid-template-columns:1fr}.historial-veh-foto{height:170px}.historial-veh-resumen{grid-template-columns:1fr}.historial-veh-meta,.historial-veh-titulo{align-items:flex-start;flex-direction:column}}
+
+/* =========================================================
+   OCT 2026 · CLIENTES · RESUMEN, FILTROS Y DETALLE
+========================================================= */
+.clientes-resumen{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+.cliente-mini{
+  min-height:104px;
+  padding:16px 18px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  text-align:left;
+  cursor:pointer;
+  appearance:none;
+  color:var(--txt);
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,background .2s ease;
+}
+.cliente-mini:hover{transform:translateY(-1px);}
+.cliente-mini.activa{box-shadow:0 0 0 2px color-mix(in srgb,var(--acento) 22%,transparent),0 16px 38px rgba(22,39,69,.10);}
+.cliente-mini-ico{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;background:color-mix(in srgb,currentColor 10%,transparent);}
+.cliente-mini-ico .ic{width:20px;height:20px;}
+.cliente-mini span>small,.cliente-mini span>b,.cliente-mini span>em{display:block;}
+.cliente-mini small{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--txt-2);}
+.cliente-mini b{font-size:24px;line-height:1.05;margin:4px 0;color:var(--txt);}
+.cliente-mini em{font-style:normal;font-size:11px;color:var(--txt-3);}
+.cliente-mini.tono-blue .cliente-mini-ico{color:#2d6cdf;background:rgba(45,108,223,.10);}
+.cliente-mini.tono-purple .cliente-mini-ico{color:#7c5ce7;background:rgba(124,92,231,.11);}
+.cliente-mini.tono-green .cliente-mini-ico{color:#159b69;background:rgba(21,155,105,.10);}
+.cliente-mini.tono-gray .cliente-mini-ico{color:#748094;background:rgba(116,128,148,.11);}
+
+.cliente-herramientas{margin-bottom:10px;}
+.cliente-filtros{padding:14px;display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:10px;align-items:center;margin-bottom:16px;}
+.cliente-filtros .buscar{width:100%;}
+.cliente-celda{display:flex;align-items:center;gap:12px;}
+.tabla-clientes tr.fila-cliente-inactivo td{background:color-mix(in srgb,#8c96a8 4%,transparent);}
+
+.detalle-cliente-head{display:flex;align-items:center;gap:16px;padding:4px 0 16px;border-bottom:1px solid var(--borde-2);}
+.detalle-cliente-avatar{flex:0 0 auto;}
+.detalle-cliente-identidad h3{font-size:22px;margin:3px 0 2px;}
+.detalle-cliente-identidad p{font-size:12px;color:var(--txt-3);margin-bottom:8px;}
+.detalle-cliente-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0;}
+.detalle-cliente-grid>div{padding:13px 14px;border:1px solid var(--borde-2);border-radius:14px;background:var(--glass-3);}
+.detalle-cliente-grid small,.detalle-cliente-grid b{display:block;}
+.detalle-cliente-grid small{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--txt-3);font-weight:800;margin-bottom:4px;}
+.detalle-cliente-grid b{font-size:12px;overflow-wrap:anywhere;}
+.cliente-resumen-modal{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px;}
+.cliente-resumen-modal>div{padding:13px;border:1px solid var(--borde-2);border-radius:14px;background:var(--glass);}
+.cliente-resumen-modal small,.cliente-resumen-modal b{display:block;}
+.cliente-resumen-modal small{font-size:10px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.04em;font-weight:800;}
+.cliente-resumen-modal b{font-size:21px;margin-top:4px;}
+.cliente-historial-seccion{border-top:1px solid var(--borde-2);padding-top:16px;}
+.cliente-historial-seccion .seccion-titulo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.cliente-historial-seccion h4{font-size:16px;margin-top:2px;}
+.cliente-historial-lista{display:grid;gap:8px;}
+.cliente-historial-item{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:11px 12px;border:1px solid var(--borde-2);border-radius:13px;background:var(--glass-3);}
+.cliente-historial-main b,.cliente-historial-main span{display:block;}
+.cliente-historial-main b{font-size:12px;}
+.cliente-historial-main span{font-size:11px;color:var(--txt-3);margin-top:3px;}
+.cliente-historial-fin{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+.cliente-historial-fin>b{font-size:12px;}
+
+html[data-tema="noche"] .cliente-mini.activa{box-shadow:0 0 0 2px color-mix(in srgb,var(--acento) 30%,transparent),0 18px 42px rgba(0,0,0,.20);}
+
+@media(max-width:1050px){
+  .clientes-resumen{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:650px){
+  .clientes-resumen{grid-template-columns:1fr 1fr;gap:10px;}
+  .cliente-mini{min-height:94px;padding:13px;gap:10px;}
+  .cliente-mini b{font-size:21px;}
+  .cliente-filtros{grid-template-columns:1fr;}
+  .detalle-cliente-head{align-items:flex-start;}
+  .detalle-cliente-grid,.cliente-resumen-modal{grid-template-columns:1fr 1fr;}
+  .cliente-historial-item{align-items:flex-start;flex-direction:column;}
+  .cliente-historial-fin{width:100%;justify-content:space-between;}
+}
+
+
+/* Flota: filtro visual para vehículos inactivos */
+.flota-resumen{grid-template-columns:repeat(5,minmax(0,1fr));}
+.flota-mini.tono-gray .flota-mini-ico{color:var(--txt-2);background:color-mix(in srgb,var(--txt-2) 9%,transparent);border-color:color-mix(in srgb,var(--txt-2) 18%,transparent);}
+.flota-mini.tono-gray.act{border-color:color-mix(in srgb,var(--txt-2) 46%,var(--borde));box-shadow:0 0 0 2px color-mix(in srgb,var(--txt-2) 8%,transparent),0 14px 30px rgba(25,40,70,.08);}
+@media(max-width:1250px){.flota-resumen{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:760px){.flota-resumen{grid-template-columns:repeat(2,minmax(0,1fr));}}

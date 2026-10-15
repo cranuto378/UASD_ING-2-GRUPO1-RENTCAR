@@ -55,9 +55,10 @@ const RUTAS = {
   'dashboard': { vista: vDashboard, acceso: 'admin', titulo: 'Panel de control', sub: 'Resumen de la flota, los alquileres y los ingresos.' },
   'nuevo-alquiler': { vista: vNuevoAlquiler, acceso: 'admin', titulo: 'Registrar alquiler', sub: 'Registro de alquiler en mostrador.' },
   'alquileres': { vista: vAlquileres, acceso: 'admin', titulo: 'Gestionar alquileres', sub: 'Modifica, cancela o registra devoluciones.' },
-  'flota': { vista: vFlota, acceso: 'admin', titulo: 'Flota', sub: 'Vehículos, estados, fotos y categorías.' },
+  'flota': { vista: vFlota, acceso: 'admin', titulo: 'Flota', sub: 'Vehículos, estados y fotos.' },
   'clientes': { vista: vClientes, acceso: 'admin', titulo: 'Clientes', sub: 'Clientes del portal y de mostrador.' },
   'facturas': { vista: vFacturas, acceso: 'admin', titulo: 'Facturación', sub: 'Facturas emitidas. No se editan ni se eliminan.' },
+  'configuracion': { vista: vConfiguracion, acceso: 'admin', titulo: 'Configuración', sub: 'Parámetros generales del sistema.' },
   'administradores': { vista: vAdministradores, acceso: 'admin', titulo: 'Administradores', sub: 'Alta de nuevos usuarios administradores.' }
 };
 
@@ -267,7 +268,7 @@ function pintarNav(activa) {
 
   $('#nav').innerHTML = items.map(([r, texto, ic]) => {
     if (esAdmin() && r === 'alquileres') return `<details class="nav-grupo" ${['alquileres','nuevo-alquiler'].includes(activa) ? 'open' : ''}><summary title="Alquileres">${icon(ic)}<span>Alquileres</span><b class="nav-chevron">⌄</b></summary><div class="nav-sub"><a href="#/nuevo-alquiler" class="${activa === 'nuevo-alquiler' ? 'act' : ''}"><span>Registrar alquiler</span></a><a href="#/alquileres" class="${activa === 'alquileres' ? 'act' : ''}"><span>Gestionar alquileres</span></a></div></details>`;
-    if (['reportes','configuracion'].includes(r)) return `<button type="button" class="nav-pendiente" data-modulo-pendiente="${esc(texto)}" title="${esc(texto)}: pendiente de implementar">${icon(ic)}<span>${esc(texto)}<small>Próximamente</small></span></button>`;
+    if (r === 'reportes') return `<button type="button" class="nav-pendiente" data-modulo-pendiente="${esc(texto)}" title="${esc(texto)}: pendiente de implementar">${icon(ic)}<span>${esc(texto)}<small>Próximamente</small></span></button>`;
     return `<a href="#/${r}" class="${r === activa ? 'act' : ''}" title="${esc(texto)}"${r === activa ? ' aria-current="page"' : ''}>${icon(ic)}<span>${esc(texto)}</span></a>`;
   }).join('');
   const u = usuario();
@@ -2155,6 +2156,8 @@ async function vAlquileres(c, ctx) {
   let filtro = FILTROS_ALQ[ctx.q.get('filtro')] ? ctx.q.get('filtro') : 'todos';
   const clienteId = +ctx.q.get('cliente') || null;
   const clienteNombre = ctx.q.get('nombre');
+  const vehiculoId = +ctx.q.get('vehiculo') || null;
+  const vehiculoNombre = ctx.q.get('vehiculoNombre');
   const filtros = { texto: '', canal: '', desde: '', hasta: '' };
 
   ctx.acciones(`<a class="btn" href="#/nuevo-alquiler${clienteId ? '?cliente=' + clienteId : ''}">${icon('plus')} Nuevo alquiler</a>`);
@@ -2169,6 +2172,7 @@ async function vAlquileres(c, ctx) {
         ${Object.entries(FILTROS_ALQ).map(([k, f]) => `<button type="button" data-f="${k}">${f.texto}</button>`).join('')}
       </div>
       ${clienteId ? `<span class="filtro-activo">Cliente: <b>${esc(clienteNombre || '#' + clienteId)}</b><a href="#/alquileres" aria-label="Quitar filtro de cliente">${icon('x')}</a></span>` : ''}
+      ${vehiculoId ? `<span class="filtro-activo">Vehículo: <b>${esc(vehiculoNombre || '#' + vehiculoId)}</b><a href="#/alquileres" aria-label="Quitar filtro de vehículo">${icon('x')}</a></span>` : ''}
     </div>
 
     <div class="card alq-filtros">
@@ -2195,7 +2199,9 @@ async function vAlquileres(c, ctx) {
     vigente: ctx.vigente,
     cargar: pag => clienteId
       ? panelAlquileresCliente({ clienteId, filtro, filtros, ...pag })
-      : alquileresFiltrados({ filtro, ...filtros, ...pag }),
+      : vehiculoId
+        ? panelAlquileresVehiculo({ vehiculoId, filtro, filtros, ...pag })
+        : alquileresFiltrados({ filtro, ...filtros, ...pag }),
     pintar: r => (r.nodes.length ? `
       <div class="tabla-wrap">
         <table class="tabla tabla-alquileres">
@@ -2270,7 +2276,7 @@ async function vAlquileres(c, ctx) {
     if (resumen) {
       filtro = resumen.dataset.res;
       marcar();
-      cambiarQuery('alquileres', { filtro, cliente: clienteId, nombre: clienteNombre });
+      cambiarQuery('alquileres', { filtro, cliente: clienteId, nombre: clienteNombre, vehiculo: vehiculoId, vehiculoNombre });
       return l.recargar(true);
     }
 
@@ -2278,7 +2284,7 @@ async function vAlquileres(c, ctx) {
     if (f) {
       filtro = f.dataset.f;
       marcar();
-      cambiarQuery('alquileres', { filtro, cliente: clienteId, nombre: clienteNombre });
+      cambiarQuery('alquileres', { filtro, cliente: clienteId, nombre: clienteNombre, vehiculo: vehiculoId, vehiculoNombre });
       return l.recargar(true);
     }
 
@@ -2303,6 +2309,22 @@ async function vAlquileres(c, ctx) {
 async function panelAlquileresCliente({ clienteId, filtro = 'todos', filtros = {}, first = 12, after = null, last = null, before = null }) {
   const def = FILTROS_ALQ[filtro] || FILTROS_ALQ.todos;
   const r = await panelTodas(p => Api.alquileres({ clienteId, ...def.args, ...p }));
+  let lista = r.nodes;
+  if (def.local) lista = lista.filter(def.local);
+  const q = (filtros.texto || '').trim().toLowerCase();
+  if (q) lista = lista.filter(a => textoAlquiler(a).includes(q));
+  if (filtros.canal) lista = lista.filter(a => a.canal === filtros.canal);
+  if (filtros.desde) lista = lista.filter(a => a.fechaInicio >= filtros.desde);
+  if (filtros.hasta) lista = lista.filter(a => a.fechaInicio <= filtros.hasta);
+  const cantidad = last || first;
+  const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
+  const nodes = lista.slice(inicio, inicio + cantidad);
+  return { nodes, totalCount: lista.length, pageInfo: { hasNextPage: inicio + cantidad < lista.length, endCursor: String(inicio + cantidad), hasPreviousPage: inicio > 0, startCursor: String(inicio) } };
+}
+
+async function panelAlquileresVehiculo({ vehiculoId, filtro = 'todos', filtros = {}, first = 12, after = null, last = null, before = null }) {
+  const def = FILTROS_ALQ[filtro] || FILTROS_ALQ.todos;
+  const r = await panelTodas(p => Api.alquileres({ vehiculoId, ...def.args, ...p }));
   let lista = r.nodes;
   if (def.local) lista = lista.filter(def.local);
   const q = (filtros.texto || '').trim().toLowerCase();
@@ -3120,20 +3142,141 @@ async function vNuevoAlquiler(c, ctx) {
    FLOTA
 ========================================================= */
 
+function claseFilaVehiculo(v) {
+  if (!v.activo) return 'fila-veh-inactivo';
+  return ({
+    DISPONIBLE: 'fila-veh-disponible',
+    ALQUILADO: 'fila-veh-alquilado',
+    MANTENIMIENTO: 'fila-veh-mantenimiento',
+    FUERA_DE_SERVICIO: 'fila-veh-fuera'
+  })[v.estadoActual] || '';
+}
+
+async function resumenFlota() {
+  const [d, r] = await Promise.all([
+    Api.dashboard(),
+    Api.vehiculos({ incluirInactivos: true, first: 200 })
+  ]);
+  const lista = r.nodes || [];
+  return {
+    total: d.totalVehiculos || 0,
+    disponibles: d.vehiculosDisponibles || 0,
+    alquilados: d.vehiculosAlquilados || 0,
+    mantenimiento: d.vehiculosEnMantenimiento || 0,
+    fuera: d.vehiculosFueraDeServicio || 0,
+    inactivos: lista.filter(v => v.activo === false).length
+  };
+}
+
+async function historialVehiculo(v) {
+  const m = UI.modal({
+    titulo: `Historial · ${esc(v.marca)} ${esc(v.modelo)}`,
+    ancho: 760,
+    cuerpo: `<div class="historial-veh-cargando"><span class="skeleton"></span><p>Cargando historial del vehículo…</p></div>`
+  });
+  try {
+    const r = await Api.alquileres({ vehiculoId: v.id, first: 100 });
+    const lista = [...(r.nodes || [])].sort((a,b) => String(b.fechaCreacion || b.fechaInicio).localeCompare(String(a.fechaCreacion || a.fechaInicio)));
+    const estadoAhora = v.activo ? badge(v.estadoActual) : badge(null, 'Inactivo', 'neutro');
+    m.cuerpo.innerHTML = `
+      <div class="historial-veh-head">
+        <div class="historial-veh-foto">${fotoVeh(v)}</div>
+        <div><span class="eyebrow">${esc(v.placa)}</span><h3>${esc(v.marca)} ${esc(v.modelo)}</h3><div class="badges">${estadoAhora}</div></div>
+      </div>
+      ${v.estadoActual === 'MANTENIMIENTO' ? `<div class="info-banda aviso">${icon('pulse')}<span>Mantenimiento actual${v.mantenimientoHasta ? ` hasta <b>${fmt.fecha(v.mantenimientoHasta)}</b>` : ' sin fecha de finalización'}.</span></div>` : ''}
+      <div class="historial-veh-resumen">
+        <div><small>Alquileres registrados</small><b>${lista.length}</b></div>
+        <div><small>Completados</small><b>${lista.filter(a=>a.estado==='COMPLETADO').length}</b></div>
+        <div><small>Cancelados</small><b>${lista.filter(a=>a.estado==='CANCELADO').length}</b></div>
+      </div>
+      <div class="historial-veh-lista">
+        ${lista.length ? lista.map(a => `
+          <article class="historial-veh-item">
+            <div class="historial-veh-linea"><span></span></div>
+            <div class="historial-veh-contenido">
+              <div class="historial-veh-titulo"><b>Alquiler #${a.id}</b>${estadoAlquiler(a)}</div>
+              <p>${esc(a.clienteNombre)} · ${esc(a.clienteCedula)}</p>
+              <div class="historial-veh-meta"><span>${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaDevolucion || a.fechaFinPactada)}</span><b>${fmt.dinero(a.montoTotal)}</b></div>
+            </div>
+          </article>`).join('') : UI.vacio('Este vehículo todavía no tiene alquileres registrados.', 'calendar')}
+      </div>
+      <div class="modal-acc"><button class="btn ghost" type="button" data-cerrar>Cerrar</button></div>`;
+  } catch (err) {
+    m.cuerpo.innerHTML = `<div class="vacio"><h4>No se pudo cargar el historial</h4><p>${esc(err.message || 'Inténtalo de nuevo.')}</p></div>`;
+  }
+}
+
+function detalleVehiculo(v, alActualizar) {
+  const extra = !!Api.VEHICULO_EXTRA;
+  const m = UI.modal({
+    titulo: 'Detalle del vehículo',
+    ancho: 720,
+    cuerpo: `
+      <div class="detalle-veh">
+        <div class="detalle-veh-foto">${fotoVeh(v)}</div>
+        <div class="detalle-veh-info">
+          <span class="detalle-veh-eyebrow">VEHÍCULO #${v.id}</span>
+          <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
+          <p>${esc(v.placa)} · ${esc(v.categoria || 'Sin categoría')}</p>
+          <div class="badges">${v.activo ? badge(v.estadoActual) : badge(null, 'Inactivo', 'neutro')}</div>
+        </div>
+      </div>
+      <div class="detalle-veh-grid">
+        <div><small>Año</small><b>${esc(v.anio)}</b></div>
+        <div><small>Precio por día</small><b>${fmt.dinero(v.precioDia)}</b></div>
+        <div><small>Categoría</small><b>${esc(v.categoria || '—')}</b></div>
+        <div><small>Placa</small><b>${esc(v.placa)}</b></div>
+        ${extra ? `<div><small>Transmisión</small><b>${esc(etq(v.transmision) || '—')}</b></div>
+        <div><small>Color</small><b>${esc(v.color || '—')}</b></div>
+        <div><small>Capacidad</small><b>${v.capacidad ? `${esc(v.capacidad)} pasajeros` : '—'}</b></div>` : ''}
+        ${v.estadoActual === 'MANTENIMIENTO' ? `<div><small>Mantenimiento hasta</small><b>${v.mantenimientoHasta ? fmt.fecha(v.mantenimientoHasta) : 'Sin fecha definida'}</b></div>` : ''}
+      </div>
+      ${extra && v.observaciones ? `<div class="detalle-veh-obs"><small>Observaciones</small><p>${esc(v.observaciones)}</p></div>` : ''}
+      <div class="modal-acc">
+        <button class="btn ghost" type="button" data-cerrar>Cerrar</button>
+        <button class="btn ghost" type="button" data-historial-detalle>${icon('clock')} Historial</button>
+        <a class="btn ghost" href="#/alquileres?vehiculo=${v.id}&vehiculoNombre=${encodeURIComponent(`${v.marca} ${v.modelo} · ${v.placa}`)}" data-cerrar>${icon('calendar')} Ver alquileres</a>
+        ${!v.activo ? `<button class="btn" type="button" data-reactivar-detalle>${icon('undo')} Reactivar</button>` : `<button class="btn" type="button" data-editar-detalle>${icon('edit')} Editar vehículo</button>`}
+      </div>`
+  });
+  const hist = $('[data-historial-detalle]', m.el);
+  if (hist) hist.onclick = () => historialVehiculo(v);
+  const editar = $('[data-editar-detalle]', m.el);
+  if (editar) editar.onclick = () => {
+    m.cerrar();
+    location.hash = '#/flota?editar=' + v.id;
+  };
+  const reactivar = $('[data-reactivar-detalle]', m.el);
+  if (reactivar) reactivar.onclick = async () => {
+    UI.ocupado(reactivar, true);
+    try {
+      await Api.reactivarVehiculo(v.id);
+      UI.toast('Vehículo reactivado.');
+      m.cerrar();
+      alActualizar?.();
+    } catch (err) {
+      UI.ocupado(reactivar, false);
+      avisarError(err);
+    }
+  };
+}
+
 async function vFlota(c, ctx) {
   let categorias = [];
-  const estadoPanel = ctx.q.get('estado') === 'DISPONIBLE' ? 'DISPONIBLE' : null;
-  const filtros = { texto: '', categoriaId: '', incluirInactivos: false };
+  const ESTADOS_PANEL_FLOTA = ['DISPONIBLE', 'ALQUILADO', 'MANTENIMIENTO', 'FUERA_DE_SERVICIO', 'INACTIVO'];
+  const estadoPanel = ESTADOS_PANEL_FLOTA.includes(ctx.q.get('estado')) ? ctx.q.get('estado') : null;
+  const filtros = { texto: '', categoriaId: '' };
 
   ctx.acciones(`<button class="btn" type="button" data-nuevo-veh>${icon('plus')} Nuevo vehículo</button>`);
 
   c.innerHTML = `
+    <div class="flota-resumen" id="flotaResumen">
+      ${Array.from({ length: 4 }, () => '<div class="card flota-mini"><span class="skeleton"></span></div>').join('')}
+    </div>
     <div class="herramientas">
-      ${estadoPanel ? '<span class="filtro-activo">Estado: <b>Disponible</b><a href="#/flota" aria-label="Quitar filtro de estado">×</a></span>' : ''}
+      ${estadoPanel ? `<span class="filtro-activo">Estado: <b>${esc(etq(estadoPanel))}</b><a href="#/flota" aria-label="Quitar filtro de estado">×</a></span>` : ''}
       <div class="buscar">${icon('search')}<input type="search" id="qVeh" placeholder="Buscar por placa, marca o modelo" aria-label="Buscar vehículo"></div>
       <select id="catVeh" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select>
-      <label class="check"><input type="checkbox" id="inacVeh"> Incluir inactivos</label>
-      <div class="derecha"><button class="btn ghost" type="button" data-nueva-cat>${icon('tag')} Nueva categoría</button></div>
     </div>
     <div class="card" id="lista"></div>`;
 
@@ -3147,36 +3290,59 @@ async function vFlota(c, ctx) {
   const l = listado({
     cont: $('#lista', c),
     vigente: ctx.vigente,
-    cargar: pag => (estadoPanel ? panelFlotaDisponible : Api.vehiculos)({
+    cargar: pag => (estadoPanel ? p => panelFlotaEstado(estadoPanel, p) : Api.vehiculos)({
       texto: filtros.texto || null,
       categoriaId: filtros.categoriaId ? +filtros.categoriaId : null,
-      incluirInactivos: filtros.incluirInactivos,
+      incluirInactivos: estadoPanel === 'INACTIVO',
       ...pag
     }),
     pintar: r => (r.nodes.length ? `
       <div class="tabla-wrap">
         <table class="tabla">
-          <thead><tr><th></th><th>Vehículo</th><th>Placa</th><th class="num">Precio/día</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th></th><th>Vehículo</th><th>Placa</th><th class="num">Precio/día</th><th>Estado</th><th>Mantenimiento hasta</th><th></th></tr></thead>
           <tbody>${r.nodes.map(v => `
-            <tr class="${v.activo ? '' : 'inactivo'}">
+            <tr class="${claseFilaVehiculo(v)}">
               <td><div class="foto-mini">${fotoVeh(v)}</div></td>
               <td class="principal"><b>${esc(v.marca)} ${esc(v.modelo)}</b><small>${esc(v.anio)} · ${esc(v.categoria)}</small></td>
               <td class="nowrap">${esc(v.placa)}</td>
               <td class="num">${fmt.dinero(v.precioDia)}</td>
               <td><div class="badges">
                 ${v.activo ? badge(v.estadoActual) : badge(null, 'Inactivo', 'neutro')}
-                ${v.activo && v.estadoActual === 'MANTENIMIENTO' && v.mantenimientoHasta ? `<small style="color:var(--txt-3)">hasta ${fmt.fecha(v.mantenimientoHasta)}</small>` : ''}
-              </div></td>
+                </div></td>
+              <td class="nowrap">${v.estadoActual === 'MANTENIMIENTO' ? (v.mantenimientoHasta ? fmt.fecha(v.mantenimientoHasta) : 'Sin fecha') : '—'}</td>
               <td><div class="acciones">
+                <button class="icon-btn" type="button" data-acc="ver" data-id="${v.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
+                <button class="icon-btn" type="button" data-acc="historial" data-id="${v.id}" title="Historial" aria-label="Historial">${icon('clock')}</button>
                 <button class="icon-btn" type="button" data-acc="editar" data-id="${v.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>
                 <button class="icon-btn" type="button" data-acc="estado" data-id="${v.id}" title="Cambiar estado" aria-label="Cambiar estado"${v.activo ? '' : ' disabled'}>${icon('pulse')}</button>
                 <button class="icon-btn" type="button" data-acc="foto" data-id="${v.id}" title="Foto" aria-label="Subir foto">${icon('camera')}</button>
-                <button class="icon-btn" type="button" data-acc="baja" data-id="${v.id}" title="Desactivar" aria-label="Desactivar"${v.activo ? '' : ' disabled'}>${icon('ban')}</button>
+                <button class="icon-btn" type="button" data-acc="${v.activo ? 'baja' : 'reactivar'}" data-id="${v.id}" title="${v.activo ? 'Desactivar' : 'Reactivar'}" aria-label="${v.activo ? 'Desactivar' : 'Reactivar'}">${icon(v.activo ? 'ban' : 'undo')}</button>
               </div></td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>` : UI.vacio('No hay vehículos que coincidan con la búsqueda.', 'car'))
+  });
+
+  async function actualizarResumenFlota() {
+    const caja = $('#flotaResumen', c);
+    try {
+      const d = await resumenFlota();
+      if (!ctx.vigente()) return;
+      caja.innerHTML = `
+        <button type="button" class="card flota-mini tono-green ${estadoPanel === 'DISPONIBLE' ? 'act' : ''}" data-flota-estado="DISPONIBLE" aria-pressed="${estadoPanel === 'DISPONIBLE'}"><span class="flota-mini-ico">${icon('check')}</span><span><small>Disponibles</small><b>${d.disponibles}</b><em>Listos para alquilar</em></span></button>
+        <button type="button" class="card flota-mini tono-blue ${estadoPanel === 'ALQUILADO' ? 'act' : ''}" data-flota-estado="ALQUILADO" aria-pressed="${estadoPanel === 'ALQUILADO'}"><span class="flota-mini-ico">${icon('car')}</span><span><small>Alquilados</small><b>${d.alquilados}</b><em>Actualmente en uso</em></span></button>
+        <button type="button" class="card flota-mini tono-orange ${estadoPanel === 'MANTENIMIENTO' ? 'act' : ''}" data-flota-estado="MANTENIMIENTO" aria-pressed="${estadoPanel === 'MANTENIMIENTO'}"><span class="flota-mini-ico">${icon('pulse')}</span><span><small>Mantenimiento</small><b>${d.mantenimiento}</b><em>Temporalmente no disponibles</em></span></button>
+        <button type="button" class="card flota-mini tono-coral ${estadoPanel === 'FUERA_DE_SERVICIO' ? 'act' : ''}" data-flota-estado="FUERA_DE_SERVICIO" aria-pressed="${estadoPanel === 'FUERA_DE_SERVICIO'}"><span class="flota-mini-ico">${icon('alert')}</span><span><small>Fuera de servicio</small><b>${d.fuera}</b><em>Requieren atención</em></span></button>
+        <button type="button" class="card flota-mini tono-gray ${estadoPanel === 'INACTIVO' ? 'act' : ''}" data-flota-estado="INACTIVO" aria-pressed="${estadoPanel === 'INACTIVO'}"><span class="flota-mini-ico">${icon('ban')}</span><span><small>Inactivos</small><b>${d.inactivos}</b><em>Vehículos desactivados</em></span></button>`;
+    } catch (_) { caja.innerHTML = ''; }
+  }
+
+  $('#flotaResumen', c).addEventListener('click', e => {
+    const b = e.target.closest('[data-flota-estado]');
+    if (!b) return;
+    const estado = b.dataset.flotaEstado;
+    location.hash = estadoPanel === estado ? '#/flota' : `#/flota?estado=${estado}`;
   });
 
   const nuevaBusqueda = debounce(() => l.recargar(true));
@@ -3189,26 +3355,29 @@ async function vFlota(c, ctx) {
     filtros.categoriaId = e.target.value;
     l.recargar(true);
   };
-  $('#inacVeh', c).onchange = e => {
-    filtros.incluirInactivos = e.target.checked;
-    l.recargar(true);
-  };
-
-  $('[data-nuevo-veh]').onclick = () => editarVehiculo(null, categorias, () => l.recargar());
-  $('[data-nueva-cat]', c).onclick = () => nuevaCategoria(cat => {
-    categorias.push(cat);
-    pintarCategorias();
-  });
-
+  $('[data-nuevo-veh]').onclick = () => editarVehiculo(null, categorias, () => { l.recargar(); actualizarResumenFlota(); });
   $('#lista', c).addEventListener('click', async e => {
     const b = e.target.closest('[data-acc]');
     if (!b) return;
     const v = l.nodos().find(x => x.id === +b.dataset.id);
     if (!v) return;
 
-    if (b.dataset.acc === 'editar') return editarVehiculo(v, categorias, () => l.recargar());
-    if (b.dataset.acc === 'estado') return estadoVehiculo(v, () => l.recargar());
+    if (b.dataset.acc === 'ver') return detalleVehiculo(v, () => { l.recargar(); actualizarResumenFlota(); });
+    if (b.dataset.acc === 'historial') return historialVehiculo(v);
+    if (b.dataset.acc === 'editar') return editarVehiculo(v, categorias, () => { l.recargar(); actualizarResumenFlota(); });
+    if (b.dataset.acc === 'estado') return estadoVehiculo(v, () => { l.recargar(); actualizarResumenFlota(); });
     if (b.dataset.acc === 'foto') return fotoVehiculo(v, () => l.recargar());
+    if (b.dataset.acc === 'reactivar') {
+      const ok = await UI.confirmar('Reactivar vehículo', `El <b>${esc(v.marca)} ${esc(v.modelo)}</b> (${esc(v.placa)}) volverá a estar disponible para la operación.`, { boton: 'Reactivar' });
+      if (!ok) return;
+      try {
+        await Api.reactivarVehiculo(v.id);
+        UI.toast('Vehículo reactivado.');
+        l.recargar();
+        actualizarResumenFlota();
+      } catch (err) { avisarError(err); }
+      return;
+    }
 
     const ok = await UI.confirmar('Desactivar vehículo',
       `El <b>${esc(v.marca)} ${esc(v.modelo)}</b> (${esc(v.placa)}) dejará de aparecer en el catálogo. No es posible si tiene alquileres activos o futuros.`,
@@ -3219,6 +3388,7 @@ async function vFlota(c, ctx) {
       await Api.desactivarVehiculo(v.id);
       UI.toast('Vehículo desactivado.');
       l.recargar();
+      actualizarResumenFlota();
     } catch (err) {
       avisarError(err);
     }
@@ -3229,7 +3399,16 @@ async function vFlota(c, ctx) {
     if (ctx.vigente()) pintarCategorias();
   } catch (e) { /* el filtro queda vacío */ }
 
+  actualizarResumenFlota();
   await l.recargar(true);
+
+  const editarId = +ctx.q.get('editar');
+  if (editarId) {
+    try {
+      const veh = await Api.vehiculo(editarId);
+      if (ctx.vigente() && veh) editarVehiculo(veh, categorias, () => { cambiarQuery('flota', {}); l.recargar(); actualizarResumenFlota(); });
+    } catch (_) { /* si no existe, se mantiene el listado */ }
+  }
 }
 
 const COLORES_VEH = ['Blanco', 'Negro', 'Gris', 'Plateado', 'Rojo', 'Azul', 'Verde', 'Beige', 'Marrón', 'Amarillo', 'Naranja', 'Otro'];
@@ -3617,42 +3796,230 @@ function nuevaCategoria(alGuardar) {
 
 
 /* =========================================================
+   CONFIGURACIÓN
+========================================================= */
+
+async function vConfiguracion(c, ctx) {
+  let categorias = [];
+
+  c.innerHTML = `
+    <div class="config-grid">
+      <section class="card config-card">
+        <div class="config-card-h">
+          <div>
+            <span class="config-card-ico">${icon('tag')}</span>
+            <div>
+              <h3>Categorías de vehículos</h3>
+              <p>Organiza la flota por tipo de vehículo. Estas categorías se utilizan al registrar y filtrar vehículos.</p>
+            </div>
+          </div>
+          <button class="btn sm" type="button" data-config-nueva-cat>${icon('plus')} Nueva categoría</button>
+        </div>
+        <div class="categorias-lista" id="configCategorias"><span class="skeleton" style="height:44px"></span></div>
+      </section>
+
+      <aside class="card config-info">
+        <h3>Configuración del sistema</h3>
+        <p>Este módulo concentrará los parámetros administrativos que no forman parte de la operación diaria. Por ahora comenzamos con las categorías de la flota.</p>
+        <div class="info-banda">${icon('info')}<span>Crear una categoría aquí la hará disponible inmediatamente al crear o editar un vehículo.</span></div>
+      </aside>
+    </div>`;
+
+  const lista = $('#configCategorias', c);
+
+  const pintar = () => {
+    lista.innerHTML = categorias.length ? categorias.map(cat => `
+      <div class="categoria-item">
+        <div><span class="categoria-dot"></span><b>${esc(cat.nombre)}</b></div>
+        <small>ID ${esc(cat.id)}</small>
+      </div>`).join('') : UI.vacio('No hay categorías registradas.', 'tag');
+  };
+
+  const cargar = async () => {
+    try {
+      categorias = await Api.categorias();
+      if (ctx.vigente()) pintar();
+    } catch (err) {
+      lista.innerHTML = UI.vacio('No se pudieron cargar las categorías.', 'alert');
+    }
+  };
+
+  $('[data-config-nueva-cat]', c).onclick = () => nuevaCategoria(cat => {
+    categorias.push(cat);
+    categorias.sort((a,b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+    pintar();
+  });
+
+  await cargar();
+}
+
+
+/* =========================================================
    CLIENTES
 ========================================================= */
 
+async function resumenClientes() {
+  const r = await Api.clientes({ incluirInactivos: true, first: 200 });
+  const lista = r.nodes || [];
+  return {
+    total: lista.length,
+    activos: lista.filter(x => x.activo !== false).length,
+    portal: lista.filter(x => x.activo !== false && x.tieneCuenta).length,
+    mostrador: lista.filter(x => x.activo !== false && !x.tieneCuenta).length,
+    inactivos: lista.filter(x => x.activo === false).length
+  };
+}
+
+async function panelClientesFiltro({ filtro = 'todos', texto = '', first = 12, after = null, last = null, before = null }) {
+  const r = await Api.clientes({ texto: texto || null, incluirInactivos: true, first: 200 });
+  let lista = r.nodes || [];
+  if (filtro === 'activos') lista = lista.filter(x => x.activo !== false);
+  else if (filtro === 'portal') lista = lista.filter(x => x.activo !== false && x.tieneCuenta);
+  else if (filtro === 'mostrador') lista = lista.filter(x => x.activo !== false && !x.tieneCuenta);
+  else if (filtro === 'inactivos') lista = lista.filter(x => x.activo === false);
+  else lista = lista.filter(x => x.activo !== false);
+
+  const cantidad = last || first;
+  const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
+  const nodes = lista.slice(inicio, inicio + cantidad);
+  return {
+    nodes,
+    totalCount: lista.length,
+    pageInfo: {
+      hasNextPage: inicio + cantidad < lista.length,
+      endCursor: String(inicio + cantidad),
+      hasPreviousPage: inicio > 0,
+      startCursor: String(inicio)
+    }
+  };
+}
+
+async function detalleCliente(x) {
+  const m = UI.modal({
+    titulo: 'Detalle del cliente',
+    ancho: 760,
+    cuerpo: `<div class="historial-veh-cargando"><span class="skeleton"></span><p>Cargando información del cliente…</p></div>`
+  });
+
+  try {
+    const [cl, alq] = await Promise.all([
+      Api.cliente(x.id),
+      Api.alquileres({ clienteId: x.id, first: 100 })
+    ]);
+    const lista = [...(alq.nodes || [])].sort((a,b) => String(b.fechaCreacion || b.fechaInicio).localeCompare(String(a.fechaCreacion || a.fechaInicio)));
+    const activos = lista.filter(a => estadoOperativoAlquiler(a).clave === 'activo').length;
+    const reservas = lista.filter(a => estadoOperativoAlquiler(a).clave === 'reserva').length;
+    const completados = lista.filter(a => a.estado === 'COMPLETADO').length;
+
+    m.cuerpo.innerHTML = `
+      <div class="detalle-cliente-head">
+        <div class="detalle-cliente-avatar">${UI.avatar(cl.nombre, 'lg')}</div>
+        <div class="detalle-cliente-identidad">
+          <span class="eyebrow">CLIENTE #${cl.id}</span>
+          <h3>${esc(cl.nombre)}</h3>
+          <p>${esc(cl.cedula)}</p>
+          <div class="badges">
+            ${cl.activo !== false ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'neutro')}
+            ${cl.tieneCuenta ? badge(null, 'Portal', 'info') : badge(null, 'Mostrador', 'neutro')}
+          </div>
+        </div>
+      </div>
+
+      <div class="detalle-cliente-grid">
+        <div><small>Teléfono</small><b>${esc(cl.telefono || '—')}</b></div>
+        <div><small>Correo</small><b>${esc(cl.correo || '—')}</b></div>
+        <div><small>Licencia de conducir</small><b>${esc(cl.licenciaConducir || 'No registrada')}</b></div>
+        <div><small>Tipo de cliente</small><b>${cl.tieneCuenta ? 'Portal' : 'Mostrador'}</b></div>
+      </div>
+
+      <div class="cliente-resumen-modal">
+        <div><small>Alquileres</small><b>${lista.length}</b></div>
+        <div><small>Activos</small><b>${activos}</b></div>
+        <div><small>Reservas</small><b>${reservas}</b></div>
+        <div><small>Completados</small><b>${completados}</b></div>
+      </div>
+
+      <section class="cliente-historial-seccion">
+        <div class="seccion-titulo"><div><span class="eyebrow">Actividad</span><h4>Alquileres recientes</h4></div><a class="btn ghost sm" href="#/alquileres?cliente=${cl.id}&nombre=${encodeURIComponent(cl.nombre)}" data-cerrar>Ver todos</a></div>
+        <div class="cliente-historial-lista">
+          ${lista.length ? lista.slice(0, 6).map(a => `
+            <article class="cliente-historial-item">
+              <div class="cliente-historial-main"><b>#${a.id} · ${esc(a.vehiculo)}</b><span>${esc(a.placa)} · ${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaDevolucion || a.fechaFinPactada)}</span></div>
+              <div class="cliente-historial-fin">${estadoAlquiler(a)}<b>${fmt.dinero(a.montoTotal)}</b></div>
+            </article>`).join('') : UI.vacio('Este cliente todavía no tiene alquileres registrados.', 'calendar')}
+        </div>
+      </section>
+
+      <div class="modal-acc">
+        ${cl.activo !== false ? `<a class="btn ghost" href="#/nuevo-alquiler?cliente=${cl.id}" data-cerrar>${icon('plusCircle')} Nuevo alquiler</a>` : ''}
+        <button class="btn ghost" type="button" data-editar-cliente>${icon('edit')} Editar</button>
+        <button class="btn" type="button" data-cerrar>Cerrar</button>
+      </div>`;
+
+    const editar = $('[data-editar-cliente]', m.el);
+    if (editar) editar.onclick = () => {
+      m.cerrar();
+      editarCliente(cl, () => { location.hash = '#/clientes'; });
+    };
+  } catch (err) {
+    m.cuerpo.innerHTML = `<div class="vacio"><h4>No se pudo cargar el cliente</h4><p>${esc(err.message || 'Inténtalo de nuevo.')}</p></div>`;
+  }
+}
+
 async function vClientes(c, ctx) {
-  const filtros = { texto: '', incluirInactivos: false };
+  let filtro = ['todos','activos','portal','mostrador','inactivos'].includes(ctx.q.get('filtro')) ? ctx.q.get('filtro') : 'todos';
+  const filtros = { texto: '' };
 
   ctx.acciones(`<button class="btn" type="button" data-nuevo-cli>${icon('plus')} Nuevo cliente</button>`);
 
   c.innerHTML = `
-    <div class="herramientas">
-      <div class="buscar">${icon('search')}<input type="search" id="qCli" placeholder="Buscar por nombre, cédula o correo" aria-label="Buscar cliente"></div>
-      <label class="check"><input type="checkbox" id="inacCli"> Incluir inactivos</label>
+    <div class="clientes-resumen" id="clientesResumen">
+      ${Array.from({length:4}, () => '<div class="card cliente-mini"><span class="skeleton"></span></div>').join('')}
+    </div>
+
+    <div class="herramientas cliente-herramientas">
+      <div class="segmentos" role="tablist" aria-label="Filtrar clientes">
+        <button type="button" data-cf="todos">Todos</button>
+        <button type="button" data-cf="activos">Activos</button>
+        <button type="button" data-cf="portal">Portal</button>
+        <button type="button" data-cf="mostrador">Mostrador</button>
+        <button type="button" data-cf="inactivos">Inactivos</button>
+      </div>
+    </div>
+
+    <div class="card cliente-filtros">
+      <div class="buscar">${icon('search')}<input type="search" id="qCli" placeholder="Buscar por nombre, cédula o correo" aria-label="Buscar cliente" autocomplete="off"></div>
+      <button class="btn ghost sm" type="button" id="limpiarCli">Limpiar</button>
     </div>
     <div class="card" id="lista"></div>`;
+
+  const marcar = () => $$('[data-cf]', c).forEach(b => {
+    b.classList.toggle('act', b.dataset.cf === filtro);
+    b.setAttribute('aria-selected', b.dataset.cf === filtro);
+  });
 
   const l = listado({
     cont: $('#lista', c),
     vigente: ctx.vigente,
-    cargar: pag => Api.clientes({ texto: filtros.texto || null, incluirInactivos: filtros.incluirInactivos, ...pag }),
+    cargar: pag => panelClientesFiltro({ filtro, texto: filtros.texto, ...pag }),
     pintar: r => (r.nodes.length ? `
       <div class="tabla-wrap">
-        <table class="tabla">
+        <table class="tabla tabla-clientes">
           <thead><tr><th>Cliente</th><th>Cédula</th><th>Teléfono</th><th>Cuenta</th><th>Estado</th><th></th></tr></thead>
           <tbody>${r.nodes.map(x => `
-            <tr class="${x.activo ? '' : 'inactivo'}">
-              <td><div style="display:flex;align-items:center;gap:12px">${UI.avatar(x.nombre, 'sm')}
+            <tr class="${x.activo !== false ? '' : 'inactivo fila-cliente-inactivo'}">
+              <td><div class="cliente-celda">${UI.avatar(x.nombre, 'sm')}
                 <div class="principal"><b>${esc(x.nombre)}</b><small>${esc(x.correo || 'Sin correo')}</small></div></div></td>
               <td class="nowrap">${esc(x.cedula)}</td>
               <td class="nowrap">${esc(x.telefono || '—')}</td>
               <td>${x.tieneCuenta ? badge(null, 'Portal', 'info') : badge(null, 'Mostrador', 'neutro')}</td>
-              <td>${x.activo ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'neutro')}</td>
+              <td>${x.activo !== false ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'neutro')}</td>
               <td><div class="acciones">
+                <button class="icon-btn" type="button" data-acc="ver" data-id="${x.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
                 <button class="icon-btn" type="button" data-acc="editar" data-id="${x.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>
                 <a class="icon-btn" href="#/alquileres?cliente=${x.id}&nombre=${encodeURIComponent(x.nombre)}" title="Ver alquileres" aria-label="Ver alquileres">${icon('calendar')}</a>
-                <a class="icon-btn" href="#/nuevo-alquiler?cliente=${x.id}" title="Nuevo alquiler" aria-label="Nuevo alquiler"${x.activo ? '' : ' hidden'}>${icon('plusCircle')}</a>
-                <button class="icon-btn" type="button" data-acc="baja" data-id="${x.id}" title="Desactivar" aria-label="Desactivar"${x.activo ? '' : ' disabled'}>${icon('ban')}</button>
+                <a class="icon-btn" href="#/nuevo-alquiler?cliente=${x.id}" title="Nuevo alquiler" aria-label="Nuevo alquiler"${x.activo !== false ? '' : ' hidden'}>${icon('plusCircle')}</a>
+                <button class="icon-btn" type="button" data-acc="baja" data-id="${x.id}" title="Desactivar" aria-label="Desactivar"${x.activo !== false ? '' : ' disabled'}>${icon('ban')}</button>
               </div></td>
             </tr>`).join('')}
           </tbody>
@@ -3660,18 +4027,44 @@ async function vClientes(c, ctx) {
       </div>` : UI.vacio('No hay clientes que coincidan con la búsqueda.', 'users'))
   });
 
-  const nuevaBusqueda = debounce(() => l.recargar(true));
+  async function actualizarResumenClientes() {
+    const caja = $('#clientesResumen', c);
+    try {
+      const d = await resumenClientes();
+      if (!ctx.vigente()) return;
+      caja.innerHTML = `
+        <button type="button" class="card cliente-mini tono-blue" data-cr="activos"><span class="cliente-mini-ico">${icon('users')}</span><span><small>Activos</small><b>${d.activos}</b><em>Clientes habilitados</em></span></button>
+        <button type="button" class="card cliente-mini tono-purple" data-cr="portal"><span class="cliente-mini-ico">${icon('user')}</span><span><small>Portal</small><b>${d.portal}</b><em>Con cuenta en línea</em></span></button>
+        <button type="button" class="card cliente-mini tono-green" data-cr="mostrador"><span class="cliente-mini-ico">${icon('check')}</span><span><small>Mostrador</small><b>${d.mostrador}</b><em>Registro presencial</em></span></button>
+        <button type="button" class="card cliente-mini tono-gray" data-cr="inactivos"><span class="cliente-mini-ico">${icon('ban')}</span><span><small>Inactivos</small><b>${d.inactivos}</b><em>Sin acceso operativo</em></span></button>`;
+      $$('[data-cr]', caja).forEach(b => b.classList.toggle('activa', b.dataset.cr === filtro));
+    } catch (_) { caja.innerHTML = ''; }
+  }
 
-  $('#qCli', c).addEventListener('input', e => {
-    filtros.texto = e.target.value.trim();
-    nuevaBusqueda();
+  const recargar = () => { l.recargar(true); actualizarResumenClientes(); };
+  const nuevaBusqueda = debounce(() => l.recargar(true), 220);
+
+  $('#qCli', c).addEventListener('input', e => { filtros.texto = e.target.value.trim(); nuevaBusqueda(); });
+  $('#limpiarCli', c).onclick = () => { filtros.texto = ''; $('#qCli', c).value = ''; l.recargar(true); };
+
+  $('[data-nuevo-cli]').onclick = () => editarCliente(null, () => recargar());
+
+  c.addEventListener('click', e => {
+    const f = e.target.closest('[data-cf]');
+    if (f) {
+      filtro = f.dataset.cf;
+      marcar();
+      history.replaceState(null, '', '#/clientes' + (filtro !== 'todos' ? '?filtro=' + filtro : ''));
+      l.recargar(true); actualizarResumenClientes(); return;
+    }
+    const r = e.target.closest('[data-cr]');
+    if (r) {
+      filtro = filtro === r.dataset.cr ? 'todos' : r.dataset.cr;
+      marcar();
+      history.replaceState(null, '', '#/clientes' + (filtro !== 'todos' ? '?filtro=' + filtro : ''));
+      l.recargar(true); actualizarResumenClientes();
+    }
   });
-  $('#inacCli', c).onchange = e => {
-    filtros.incluirInactivos = e.target.checked;
-    l.recargar(true);
-  };
-
-  $('[data-nuevo-cli]').onclick = () => editarCliente(null, () => l.recargar());
 
   $('#lista', c).addEventListener('click', async e => {
     const b = e.target.closest('[data-acc]');
@@ -3679,7 +4072,8 @@ async function vClientes(c, ctx) {
     const x = l.nodos().find(y => y.id === +b.dataset.id);
     if (!x) return;
 
-    if (b.dataset.acc === 'editar') return editarCliente(x, () => l.recargar());
+    if (b.dataset.acc === 'ver') return detalleCliente(x);
+    if (b.dataset.acc === 'editar') return editarCliente(x, () => recargar());
 
     const ok = await UI.confirmar('Desactivar cliente',
       `<b>${esc(x.nombre)}</b> quedará inactivo${x.tieneCuenta ? ' y su cuenta del portal se desactivará' : ''}. No es posible si tiene alquileres activos.`,
@@ -3689,13 +4083,12 @@ async function vClientes(c, ctx) {
     try {
       await Api.desactivarCliente(x.id);
       UI.toast('Cliente desactivado.');
-      l.recargar();
-    } catch (err) {
-      avisarError(err);
-    }
+      recargar();
+    } catch (err) { avisarError(err); }
   });
 
-  await l.recargar(true);
+  marcar();
+  await Promise.all([l.recargar(true), actualizarResumenClientes()]);
 }
 
 function editarCliente(x, alGuardar) {
@@ -4370,14 +4763,17 @@ async function panelTodas(cargar) {
   } while (true);
   return { nodes };
 }
-async function panelFlotaDisponible({ first = 12, after = null, last = null, before = null, ...filtros }) {
-  const r = await panelTodas(p => Api.vehiculos({ ...filtros, ...p }));
-  const lista = r.nodes.filter(v => v.activo && v.estadoActual === 'DISPONIBLE');
+async function panelFlotaEstado(estado, { first = 12, after = null, last = null, before = null, ...filtros }) {
+  const r = await panelTodas(p => Api.vehiculos({ ...filtros, incluirInactivos: estado === 'INACTIVO', ...p }));
+  const lista = estado === 'INACTIVO'
+    ? r.nodes.filter(v => v.activo === false)
+    : r.nodes.filter(v => v.activo && v.estadoActual === estado);
   const cantidad = last || first;
   const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
   const nodes = lista.slice(inicio, inicio + cantidad);
   return { nodes, totalCount: lista.length, pageInfo: { hasNextPage: inicio + cantidad < lista.length, endCursor: String(inicio + cantidad), hasPreviousPage: inicio > 0, startCursor: String(inicio) } };
 }
+async function panelFlotaDisponible(p) { return panelFlotaEstado('DISPONIBLE', p); }
 
 // Navegación y tema compartidos, sin controles duplicados en el menú lateral.
 // Automático: día 06:00–17:59 y noche 18:00–05:59, según la hora local del navegador.
