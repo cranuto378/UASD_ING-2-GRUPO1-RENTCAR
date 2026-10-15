@@ -30,27 +30,23 @@ SOLID en la práctica:
 
 ## Puesta en marcha
 
-Requisitos: .NET 11 SDK y Visual Studio 2026, SQL Server 2019+.
+Requisitos: SDK .NET 11 (ver `global.json`), SQL Server 2019+ / Express.
 
 ```powershell
-# 1. Base de datos (en este orden)
-sqlcmd -S localhost -E -i database\01_schema.sql
-sqlcmd -S localhost -E -i database\02_procedures.sql
-sqlcmd -S localhost -E -i database\03_migracion_datos.sql   # datos del sistema anterior (opcional)
+# 1. Base de datos (crea la base AutoGo, tablas, procedimientos y el administrador inicial)
+sqlcmd -S localhost\SQLEXPRESS -E -b -i database\AutoGo_01_BaseDeDatos.sql
 
-# 2. Fotos: copiar las imágenes de Resources\ del sistema viejo a
-#    src\AutoGo.Api\wwwroot\media\vehiculos\
+# 2. Ejecutar (la cadena de conexión ya apunta a Database=AutoGo)
+dotnet dev-certs https --trust                 # una sola vez, para https://localhost:7180
+dotnet run --project src\AutoGo.Api            # https://localhost:7180/graphql  (IDE Nitro)
+dotnet test                                    # pruebas unitarias
 
-# 3. Secretos (producción: variables de entorno Jwt__Clave, ConnectionStrings__AutoGo)
-cd src\AutoGo.Api
-dotnet user-secrets set "Jwt:Clave" "<clave-aleatoria-de-32+-caracteres>"
-
-# 4. Ejecutar
-dotnet run --project src\AutoGo.Api          # https://localhost:7180/graphql  (IDE Nitro en el navegador)
-dotnet test                                  # pruebas unitarias
+# Producción: variables de entorno Jwt__Clave y ConnectionStrings__AutoGo
 ```
 
-Usuarios migrados (deben cambiar la contraseña al entrar): `admin@sav.com` / `1234`, `admin@g1rentacar.com` / `1234`, `cmendez@g1rentacar.com` / `carlos123`.
+Primer ingreso: `admin@autogo.com` / `Admin2026` (el sistema pide cambiar la contraseña). El script **no borra nada**: si la base ya tiene datos se detiene; para reconstruirla, `DROP DATABASE AutoGo;`.
+
+Categorías, vehículos y clientes se cargan desde la API. Las fotos se suben con `subirFotoVehiculo` y se guardan en `src\AutoGo.Api\wwwroot\media\vehiculos\`.
 
 ## Guía para el equipo de frontend
 

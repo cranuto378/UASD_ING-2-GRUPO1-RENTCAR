@@ -58,7 +58,14 @@ internal sealed class FakeUsuarios : IUsuarioRepository
         return Task.CompletedTask;
     }
     public Task<int> CrearAdministradorAsync(string nombre, string correo, string passwordHash, CancellationToken ct = default) => throw new NotImplementedException();
-    public Task<(int UsuarioId, int ClienteId)> RegistrarClienteAsync(int? clienteExistenteId, Cliente cliente, string correo, string passwordHash, CancellationToken ct = default) => throw new NotImplementedException();
+    public int? UltimoClienteVinculado { get; private set; }
+    public Task<(int UsuarioId, int ClienteId)> RegistrarClienteAsync(int? clienteExistenteId, Cliente cliente, string correo, string passwordHash, CancellationToken ct = default)
+    {
+        UltimoClienteVinculado = clienteExistenteId;
+        var clienteId = clienteExistenteId ?? 1;
+        Datos.Add(Usuario.Rehidratar(99, cliente.Nombre, correo, passwordHash, Rol.Cliente, false, true, clienteId));
+        return Task.FromResult((99, clienteId));
+    }
     public Task ActualizarPasswordAsync(int usuarioId, string passwordHash, bool debeCambiar, CancellationToken ct = default) => Task.CompletedTask;
     public Task<TokenRecuperacion?> ObtenerTokenVigenteAsync(string tokenHash, DateTime ahoraUtc, CancellationToken ct = default) => throw new NotImplementedException();
     public Task ConsumirTokenAsync(int tokenId, string passwordHash, DateTime ahoraUtc, CancellationToken ct = default) => throw new NotImplementedException();

@@ -41,7 +41,9 @@ window.AUTOGO_CONFIG = {
 };
 ```
 
-Actualmente viene con `DEMO: true` para poder mostrarlo sin backend; al conectar la API real hay que ponerlo en `false`.
+Viene con `DEMO: false` (conectado a la API). Para presentar sin backend use `?demo=1` o ponga `DEMO: true`.
+
+Sírvalo en el puerto **5500** (`python -m http.server 5500` o Live Server): es el origen permitido por el CORS del backend. Si usa otro puerto, agréguelo en `Cors:Origenes` y ajuste `Aplicacion:UrlRestablecerPassword` (ambos en `appsettings.json`).
 
 El backend debe permitir el origen del front en CORS y, en desarrollo, el navegador debe confiar en el certificado de `localhost`.
 

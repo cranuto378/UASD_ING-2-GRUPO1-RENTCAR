@@ -49,9 +49,16 @@ public sealed class AuthService(
             throw new ConflictException("CORREO_DUPLICADO", "Ya existe una cuenta con ese correo.");
 
         // Si el cliente ya fue registrado en mostrador, se vincula la cuenta en vez de duplicarlo.
+        // Sólo se vincula si el correo coincide con el registrado en mostrador: la cédula sola no prueba identidad.
         var existente = await clientes.ObtenerPorCedulaAsync(cliente.Cedula, ct);
-        if (existente is not null && existente.TieneCuenta)
-            throw new ConflictException("CEDULA_DUPLICADA", "Ya existe una cuenta asociada a esa cédula.");
+        if (existente is not null)
+        {
+            if (existente.TieneCuenta)
+                throw new ConflictException("CEDULA_DUPLICADA", "Ya existe una cuenta asociada a esa cédula.");
+            if (!existente.Activo || !string.Equals(existente.Correo, correo, StringComparison.OrdinalIgnoreCase))
+                throw new ConflictException("CLIENTE_EXISTENTE",
+                    "Ya existe un cliente registrado con esa cédula. Para crear su cuenta use el correo que registró en la agencia, o acuda a ella para actualizarlo.");
+        }
 
         var (usuarioId, _) = await usuarios.RegistrarClienteAsync(existente?.Id, cliente, correo, hasher.Hash(input.Password), ct);
         var usuario = await usuarios.ObtenerPorIdAsync(usuarioId, ct) ?? throw new NotFoundException("Usuario", usuarioId);

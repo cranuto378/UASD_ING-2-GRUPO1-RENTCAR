@@ -1,3 +1,2 @@
-Copie aquí las fotos de la carpeta Resources del sistema anterior
-(Resources\*.png|jpg|jpeg, Resources\Economicos, Negocios, SUVs, Vans).
-El script 03_migracion_datos.sql las referencia como /media/vehiculos/<nombre de archivo>.
+Aquí se guardan las fotos de los vehículos.
+Se suben con la mutación subirFotoVehiculo (jpg, png o webp, máx. 5 MB); no hay que copiarlas a mano.

@@ -100,11 +100,12 @@ public class AuthServiceTests
 {
     private readonly FakeUsuarios _usuarios = new();
     private readonly FakeEmail _email = new();
+    private readonly FakeClientes _clientes = new();
 
     public AuthServiceTests() =>
         _usuarios.Datos.Add(Usuario.Rehidratar(1, "Admin", "admin@autogo.com", "H:Clave123", Rol.Administrador, false, true, null));
 
-    private AuthService Servicio() => new(_usuarios, new FakeClientes(), new FakeHasher(), new FakeTokens(), _email,
+    private AuthService Servicio() => new(_usuarios, _clientes, new FakeHasher(), new FakeTokens(), _email,
         new FakeClock(new DateOnly(2026, 9, 25)), FakeUser.Admin, new OpcionesAplicacion());
 
     [Fact]
@@ -139,5 +140,50 @@ public class AuthServiceTests
     {
         await Servicio().SolicitarRecuperacionAsync("nadie@autogo.com");
         Assert.Empty(_email.Enviados);
+    }
+
+    private static RegistroClienteInput Registro(string correo) =>
+        new("Luis", correo, "Clave2026", "00145678901", null, null);
+
+    [Fact]
+    public async Task Registro_con_cedula_de_mostrador_y_correo_distinto_se_rechaza()
+    {
+        _clientes.Datos.Add(Cliente.Rehidratar(11, null, "Luis", "001-4567890-1", "luis@mail.com", null, null, true, DateTime.UtcNow));
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => Servicio().RegistrarClienteAsync(Registro("otro@mail.com")));
+
+        Assert.Equal("CLIENTE_EXISTENTE", ex.Code);
+        Assert.Null(_usuarios.UltimoClienteVinculado);
+    }
+
+    [Fact]
+    public async Task Registro_con_cedula_de_mostrador_sin_correo_registrado_se_rechaza()
+    {
+        _clientes.Datos.Add(Cliente.Rehidratar(11, null, "Luis", "001-4567890-1", null, null, null, true, DateTime.UtcNow));
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => Servicio().RegistrarClienteAsync(Registro("luis@mail.com")));
+
+        Assert.Equal("CLIENTE_EXISTENTE", ex.Code);
+    }
+
+    [Fact]
+    public async Task Registro_con_cedula_de_mostrador_y_mismo_correo_vincula_la_cuenta()
+    {
+        _clientes.Datos.Add(Cliente.Rehidratar(11, null, "Luis", "001-4567890-1", "luis@mail.com", null, null, true, DateTime.UtcNow));
+
+        var r = await Servicio().RegistrarClienteAsync(Registro("LUIS@mail.com"));
+
+        Assert.Equal(11, _usuarios.UltimoClienteVinculado);
+        Assert.Equal(11, r.Usuario.ClienteId);
+    }
+
+    [Fact]
+    public async Task Registro_con_cedula_que_ya_tiene_cuenta_se_rechaza()
+    {
+        _clientes.Datos.Add(Cliente.Rehidratar(11, 50, "Luis", "001-4567890-1", "luis@mail.com", null, null, true, DateTime.UtcNow));
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => Servicio().RegistrarClienteAsync(Registro("luis@mail.com")));
+
+        Assert.Equal("CEDULA_DUPLICADA", ex.Code);
     }
 }

@@ -20,8 +20,10 @@ internal static class SqlErrorTranslator
     private static ConflictException Duplicado(string mensaje) => mensaje switch
     {
         _ when mensaje.Contains("UQ_Clientes_Cedula") => new("CEDULA_DUPLICADA", "Ya existe un cliente con esa cédula."),
-        _ when mensaje.Contains("UQ_Usuarios_Correo") => new("CORREO_DUPLICADO", "Ya existe una cuenta con ese correo."),
-        _ when mensaje.Contains("UQ_Vehiculos_Placa") => new("PLACA_DUPLICADA", "Ya existe un vehículo con esa placa."),
+        _ when mensaje.Contains("UQ_usuarios_correo") || mensaje.Contains("UQ_Usuarios_Correo")
+            => new("CORREO_DUPLICADO", "Ya existe una cuenta con ese correo."),
+        _ when mensaje.Contains("UQ_Vehiculos_Placa") || mensaje.Contains("PK__vehiculo") || mensaje.Contains("PK_vehiculos")
+            => new("PLACA_DUPLICADA", "Ya existe un vehículo con esa placa."),
         _ when mensaje.Contains("UQ_Categorias_Nombre") => new("CATEGORIA_DUPLICADA", "Ya existe una categoría con ese nombre."),
         _ => new("DUPLICADO", "El registro ya existe.")
     };
