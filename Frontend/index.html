@@ -8,20 +8,44 @@
     <meta name="theme-color" content="#151b38">
     <title>AutoGo Rent a Car</title>
 
-    <!-- Aplica el modo noche antes de dibujar la página (evita el parpadeo) -->
+    <!-- Tema automático por hora local + cambio manual hasta el próximo período -->
     <script>
-        try {
-            if (localStorage.getItem('autogo-tema') === 'noche') {
-                document.documentElement.setAttribute('data-tema', 'noche');
+        (function () {
+            function periodoActual() {
+                var h = new Date().getHours();
+                return (h >= 6 && h < 18) ? 'dia' : 'noche';
             }
-        } catch (e) { }
+            function aplicar(tema) {
+                if (tema === 'noche') document.documentElement.setAttribute('data-tema', 'noche');
+                else document.documentElement.removeAttribute('data-tema');
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', tema === 'noche' ? '#05070f' : '#eef3fb');
+            }
+            function resolver() {
+                var periodo = periodoActual();
+                var tema = periodo;
+                try {
+                    var manual = localStorage.getItem('autogo-tema');
+                    var periodoManual = localStorage.getItem('autogo-tema-periodo');
+                    if (manual && periodoManual === periodo) tema = manual;
+                    else {
+                        localStorage.removeItem('autogo-tema');
+                        localStorage.removeItem('autogo-tema-periodo');
+                    }
+                } catch (e) { }
+                aplicar(tema);
+                return tema;
+            }
+            window.AutoGoTema = { periodoActual: periodoActual, aplicar: aplicar, resolver: resolver };
+            resolver();
+        })();
     </script>
 
     <link rel="icon" href="logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=panel-3">
+    <link rel="stylesheet" href="styles.css?v=panel-4">
 </head>
 
 <body>
@@ -49,7 +73,7 @@
     <script src="js/ui.js?v=3"></script>
     <script src="js/demo.js?v=3"></script>
     <script src="js/api.js?v=3"></script>
-    <script src="js/app.js?v=panel-3"></script>
+    <script src="js/app.js?v=panel-4"></script>
 
     <!-- Banner de la pantalla de Inicio: ajusta su alto al saludo + tarjetas -->
     <script>

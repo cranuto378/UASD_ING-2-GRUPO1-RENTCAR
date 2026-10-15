@@ -128,6 +128,13 @@ async function render() {
   const id = ++renderId;
   const forzado = !!(s && s.usuario.debeCambiarPassword);
   const enAuth = def.layout === 'auth' || (ruta === 'cambiar-password' && forzado);
+
+  // El entorno visual Glass del panel administrativo debe mantenerse en
+  // todos sus módulos, no solamente en el Dashboard. Esta clase permite
+  // que fondo, sidebar, tarjetas, formularios y capas flotantes reaccionen
+  // juntos al modo día/noche sin alterar las pantallas públicas/auth.
+  document.body.classList.toggle('entorno-admin', !!s && esAdmin() && !enAuth);
+
   const cont = enAuth ? montarAuth(def) : montarShell(ruta, def);
 
   document.title = `${def.titulo} · AutoGo Rent a Car`;
@@ -3105,7 +3112,7 @@ async function vFacturas(c, ctx) {
    ADMINISTRADORES
 ========================================================= */
 
-function vAdministradores(c) {
+function vAdministradoresBasico(c) {
   const generar = () => {
     const letras = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
     const nums = '23456789';
@@ -3187,6 +3194,402 @@ function vAdministradores(c) {
       UI.ocupado(btn, false);
     }
   };
+}
+
+
+/* =========================================================
+   ADMINISTRADORES (gestión completa: lista, rol y estado)
+========================================================= */
+
+const PERFILES_ADM = ['Administrador', 'Facturación', 'Operaciones', 'Soporte'];
+const SLUG_PERFIL = { 'Administrador': 'admin', 'Facturación': 'fact', 'Operaciones': 'oper', 'Soporte': 'sop' };
+
+const svgAdm = d => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const ICO_ADM = {
+  userPlus: svgAdm('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>'),
+  key: svgAdm('<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/>'),
+  trash: svgAdm('<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/>'),
+  refresh: svgAdm('<path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7L21 16"/><path d="M16 16h5v5"/>'),
+  bulb: svgAdm('<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>'),
+  shieldOk: svgAdm('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>'),
+  file: svgAdm('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>'),
+  copy: svgAdm('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>')
+};
+
+function claveTemporal() {
+  const letras = 'abcdefghjkmnpqrstuvwxyz';
+  const nums = '23456789';
+  const simb = '#@$%&*!?';
+  const r = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+  const pick = s => s[r(s.length)];
+  const p = [pick(letras), pick(letras.toUpperCase()), pick(nums), pick(nums), pick(simb)];
+
+  while (p.length < 10) p.push(pick(letras + letras.toUpperCase() + nums));
+
+  for (let i = p.length - 1; i > 0; i--) {
+    const j = r(i + 1);
+    [p[i], p[j]] = [p[j], p[i]];
+  }
+
+  return p.join('');
+}
+
+async function copiarTexto(t) {
+  try {
+    await navigator.clipboard.writeText(t);
+    UI.toast('Copiado al portapapeles.');
+  } catch (e) {
+    UI.toast('No se pudo copiar. Selecciónala y cópiala manualmente.', 'warn');
+  }
+}
+
+function prefijoCampo(f, nombre, html) {
+  const el = f.elements[nombre];
+  if (!el) return null;
+
+  const w = document.createElement('div');
+  w.className = 'con-pref';
+  el.replaceWith(w);
+  w.insertAdjacentHTML('afterbegin', `<span class="pref">${html}</span>`);
+  w.appendChild(el);
+
+  return w;
+}
+
+function modalClaveTemporal({ titulo, nombre, correo, clave, forzar = true }) {
+  const m = UI.modal({
+    titulo,
+    ancho: 460,
+    cuerpo: `
+      <div class="exito">
+        <div class="sello">${icon('check')}</div>
+        <h4>${esc(nombre)}</h4>
+        <p>Comparte esta contraseña temporal por un medio seguro.${forzar ? ' Deberá cambiarla al iniciar sesión.' : ''}</p>
+        <div class="clave-caja"><code>${esc(clave)}</code><button type="button" class="btn ghost sm" data-copiar>${ICO_ADM.copy} Copiar</button></div>
+        <small class="clave-correo">${esc(correo)}</small>
+        <div class="modal-acc"><button class="btn" type="button" data-cerrar>Listo</button></div>
+      </div>`
+  });
+
+  $('[data-copiar]', m.el).onclick = () => copiarTexto(clave);
+}
+
+const rolTag = p => `<span class="rol-tag rol-${SLUG_PERFIL[p] || 'admin'}">${esc(p || 'Administrador')}</span>`;
+const estadoAdm = a => (a.activo ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'bad'));
+
+function verAdmin(a) {
+  UI.modal({
+    titulo: 'Detalle del administrador',
+    ancho: 480,
+    cuerpo: `
+      <div class="perfil-cab">
+        ${UI.avatar(a.nombre, 'lg')}
+        <div><h2>${esc(a.nombre)}</h2><p>${esc(a.correo)}</p></div>
+      </div>
+      <dl class="dl">
+        <dt>Rol</dt><dd>${rolTag(a.perfil)}</dd>
+        <dt>Estado</dt><dd>${estadoAdm(a)}</dd>
+        <dt>Último acceso</dt><dd>${a.ultimoAcceso ? fmt.fechaHora(a.ultimoAcceso) : 'Nunca'}</dd>
+        <dt>Cuenta creada</dt><dd>${a.fechaCreacion ? fmt.fechaLarga(a.fechaCreacion) : '—'}</dd>
+        <dt>Contraseña</dt><dd>${a.debeCambiarPassword ? 'Temporal: debe cambiarla' : 'Establecida por el usuario'}</dd>
+      </dl>
+      <div class="modal-acc"><button class="btn ghost" type="button" data-cerrar>Cerrar</button></div>`
+  });
+}
+
+function editarAdmin(a, alGuardar) {
+  const propia = a.id === usuario().id;
+
+  const m = UI.modal({
+    titulo: 'Editar administrador',
+    ancho: 480,
+    cuerpo: `
+      <form class="form" id="fe" novalidate>
+        ${UI.campo({ name: 'nombre', label: 'Nombre completo', value: a.nombre, requerido: true })}
+        ${UI.campo({ name: 'correo', label: 'Correo electrónico', value: a.correo, attrs: 'disabled', ayuda: 'El correo no se puede cambiar.' })}
+        ${UI.campo({ name: 'perfil', label: 'Rol', tipo: 'select', value: a.perfil || 'Administrador', opciones: PERFILES_ADM.map(x => ({ valor: x, texto: x })) })}
+        ${UI.campo({ name: 'activo', label: 'Estado', tipo: 'select', value: a.activo ? '1' : '0', attrs: propia ? 'disabled' : '', ayuda: propia ? 'No puedes desactivar tu propia cuenta.' : '', opciones: [{ valor: '1', texto: 'Activo' }, { valor: '0', texto: 'Inactivo' }] })}
+        ${formErr}
+        <div class="modal-acc">
+          <button class="btn ghost" type="button" data-cerrar>Cancelar</button>
+          <button class="btn" type="submit">Guardar cambios</button>
+        </div>
+      </form>`
+  });
+
+  const f = $('#fe', m.el);
+
+  f.onsubmit = async e => {
+    e.preventDefault();
+    UI.limpiarErrores(f);
+
+    const nombre = f.nombre.value.trim();
+    if (!nombre) return UI.errorCampo(f, 'nombre', 'El nombre es obligatorio.');
+
+    const btn = $('[type=submit]', f);
+    UI.ocupado(btn, true);
+
+    try {
+      await Api.actualizarAdministrador(a.id, {
+        nombre,
+        perfil: f.perfil.value,
+        activo: propia ? true : f.activo.value === '1'
+      });
+
+      m.cerrar();
+      UI.toast('Administrador actualizado.');
+      alGuardar();
+    } catch (err) {
+      UI.ocupado(btn, false);
+      errorEnForm(f, err);
+    }
+  };
+}
+
+async function restablecerClaveAdmin(a) {
+  const ok = await UI.confirmar(
+    'Restablecer contraseña',
+    `Se generará una contraseña temporal nueva para <b>${esc(a.nombre)}</b>. La anterior dejará de funcionar y deberá cambiarla al iniciar sesión.`,
+    { boton: 'Restablecer' }
+  );
+
+  if (!ok) return;
+
+  const clave = claveTemporal();
+
+  try {
+    await Api.restablecerClaveAdministrador(a.id, clave);
+    modalClaveTemporal({ titulo: 'Contraseña restablecida', nombre: a.nombre, correo: a.correo, clave });
+  } catch (e) {
+    avisarError(e);
+  }
+}
+
+async function eliminarAdmin(a, alCambiar) {
+  const ok = await UI.confirmar(
+    'Eliminar administrador',
+    `Se eliminará la cuenta de <b>${esc(a.nombre)}</b> (${esc(a.correo)}). Esta acción no se puede deshacer.`,
+    { boton: 'Eliminar', peligro: true }
+  );
+
+  if (!ok) return;
+
+  try {
+    await Api.eliminarAdministrador(a.id);
+    UI.toast('Administrador eliminado.');
+    alCambiar();
+  } catch (e) {
+    avisarError(e);
+  }
+}
+
+function vAdministradores(c, ctx) {
+  if (!Api.ADMIN_EXTRA) return vAdministradoresBasico(c);
+
+  const yo = usuario().id;
+  let lista = [];
+
+  const plano = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+  const buenas = [
+    [ICO_ADM.shieldOk, 'Usa contraseñas seguras', 'Genera contraseñas complejas y únicas para cada administrador.'],
+    [icon('users'), 'Asigna el rol adecuado', 'Identifica la función de cada persona dentro del equipo.'],
+    [icon('lock'), 'Forza el cambio de contraseña', 'Recomendado para nuevos administradores.'],
+    [icon('eye'), 'Revisa los accesos regularmente', 'Desactiva cuentas que ya no estén en uso.'],
+    [ICO_ADM.file, 'Controla el último acceso', 'Consulta cuándo entró cada cuenta por última vez en la lista.']
+  ];
+
+  c.innerHTML = `
+    <div class="seccion">
+      <div class="adm-top">
+        <section class="card">
+          <div class="card-cab">
+            ${ICO_ADM.userPlus}
+            <div><h3>Crear nuevo administrador</h3><p>Completa la información para crear una nueva cuenta de administrador.</p></div>
+          </div>
+
+          <form class="adm-form" id="fa" novalidate>
+            <div class="adm-col">
+              ${UI.campo({ name: 'nombre', label: 'Nombre completo', requerido: true, placeholder: 'Ej. Juan Pérez Gómez', attrs: 'autocomplete="off"' })}
+              ${UI.campo({ name: 'correo', label: 'Correo electrónico', tipo: 'email', requerido: true, placeholder: 'ejemplo@correo.com', attrs: 'autocomplete="off"' })}
+              ${UI.campo({ name: 'perfil', label: 'Rol', tipo: 'select', requerido: true, value: 'Administrador', ayuda: 'Identifica la función del administrador.', opciones: PERFILES_ADM.map(x => ({ valor: x, texto: x })) })}
+            </div>
+
+            <div class="adm-col">
+              <div class="campo" data-campo="passwordTemporal">
+                <label for="pt">Contraseña temporal <i>*</i></label>
+                <div class="pass-fila">
+                  <div class="con-pref"><span class="pref">${icon('lock')}</span><input id="pt" name="passwordTemporal" type="text" autocomplete="off" spellcheck="false"></div>
+                  <button class="btn ghost" type="button" data-generar>${ICO_ADM.refresh} Generar</button>
+                </div>
+                <small class="ayuda">Se generará una contraseña segura de forma automática.</small>
+                <small class="err"></small>
+              </div>
+
+              ${UI.campo({ name: 'activo', label: 'Estado', tipo: 'select', requerido: true, value: '1', ayuda: 'El administrador podrá acceder al sistema.', opciones: [{ valor: '1', texto: 'Activo' }, { valor: '0', texto: 'Inactivo' }] })}
+
+              <label class="adm-chk">
+                <input type="checkbox" name="forzarCambio" checked>
+                <b>Forzar cambio de contraseña al primer inicio</b>
+                <small>El usuario deberá establecer una nueva contraseña al iniciar sesión.</small>
+              </label>
+
+            </div>
+
+            ${formErr}
+            <div class="adm-btns">
+              <button class="btn ghost" type="button" data-limpiar>${ICO_ADM.trash} Limpiar</button>
+              <button class="btn" type="submit">${ICO_ADM.userPlus} Crear administrador</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="card-cab">
+            <span class="adm-bulb">${ICO_ADM.bulb}</span>
+            <div><h3>Buenas prácticas de acceso</h3><p>Recomendaciones para mantener la seguridad del sistema.</p></div>
+          </div>
+          <div class="adm-tips">
+            ${buenas.map(([ic, t, d]) => `
+              <div class="adm-tip"><span class="ico">${ic}</span><div><b>${t}</b><small>${d}</small></div></div>`).join('')}
+          </div>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="card-h adm-lh">
+          <div class="card-cab">
+            ${icon('users')}
+            <div><h3>Administradores del sistema</h3><p>Lista de cuentas administrativas registradas.</p></div>
+          </div>
+          <div class="herramientas adm-filtros">
+            <div class="buscar">${icon('search')}<input type="search" id="fBuscar" placeholder="Buscar administrador..." aria-label="Buscar administrador" autocomplete="off"></div>
+            <select id="fRol" aria-label="Filtrar por rol">
+              <option value="">Todos los roles</option>
+              ${PERFILES_ADM.map(x => `<option value="${x}">${x}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div id="tablaAdm">${UI.cargando(5)}</div>
+      </section>
+    </div>`;
+
+  const f = $('#fa', c);
+  const tabla = $('#tablaAdm', c);
+
+  // Iconos dentro de los campos
+  prefijoCampo(f, 'nombre', icon('user'));
+  prefijoCampo(f, 'correo', icon('mail'));
+  prefijoCampo(f, 'perfil', icon('shield'));
+  const wEstado = prefijoCampo(f, 'activo', '<i class="pe pe-DISPONIBLE"></i>');
+  f.activo.onchange = () => { $('.pe', wEstado).className = 'pe ' + (f.activo.value === '1' ? 'pe-DISPONIBLE' : 'pe-FUERA_DE_SERVICIO'); };
+
+  const nuevaClave = () => { f.passwordTemporal.value = claveTemporal(); };
+  nuevaClave();
+  $('[data-generar]', f).onclick = nuevaClave;
+
+  const limpiar = () => {
+    f.reset();
+    UI.limpiarErrores(f);
+    f.activo.onchange();
+    nuevaClave();
+  };
+
+  $('[data-limpiar]', f).onclick = limpiar;
+
+  // Lista
+  function pintar() {
+    const t = plano($('#fBuscar', c).value);
+    const rol = $('#fRol', c).value;
+
+    const vis = lista
+      .filter(a => !rol || (a.perfil || 'Administrador') === rol)
+      .filter(a => !t || plano(`${a.nombre} ${a.correo}`).includes(t));
+
+    tabla.innerHTML = vis.length ? `
+      <div class="tabla-wrap">
+        <table class="tabla adm-tabla">
+          <thead><tr><th>Nombre</th><th>Correo electrónico</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th class="num">Acciones</th></tr></thead>
+          <tbody>${vis.map(a => `
+            <tr>
+              <td><div class="adm-nom">${UI.avatar(a.nombre, 'sm')}<b>${esc(a.nombre)}</b>${a.id === yo ? '<span class="pastilla">Tú</span>' : ''}</div></td>
+              <td>${esc(a.correo)}</td>
+              <td>${rolTag(a.perfil)}</td>
+              <td>${estadoAdm(a)}</td>
+              <td class="nowrap">${a.ultimoAcceso ? fmt.fechaHora(a.ultimoAcceso) : 'Nunca'}</td>
+              <td><div class="adm-acc">
+                <button class="ab ab-ver" type="button" data-ver="${a.id}" title="Ver detalle" aria-label="Ver detalle de ${esc(a.nombre)}">${icon('eye')}</button>
+                <button class="ab ab-edit" type="button" data-editar="${a.id}" title="Editar" aria-label="Editar a ${esc(a.nombre)}">${icon('edit')}</button>
+                <button class="ab ab-clave" type="button" data-clave="${a.id}" title="Restablecer contraseña" aria-label="Restablecer contraseña de ${esc(a.nombre)}"${a.id === yo ? ' disabled' : ''}>${ICO_ADM.key}</button>
+                <button class="ab ab-del" type="button" data-borrar="${a.id}" title="Eliminar" aria-label="Eliminar a ${esc(a.nombre)}"${a.id === yo ? ' disabled' : ''}>${ICO_ADM.trash}</button>
+              </div></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`
+      : UI.vacio(lista.length ? 'Ningún administrador coincide con la búsqueda.' : 'Todavía no hay administradores registrados.', 'users');
+  }
+
+  async function cargar() {
+    try {
+      lista = await Api.administradores();
+      if (ctx.vigente()) pintar();
+    } catch (e) {
+      if (ctx.vigente()) falloCarga(tabla, e, cargar);
+    }
+  }
+
+  $('#fBuscar', c).oninput = pintar;
+  $('#fRol', c).onchange = pintar;
+
+  tabla.addEventListener('click', e => {
+    const b = e.target.closest('[data-ver], [data-editar], [data-clave], [data-borrar]');
+    if (!b || b.disabled) return;
+
+    const a = lista.find(x => x.id === +(b.dataset.ver || b.dataset.editar || b.dataset.clave || b.dataset.borrar));
+    if (!a) return;
+
+    if (b.dataset.ver) verAdmin(a);
+    else if (b.dataset.editar) editarAdmin(a, cargar);
+    else if (b.dataset.clave) restablecerClaveAdmin(a);
+    else eliminarAdmin(a, cargar);
+  });
+
+  // Crear
+  f.onsubmit = async e => {
+    e.preventDefault();
+    UI.limpiarErrores(f);
+
+    const d = UI.datos(f);
+    if (!d.nombre) return UI.errorCampo(f, 'nombre', 'El nombre es obligatorio.');
+    if (!UI.correoValido(d.correo)) return UI.errorCampo(f, 'correo', 'Escribe un correo válido.');
+    if (!UI.passwordValida(d.passwordTemporal)) return UI.errorCampo(f, 'passwordTemporal', 'Mínimo 8 caracteres, con letras y números.');
+
+    const forzar = f.forzarCambio.checked;
+    const btn = $('[type=submit]', f);
+    UI.ocupado(btn, true);
+
+    try {
+      const u = await Api.crearAdministrador({
+        nombre: d.nombre,
+        correo: d.correo,
+        passwordTemporal: d.passwordTemporal,
+        perfil: d.perfil,
+        activo: d.activo === '1',
+        forzarCambio: forzar
+      });
+
+      modalClaveTemporal({ titulo: 'Administrador creado', nombre: u.nombre, correo: u.correo, clave: d.passwordTemporal, forzar });
+      limpiar();
+      cargar();
+    } catch (err) {
+      errorEnForm(f, err, { CORREO_DUPLICADO: 'correo' });
+    } finally {
+      UI.ocupado(btn, false);
+    }
+  };
+
+  return cargar();
 }
 
 
@@ -3276,14 +3679,46 @@ async function panelFlotaDisponible({ first = 12, after = null, last = null, bef
 }
 
 // Navegación y tema compartidos, sin controles duplicados en el menú lateral.
+// Automático: día 06:00–17:59 y noche 18:00–05:59, según la hora local del navegador.
+let ultimoPeriodoTema = window.AutoGoTema?.periodoActual?.() || ((new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'dia' : 'noche');
+
+function cambiarTemaManual() {
+  const actual = document.documentElement.getAttribute('data-tema') === 'noche' ? 'noche' : 'dia';
+  const nuevo = actual === 'noche' ? 'dia' : 'noche';
+  const periodo = window.AutoGoTema?.periodoActual?.() || ultimoPeriodoTema;
+  window.AutoGoTema?.aplicar?.(nuevo);
+  if (!window.AutoGoTema) {
+    if (nuevo === 'noche') document.documentElement.setAttribute('data-tema','noche');
+    else document.documentElement.removeAttribute('data-tema');
+  }
+  try {
+    localStorage.setItem('autogo-tema', nuevo);
+    localStorage.setItem('autogo-tema-periodo', periodo);
+  } catch (_) {}
+  pintarFijas();
+}
+
+function comprobarTemaAutomatico() {
+  const periodo = window.AutoGoTema?.periodoActual?.() || ((new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'dia' : 'noche');
+  if (periodo === ultimoPeriodoTema) return;
+  ultimoPeriodoTema = periodo;
+  try {
+    localStorage.removeItem('autogo-tema');
+    localStorage.removeItem('autogo-tema-periodo');
+  } catch (_) {}
+  if (window.AutoGoTema) window.AutoGoTema.aplicar(periodo);
+  else if (periodo === 'noche') document.documentElement.setAttribute('data-tema','noche');
+  else document.documentElement.removeAttribute('data-tema');
+  pintarFijas();
+}
+
+setInterval(comprobarTemaAutomatico, 60e3);
+window.addEventListener('focus', comprobarTemaAutomatico);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) comprobarTemaAutomatico(); });
+
 document.addEventListener('click', e => {
   if (e.target.closest('[data-tema-global]')) {
-    const n = document.documentElement.getAttribute('data-tema') !== 'noche';
-    if (n) document.documentElement.setAttribute('data-tema','noche');
-    else document.documentElement.removeAttribute('data-tema');
-    try { localStorage.setItem('autogo-tema', n ? 'noche' : 'dia'); } catch (_) {}
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', n ? '#05070f' : '#eef3fb');
-    pintarFijas();
+    cambiarTemaManual();
   }
   const pending = e.target.closest('[data-modulo-pendiente]');
   if (pending) UI.toast(pending.dataset.moduloPendiente + ': este módulo todavía no está implementado.', 'info');

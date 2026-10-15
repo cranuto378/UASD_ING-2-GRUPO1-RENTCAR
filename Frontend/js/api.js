@@ -161,6 +161,10 @@ const Api = (() => {
   const CATEGORIA = 'id nombre';
   // color, transmisión, capacidad y observaciones: solo en demo o si config.js tiene VEHICULO_EXTRA: true
   const VEHICULO_EXTRA = DEMO || cfg.VEHICULO_EXTRA === true;
+
+  // Gestión completa de administradores (lista, rol, estado...): demo o config.js con ADMIN_EXTRA: true
+  const ADMIN_EXTRA = DEMO || cfg.ADMIN_EXTRA === true;
+  const ADMIN = 'id nombre correo rol perfil activo debeCambiarPassword ultimoAcceso fechaCreacion';
   const VEHICULO = 'id placa categoriaId categoria marca modelo anio precioDia estadoOperativo estadoActual mantenimientoHasta fotoUrl activo' +
     (VEHICULO_EXTRA ? ' color transmision capacidad observaciones' : '');
   const COTIZACION = 'vehiculoId fechaInicio fechaFin dias precioDia total';
@@ -194,6 +198,7 @@ const Api = (() => {
   return {
     DEMO,
     VEHICULO_EXTRA,
+    ADMIN_EXTRA,
     ApiError,
     sesion,
     guardarSesion,
@@ -233,8 +238,26 @@ const Api = (() => {
 
     crearAdministrador: input => pedir('crearAdministrador',
       `mutation CrearAdministrador($input: CrearAdministradorInput!) {
-        crearAdministrador(input: $input) { ${USUARIO} }
+        crearAdministrador(input: $input) { ${ADMIN_EXTRA ? ADMIN : USUARIO} }
       }`, { input }),
+
+    administradores: ({ texto = null, perfil = null } = {}) => pedir('administradores',
+      `query Administradores($texto: String, $perfil: String) {
+        administradores(texto: $texto, perfil: $perfil) { ${ADMIN} }
+      }`, { texto, perfil }),
+
+    actualizarAdministrador: (id, input) => pedir('actualizarAdministrador',
+      `mutation ActualizarAdministrador($id: Int!, $input: ActualizarAdministradorInput!) {
+        actualizarAdministrador(id: $id, input: $input) { ${ADMIN} }
+      }`, { id, input }),
+
+    restablecerClaveAdministrador: (id, passwordTemporal) => pedir('restablecerClaveAdministrador',
+      `mutation RestablecerClaveAdmin($id: Int!, $passwordTemporal: String!) {
+        restablecerClaveAdministrador(id: $id, passwordTemporal: $passwordTemporal)
+      }`, { id, passwordTemporal }),
+
+    eliminarAdministrador: id => pedir('eliminarAdministrador',
+      `mutation EliminarAdministrador($id: Int!) { eliminarAdministrador(id: $id) }`, { id }),
 
 
     /* Catálogo y vehículos */

@@ -8,7 +8,8 @@
 
 const Demo = (() => {
   const CLAVE = 'autogo.demo.db';
-  const VERSION = 3;
+  const VERSION = 4;
+  const PERFILES = ['Administrador', 'Facturación', 'Operaciones', 'Soporte'];
 
   class Fallo extends Error {
     constructor(code, message) {
@@ -93,6 +94,8 @@ const Demo = (() => {
       seq: { categoria: 7, vehiculo: 13, cliente: 7, usuario: 3, alquiler: 1, factura: 1 }
     };
 
+    agregarAdminsDemo();
+
     // Historial de los últimos meses (generador fijo para que siempre salga igual)
     let s = 7;
     const azar = n => { s = (s * 9301 + 49297) % 233280; return Math.floor((s / 233280) * n); };
@@ -130,6 +133,29 @@ const Demo = (() => {
     nuevoAlquiler(2, vehiculos[10], h, mas(h, 2), 'EFECTIVO', 'MOSTRADOR', h);
   }
 
+  // Administradores de ejemplo (para la pantalla de Administradores)
+  function agregarAdminsDemo() {
+    const h = hoy();
+    const a = (nombre, correo, perfil, activo, dias, hora) => ({
+      id: db.seq.usuario++, nombre, correo, password: 'Admin2026', rol: 'ADMINISTRADOR', perfil,
+      debeCambiarPassword: false, clienteId: null, activo,
+      ultimoAcceso: emision(mas(h, -dias), hora), fechaCreacion: emision(mas(h, -120), '09:00')
+    });
+
+    db.usuarios.forEach(u => {
+      if (u.rol === 'ADMINISTRADOR' && !u.perfil) u.perfil = 'Administrador';
+    });
+
+    db.usuarios.push(
+      a('Juan Pérez', 'juan.perez@autogo.com', 'Administrador', true, 1, '22:35'),
+      a('María Sánchez', 'maria.sanchez@autogo.com', 'Facturación', true, 1, '20:12'),
+      a('Luis Castillo', 'luis.castillo@autogo.com', 'Operaciones', true, 3, '16:21'),
+      a('Ana Rodríguez', 'ana.rodriguez@autogo.com', 'Administrador', true, 2, '21:44'),
+      a('Carlos Méndez', 'carlos.mendez@autogo.com', 'Soporte', false, 6, '11:18'),
+      a('Daniel López', 'daniel.lopez@autogo.com', 'Operaciones', true, 1, '14:07')
+    );
+  }
+
   function cerrar(a, fechaDevolucion, metodoMora) {
     const diasMora = Math.max(0, entre(a.fechaFinPactada, fechaDevolucion));
 
@@ -152,6 +178,13 @@ const Demo = (() => {
     }
 
     try { db = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { db = null; }
+
+    // Datos de la versión 3 -> se conservan y se agregan los administradores de ejemplo
+    if (db && db.seq && db.version === 3) {
+      agregarAdminsDemo();
+      db.version = VERSION;
+      guardar();
+    }
 
     if (!db || !db.seq || db.version !== VERSION) {
       semilla();
@@ -362,6 +395,14 @@ const Demo = (() => {
     };
   }
 
+  const vAdmin = u => ({
+    id: u.id, nombre: u.nombre, correo: u.correo, rol: u.rol, perfil: u.perfil || 'Administrador',
+    activo: !!u.activo, debeCambiarPassword: !!u.debeCambiarPassword,
+    ultimoAcceso: u.ultimoAcceso || null, fechaCreacion: u.fechaCreacion || null
+  });
+
+  const adminesActivos = () => db.usuarios.filter(x => x.rol === 'ADMINISTRADOR' && x.activo).length;
+
   const vUsuario = u => ({
     id: u.id, nombre: u.nombre, correo: u.correo, rol: u.rol,
     debeCambiarPassword: u.debeCambiarPassword, clienteId: u.clienteId
@@ -439,6 +480,7 @@ const Demo = (() => {
     login({ correo, password }) {
       const u = db.usuarios.find(x => x.correo === plano(correo).trim() && x.activo);
       if (!u || u.password !== password) falla('CREDENCIALES_INVALIDAS', 'Correo o contraseña incorrectos.');
+      u.ultimoAcceso = new Date().toISOString();
       return auth(u);
     },
 
@@ -520,13 +562,66 @@ const Demo = (() => {
       validarPassword(input.passwordTemporal);
       if (db.usuarios.some(x => x.correo === correo)) falla('CORREO_DUPLICADO', 'Ya existe un usuario con ese correo.');
 
+      const perfil = input.perfil == null ? 'Administrador' : input.perfil;
+      if (!PERFILES.includes(perfil)) falla('DATO_INVALIDO', 'El rol no es válido.');
+
       const u = {
         id: db.seq.usuario++, nombre: input.nombre.trim(), correo, password: input.passwordTemporal,
-        rol: 'ADMINISTRADOR', debeCambiarPassword: true, clienteId: null, activo: true
+        rol: 'ADMINISTRADOR', perfil, debeCambiarPassword: input.forzarCambio !== false, clienteId: null,
+        activo: input.activo !== false, ultimoAcceso: null, fechaCreacion: new Date().toISOString()
       };
       db.usuarios.push(u);
 
-      return vUsuario(u);
+      return vAdmin(u);
+    },
+
+    administradores(v, ctx) {
+      admin(ctx);
+      const t = plano(v.texto);
+      return db.usuarios
+        .filter(x => x.rol === 'ADMINISTRADOR')
+        .filter(x => !v.perfil || (x.perfil || 'Administrador') === v.perfil)
+        .filter(x => !t || plano(`${x.nombre} ${x.correo}`).includes(t))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre))
+        .map(vAdmin);
+    },
+
+    actualizarAdministrador({ id, input }, ctx) {
+      const yo = admin(ctx);
+      const u = db.usuarios.find(x => x.id === id && x.rol === 'ADMINISTRADOR');
+      if (!u) falla('NO_ENCONTRADO', 'El administrador no existe.');
+      if (!input.nombre || !input.nombre.trim()) falla('DATO_INVALIDO', 'El nombre es obligatorio.');
+      if (!PERFILES.includes(input.perfil)) falla('DATO_INVALIDO', 'El rol no es válido.');
+
+      const activo = input.activo !== false;
+      if (!activo && u.activo) {
+        if (u.id === yo.id) falla('REGLA_NEGOCIO', 'No puedes desactivar tu propia cuenta.');
+        if (adminesActivos() <= 1) falla('REGLA_NEGOCIO', 'Debe quedar al menos un administrador activo.');
+      }
+
+      Object.assign(u, { nombre: input.nombre.trim(), perfil: input.perfil, activo });
+      return vAdmin(u);
+    },
+
+    restablecerClaveAdministrador({ id, passwordTemporal }, ctx) {
+      const yo = admin(ctx);
+      const u = db.usuarios.find(x => x.id === id && x.rol === 'ADMINISTRADOR');
+      if (!u) falla('NO_ENCONTRADO', 'El administrador no existe.');
+      if (u.id === yo.id) falla('REGLA_NEGOCIO', 'Para cambiar tu propia contraseña usa la opción "Cambiar contraseña".');
+      validarPassword(passwordTemporal);
+      u.password = passwordTemporal;
+      u.debeCambiarPassword = true;
+      return true;
+    },
+
+    eliminarAdministrador({ id }, ctx) {
+      const yo = admin(ctx);
+      const u = db.usuarios.find(x => x.id === id && x.rol === 'ADMINISTRADOR');
+      if (!u) falla('NO_ENCONTRADO', 'El administrador no existe.');
+      if (u.id === yo.id) falla('REGLA_NEGOCIO', 'No puedes eliminar tu propia cuenta.');
+      if (u.activo && adminesActivos() <= 1) falla('REGLA_NEGOCIO', 'Debe quedar al menos un administrador activo.');
+      db.usuarios = db.usuarios.filter(x => x.id !== id);
+      return true;
     },
 
 

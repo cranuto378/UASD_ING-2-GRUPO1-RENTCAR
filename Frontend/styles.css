@@ -3777,3 +3777,877 @@ html:not([data-tema="noche"]) .panel-admin .menu-movil { color:white; }
 .menu-usuario { z-index:90; }
 html:not([data-tema="noche"]) .panel-admin .menu-usuario { background:#fff; color:#172747; border-color:#d8e2f0; }
 html:not([data-tema="noche"]) .panel-admin .menu-usuario a:hover { background:#eaf1fd; color:#255fc2; }
+
+
+/* ===== MÓDULO ADMINISTRADORES RECUPERADO DEL FRONTEND DEL EQUIPO ===== */
+/* =========================================================
+   3) ADMINISTRADORES
+========================================================= */
+
+.adm-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.adm-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 22px;
+    margin-top: 20px;
+}
+
+.adm-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.adm-form .form-err,
+.adm-btns {
+    grid-column: 1 / -1;
+}
+
+.adm-btns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pass-fila {
+    display: flex;
+    gap: 10px;
+}
+
+.pass-fila .con-pref {
+    flex: 1;
+}
+
+/* Checkbox "forzar cambio" */
+.adm-chk {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: start;
+    cursor: pointer;
+}
+
+.adm-chk input {
+    grid-row: 1 / span 2;
+    margin-top: 2px;
+    accent-color: var(--azul);
+}
+
+.adm-chk b {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.adm-chk small {
+    color: var(--txt-3);
+    font-size: 12px;
+}
+
+/* Buenas prácticas */
+.adm-bulb {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex: none;
+    background: rgba(252, 210, 122, .18);
+    color: var(--warn);
+}
+
+.adm-bulb .ic {
+    width: 22px;
+    height: 22px;
+}
+
+.adm-tips {
+    margin-top: 14px;
+}
+
+.adm-tip {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--borde-2);
+}
+
+.adm-tip:last-child {
+    border-bottom: none;
+}
+
+.adm-tip .ico {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex: none;
+    background: var(--glass-2);
+    border: 1px solid var(--borde-2);
+}
+
+.adm-tip .ico .ic {
+    width: 18px;
+    height: 18px;
+}
+
+.adm-tip b {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.adm-tip small {
+    display: block;
+    color: var(--txt-3);
+    font-size: 12px;
+    margin-top: 1px;
+}
+
+/* Cabecera de la lista (título + buscador + filtro) */
+.adm-lh {
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.adm-filtros {
+    margin: 0;
+    flex-wrap: nowrap;
+}
+
+.adm-filtros .buscar {
+    flex: none;
+    width: 260px;
+}
+
+.adm-filtros select {
+    min-width: 160px;
+}
+
+/* Tabla */
+.adm-tabla th {
+    padding-top: 10px;
+}
+
+.adm-nom {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.adm-nom b {
+    font-weight: 600;
+}
+
+/* Etiquetas de rol */
+.rol-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.rol-admin {
+    color: var(--morado);
+    background: rgba(185, 164, 255, .16);
+    border-color: rgba(185, 164, 255, .4);
+}
+
+.rol-fact {
+    color: var(--info);
+    background: rgba(165, 200, 255, .14);
+    border-color: rgba(165, 200, 255, .4);
+}
+
+.rol-oper {
+    color: var(--ok);
+    background: rgba(110, 231, 160, .13);
+    border-color: rgba(110, 231, 160, .4);
+}
+
+.rol-sop {
+    color: var(--warn);
+    background: rgba(252, 210, 122, .13);
+    border-color: rgba(252, 210, 122, .4);
+}
+
+/* Botones de acción de la tabla */
+.adm-acc {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.ab {
+    width: 36px;
+    height: 30px;
+    border-radius: 9px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid transparent;
+    transition: background .2s, transform .15s;
+}
+
+.ab .ic {
+    width: 16px;
+    height: 16px;
+}
+
+.ab:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.ab:disabled {
+    opacity: .3;
+    cursor: not-allowed;
+}
+
+.ab-ver {
+    color: #fff;
+    background: var(--glass-3);
+    border-color: var(--borde-2);
+}
+
+.ab-edit {
+    color: #bcd0ff;
+    background: var(--azul-bg);
+    border-color: var(--azul-bd);
+}
+
+.ab-clave {
+    color: var(--naranja);
+    background: rgba(255, 176, 102, .16);
+    border-color: rgba(255, 176, 102, .45);
+}
+
+.ab-del {
+    color: #ff9c9c;
+    background: rgba(255, 112, 112, .16);
+    border-color: rgba(255, 112, 112, .45);
+}
+
+/* Modal de contraseña temporal */
+.clave-caja {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 16px 0 8px;
+    padding: 12px 14px;
+    border-radius: var(--r);
+    background: rgba(0, 0, 0, .22);
+    border: 1px solid var(--borde-2);
+}
+
+.clave-caja code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 17px;
+    letter-spacing: .06em;
+}
+
+.clave-correo {
+    color: var(--txt-3);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1180px) {
+
+    .adm-top,
+    .perfil-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 860px) {
+
+    .adm-form {
+        grid-template-columns: 1fr;
+    }
+
+    .adm-filtros {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .adm-filtros .buscar {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .vh-grid .c2,
+    .vh-grid .c3 {
+        grid-column: span 6;
+    }
+
+    .wallet-acc {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+/* =========================================================
+   AUTOGO · GLASS AMBIENTAL GLOBAL DEL PANEL ADMINISTRATIVO
+   Octubre 2026
+
+   Objetivo:
+   - Recuperar la imagen ambiental original como fondo del panel.
+   - Mantenerla desenfocada en TODOS los módulos administrativos.
+   - Hacer que el mismo material Glass reaccione a DAY / NIGHT.
+   - No cambiar la identidad ni la estructura de los módulos.
+========================================================= */
+
+/* Transición conjunta: el cambio de tema se percibe como un cambio de luz. */
+body.entorno-admin,
+body.entorno-admin .fondo::before,
+body.entorno-admin .fondo::after,
+body.entorno-admin .app,
+body.entorno-admin .side,
+body.entorno-admin .card,
+body.entorno-admin .modal,
+body.entorno-admin .menu-usuario,
+body.entorno-admin input,
+body.entorno-admin select,
+body.entorno-admin textarea {
+    transition:
+        background-color .38s ease,
+        background .38s ease,
+        border-color .38s ease,
+        box-shadow .38s ease,
+        color .28s ease,
+        filter .45s ease,
+        opacity .45s ease;
+}
+
+/* -----------------------------
+   DAY · ambiente luminoso
+----------------------------- */
+html:not([data-tema="noche"]) body.entorno-admin {
+    --txt: #172747;
+    --txt-2: #475b7a;
+    --txt-3: #60718b;
+
+    --glass: rgba(246, 249, 255, .52);
+    --glass-2: rgba(255, 255, 255, .46);
+    --glass-3: rgba(255, 255, 255, .66);
+    --glass-osc: rgba(234, 240, 250, .52);
+
+    --borde: rgba(255, 255, 255, .62);
+    --borde-2: rgba(113, 137, 171, .18);
+    --sombra: 0 26px 66px rgba(34, 52, 83, .16);
+    --brillo: inset 0 1px 0 rgba(255, 255, 255, .78);
+
+    color: var(--txt);
+    background: #e5ebf4;
+    color-scheme: light;
+}
+
+/* La imagen original vuelve a estar presente en cualquier módulo admin. */
+html:not([data-tema="noche"]) body.entorno-admin .fondo {
+    background: #e5ebf4;
+}
+
+html:not([data-tema="noche"]) body.entorno-admin .fondo::before {
+    display: block !important;
+    inset: -76px;
+    background: var(--foto) center 68% / cover no-repeat;
+    filter: blur(34px) saturate(.94) brightness(1.18) contrast(.88);
+    opacity: .86;
+    transform: scale(1.11);
+}
+
+/* Capa de luz: aclara el fondo sin esconder la fotografía. */
+html:not([data-tema="noche"]) body.entorno-admin .fondo::after {
+    background:
+        radial-gradient(48% 42% at 12% 8%, rgba(255,255,255,.68), transparent 72%),
+        radial-gradient(42% 38% at 88% 4%, rgba(221,233,251,.58), transparent 72%),
+        radial-gradient(38% 36% at 76% 92%, rgba(214,229,250,.34), transparent 72%),
+        linear-gradient(180deg, rgba(242,247,253,.54), rgba(226,235,246,.68));
+}
+
+html:not([data-tema="noche"]) body.entorno-admin .app {
+    background: rgba(244, 248, 253, .54) !important;
+    border-color: rgba(255,255,255,.7);
+    box-shadow:
+        0 28px 70px rgba(39, 58, 88, .17),
+        inset 0 1px 0 rgba(255,255,255,.82);
+    -webkit-backdrop-filter: blur(26px) saturate(125%);
+    backdrop-filter: blur(26px) saturate(125%);
+}
+
+html:not([data-tema="noche"]) body.entorno-admin .side {
+    background: rgba(233, 240, 250, .50) !important;
+    border-right-color: rgba(102, 127, 163, .15);
+    box-shadow: inset -1px 0 0 rgba(255,255,255,.32);
+    -webkit-backdrop-filter: blur(30px) saturate(130%);
+    backdrop-filter: blur(30px) saturate(130%);
+}
+
+/* Contenido: vidrio más calmado que navegación y elementos flotantes. */
+html:not([data-tema="noche"]) body.entorno-admin .card {
+    background: rgba(255, 255, 255, .52) !important;
+    border-color: rgba(255,255,255,.66) !important;
+    box-shadow:
+        0 10px 28px rgba(45, 64, 94, .09),
+        inset 0 1px 0 rgba(255,255,255,.72) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(120%);
+    backdrop-filter: blur(18px) saturate(120%);
+}
+
+/* KPI: conserva su acento, pero ahora deja respirar el ambiente. */
+html:not([data-tema="noche"]) body.entorno-admin .panel-kpi {
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--acento) 11%, rgba(255,255,255,.66)),
+            rgba(255,255,255,.48)) !important;
+    border-color: color-mix(in srgb, var(--acento) 26%, rgba(255,255,255,.62)) !important;
+}
+
+/* Inputs y filtros deben sentirse incrustados en el mismo material. */
+html:not([data-tema="noche"]) body.entorno-admin input,
+html:not([data-tema="noche"]) body.entorno-admin select,
+html:not([data-tema="noche"]) body.entorno-admin textarea {
+    background-color: rgba(255,255,255,.42);
+    color: var(--txt);
+    border-color: rgba(101,127,163,.22);
+    color-scheme: light;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+
+html:not([data-tema="noche"]) body.entorno-admin input:hover,
+html:not([data-tema="noche"]) body.entorno-admin select:hover,
+html:not([data-tema="noche"]) body.entorno-admin textarea:hover {
+    background-color: rgba(255,255,255,.56);
+}
+
+html:not([data-tema="noche"]) body.entorno-admin input:focus,
+html:not([data-tema="noche"]) body.entorno-admin select:focus,
+html:not([data-tema="noche"]) body.entorno-admin textarea:focus {
+    background-color: rgba(255,255,255,.70);
+}
+
+/* Floating / Thick Glass */
+html:not([data-tema="noche"]) body.entorno-admin .modal,
+html:not([data-tema="noche"]) body.entorno-admin .menu-usuario,
+html:not([data-tema="noche"]) body.entorno-admin .aviso,
+html:not([data-tema="noche"]) body.entorno-admin .tip {
+    background: rgba(250,252,255,.68) !important;
+    border-color: rgba(255,255,255,.78) !important;
+    color: var(--txt);
+    box-shadow:
+        0 24px 60px rgba(34,52,83,.20),
+        inset 0 1px 0 rgba(255,255,255,.88);
+    -webkit-backdrop-filter: blur(30px) saturate(132%);
+    backdrop-filter: blur(30px) saturate(132%);
+}
+
+html:not([data-tema="noche"]) body.entorno-admin .modal-bg {
+    background: rgba(74, 91, 117, .22);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+}
+
+/* Tablas: no crear otra placa opaca dentro de la tarjeta. */
+html:not([data-tema="noche"]) body.entorno-admin .tabla tbody tr:hover,
+html:not([data-tema="noche"]) body.entorno-admin .adm-tabla tbody tr:hover {
+    background: rgba(232, 241, 254, .44);
+}
+
+/* -----------------------------
+   NIGHT · misma escena, menos luz
+----------------------------- */
+html[data-tema="noche"] body.entorno-admin {
+    --glass: rgba(8, 15, 31, .50);
+    --glass-2: rgba(18, 29, 52, .45);
+    --glass-3: rgba(24, 38, 65, .60);
+    --glass-osc: rgba(5, 12, 27, .54);
+    --borde: rgba(255,255,255,.14);
+    --borde-2: rgba(255,255,255,.085);
+    --sombra: 0 30px 72px rgba(0,0,0,.48);
+    --brillo: inset 0 1px 0 rgba(255,255,255,.14);
+
+    background: #050b16;
+    color-scheme: dark;
+}
+
+html[data-tema="noche"] body.entorno-admin .fondo {
+    background: #050b16;
+}
+
+html[data-tema="noche"] body.entorno-admin .fondo::before {
+    display: block !important;
+    inset: -76px;
+    background: var(--foto) center 68% / cover no-repeat;
+    filter: blur(34px) saturate(.76) brightness(.33) contrast(1.04);
+    opacity: .96;
+    transform: scale(1.11);
+}
+
+html[data-tema="noche"] body.entorno-admin .fondo::after {
+    background:
+        radial-gradient(46% 42% at 12% 8%, rgba(53,92,151,.20), transparent 72%),
+        radial-gradient(42% 38% at 88% 4%, rgba(59,78,139,.16), transparent 72%),
+        radial-gradient(40% 36% at 78% 92%, rgba(19,64,122,.17), transparent 72%),
+        linear-gradient(180deg, rgba(5,11,24,.60), rgba(3,8,18,.78));
+}
+
+html[data-tema="noche"] body.entorno-admin .app {
+    background: rgba(7, 15, 32, .56) !important;
+    border-color: rgba(255,255,255,.12);
+    box-shadow:
+        0 30px 76px rgba(0,0,0,.48),
+        inset 0 1px 0 rgba(255,255,255,.12);
+    -webkit-backdrop-filter: blur(27px) saturate(125%);
+    backdrop-filter: blur(27px) saturate(125%);
+}
+
+html[data-tema="noche"] body.entorno-admin .side {
+    background: rgba(5, 12, 27, .52) !important;
+    border-right-color: rgba(255,255,255,.075);
+    box-shadow: inset -1px 0 0 rgba(255,255,255,.035);
+    -webkit-backdrop-filter: blur(30px) saturate(128%);
+    backdrop-filter: blur(30px) saturate(128%);
+}
+
+html[data-tema="noche"] body.entorno-admin .card {
+    background: rgba(17, 27, 49, .50) !important;
+    border-color: rgba(255,255,255,.11) !important;
+    box-shadow:
+        0 12px 32px rgba(0,0,0,.20),
+        inset 0 1px 0 rgba(255,255,255,.09) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(120%);
+    backdrop-filter: blur(18px) saturate(120%);
+}
+
+html[data-tema="noche"] body.entorno-admin .panel-kpi {
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--acento) 11%, rgba(13,23,43,.60)),
+            rgba(11,20,38,.52)) !important;
+    border-color: color-mix(in srgb, var(--acento) 28%, rgba(255,255,255,.08)) !important;
+}
+
+html[data-tema="noche"] body.entorno-admin input,
+html[data-tema="noche"] body.entorno-admin select,
+html[data-tema="noche"] body.entorno-admin textarea {
+    background-color: rgba(255,255,255,.065);
+    border-color: rgba(255,255,255,.11);
+    color-scheme: dark;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+
+html[data-tema="noche"] body.entorno-admin .modal,
+html[data-tema="noche"] body.entorno-admin .menu-usuario,
+html[data-tema="noche"] body.entorno-admin .aviso,
+html[data-tema="noche"] body.entorno-admin .tip {
+    background: rgba(8, 17, 35, .72) !important;
+    border-color: rgba(255,255,255,.13) !important;
+    box-shadow:
+        0 28px 70px rgba(0,0,0,.52),
+        inset 0 1px 0 rgba(255,255,255,.11);
+    -webkit-backdrop-filter: blur(32px) saturate(128%);
+    backdrop-filter: blur(32px) saturate(128%);
+}
+
+html[data-tema="noche"] body.entorno-admin .modal-bg {
+    background: rgba(0, 4, 12, .48);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+html[data-tema="noche"] body.entorno-admin .tabla tbody tr:hover,
+html[data-tema="noche"] body.entorno-admin .adm-tabla tbody tr:hover {
+    background: rgba(255,255,255,.045);
+}
+
+/* En pantallas pequeñas el drawer sigue siendo vidrio, no una placa sólida. */
+@media (max-width: 860px) {
+    html:not([data-tema="noche"]) body.entorno-admin .admin-shell .side {
+        background: rgba(235,241,250,.78) !important;
+    }
+
+    html[data-tema="noche"] body.entorno-admin .admin-shell .side {
+        background: rgba(6,13,29,.80) !important;
+    }
+}
+
+/* Respeta accesibilidad si el sistema pide menos transparencia. */
+@media (prefers-reduced-transparency: reduce) {
+    html:not([data-tema="noche"]) body.entorno-admin .app,
+    html:not([data-tema="noche"]) body.entorno-admin .side,
+    html:not([data-tema="noche"]) body.entorno-admin .card,
+    html:not([data-tema="noche"]) body.entorno-admin .modal,
+    html:not([data-tema="noche"]) body.entorno-admin .menu-usuario {
+        background: #eef3f9 !important;
+    }
+
+    html[data-tema="noche"] body.entorno-admin .app,
+    html[data-tema="noche"] body.entorno-admin .side,
+    html[data-tema="noche"] body.entorno-admin .card,
+    html[data-tema="noche"] body.entorno-admin .modal,
+    html[data-tema="noche"] body.entorno-admin .menu-usuario {
+        background: #0b1425 !important;
+    }
+}
+
+
+/* =========================================================
+   AUTOGO · AUDITORÍA DE CONTRASTE DAY / NIGHT
+   Octubre 2026
+
+   Corrige colores heredados del tema oscuro en todos los
+   módulos administrativos sin alterar la lógica ni el Glass.
+========================================================= */
+
+/* ---------- DAY: texto, iconografía y controles ---------- */
+html:not([data-tema="noche"]) body.entorno-admin {
+    --txt: #172747;
+    --txt-2: #475b7a;
+    --txt-3: #667792;
+    --pill: rgba(255,255,255,.78);
+    --pill-txt: #1b2b49;
+    --ok: #18885f;
+    --warn: #94620a;
+    --bad: #c33f53;
+    --info: #2d68c4;
+}
+
+html:not([data-tema="noche"]) body.entorno-admin :focus-visible {
+    outline-color: #2f6fcf;
+}
+
+/* Logo: la versión del recurso es blanca; en DAY debe oscurecerse. */
+html:not([data-tema="noche"]) body.entorno-admin .side-logo img,
+html:not([data-tema="noche"]) body.entorno-admin .marca img {
+    filter: brightness(0) saturate(100%) invert(18%) sepia(19%) saturate(1635%) hue-rotate(178deg) brightness(90%) contrast(94%);
+}
+
+/* Navegación: nunca blanco sobre Glass claro. */
+html:not([data-tema="noche"]) body.entorno-admin .nav a {
+    color: #435b7d;
+}
+html:not([data-tema="noche"]) body.entorno-admin .nav a:hover {
+    color: #214f91;
+    background: rgba(218,231,249,.58);
+}
+html:not([data-tema="noche"]) body.entorno-admin .nav a.act {
+    color: #1e55a5 !important;
+    background: rgba(255,255,255,.58) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.80);
+}
+html:not([data-tema="noche"]) body.entorno-admin .nav a.act::before {
+    background: #2f70cf;
+}
+
+/* Iconos de cabecera, campana, tema, menú móvil y acciones genéricas. */
+html:not([data-tema="noche"]) body.entorno-admin .icon-btn,
+html:not([data-tema="noche"]) body.entorno-admin .menu-movil {
+    color: #35577f !important;
+}
+html:not([data-tema="noche"]) body.entorno-admin .icon-btn:hover,
+html:not([data-tema="noche"]) body.entorno-admin .menu-movil:hover {
+    color: #174d93 !important;
+    background: rgba(225,236,251,.62);
+}
+html:not([data-tema="noche"]) body.entorno-admin .acciones .icon-btn:hover {
+    color: #174d93;
+}
+
+/* Avatar conserva aspecto Glass, pero sus iniciales deben leerse. */
+html:not([data-tema="noche"]) body.entorno-admin .avatar {
+    color: #294b79;
+    background: linear-gradient(140deg, rgba(255,255,255,.76), rgba(222,232,247,.52));
+    border-color: rgba(255,255,255,.78);
+    box-shadow: 0 6px 16px rgba(41,65,99,.14);
+}
+
+/* Botones secundarios / Glass. El botón primario sigue usando --pill. */
+html:not([data-tema="noche"]) body.entorno-admin .btn.ghost {
+    color: #294c7c;
+    background: rgba(238,244,253,.58);
+    border-color: rgba(93,121,159,.22);
+}
+html:not([data-tema="noche"]) body.entorno-admin .btn.ghost:hover {
+    color: #174d93;
+    background: rgba(255,255,255,.76);
+}
+html:not([data-tema="noche"]) body.entorno-admin .btn.danger {
+    color: #b43248;
+    background: rgba(214,65,86,.08);
+    border-color: rgba(190,55,75,.24);
+}
+html:not([data-tema="noche"]) body.entorno-admin .btn.danger:hover {
+    background: rgba(214,65,86,.14);
+}
+
+/* Enlaces que antes estaban forzados a blanco. */
+html:not([data-tema="noche"]) body.entorno-admin .link {
+    color: #245ca9;
+    border-bottom-color: rgba(36,92,169,.34);
+}
+html:not([data-tema="noche"]) body.entorno-admin .link:hover {
+    color: #174d93;
+    border-bottom-color: #174d93;
+}
+
+/* Formularios: texto, placeholder, flecha de select y estados focus. */
+html:not([data-tema="noche"]) body.entorno-admin input,
+html:not([data-tema="noche"]) body.entorno-admin select,
+html:not([data-tema="noche"]) body.entorno-admin textarea {
+    color: #1d3152 !important;
+    caret-color: #245fae;
+}
+html:not([data-tema="noche"]) body.entorno-admin input::placeholder,
+html:not([data-tema="noche"]) body.entorno-admin textarea::placeholder {
+    color: #8290a5;
+    opacity: 1;
+}
+html:not([data-tema="noche"]) body.entorno-admin select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475b7a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+html:not([data-tema="noche"]) body.entorno-admin option {
+    color: #172747;
+    background: #f7f9fc;
+}
+html:not([data-tema="noche"]) body.entorno-admin input:focus,
+html:not([data-tema="noche"]) body.entorno-admin select:focus,
+html:not([data-tema="noche"]) body.entorno-admin textarea:focus {
+    border-color: rgba(47,111,207,.62) !important;
+    box-shadow: 0 0 0 4px rgba(47,111,207,.11);
+}
+html:not([data-tema="noche"]) body.entorno-admin input[type=checkbox] {
+    accent-color: #2f70cf;
+}
+html:not([data-tema="noche"]) body.entorno-admin .ver-pass:hover {
+    color: #174d93;
+    background: rgba(222,233,249,.58);
+}
+
+/* Textos internos que tenían #fff fijo. */
+html:not([data-tema="noche"]) body.entorno-admin .nota-demo b,
+html:not([data-tema="noche"]) body.entorno-admin .nota-demo button,
+html:not([data-tema="noche"]) body.entorno-admin .leyenda b,
+html:not([data-tema="noche"]) body.entorno-admin .fac-meta b {
+    color: #1d3152;
+}
+html:not([data-tema="noche"]) body.entorno-admin .nota-demo {
+    border-color: rgba(72,98,134,.28);
+}
+
+/* Segmentos, filtros y pequeños controles circulares. */
+html:not([data-tema="noche"]) body.entorno-admin .segmentos button:hover {
+    color: #174d93;
+}
+html:not([data-tema="noche"]) body.entorno-admin .filtro-activo a {
+    color: #315982;
+}
+html:not([data-tema="noche"]) body.entorno-admin .filtro-activo a:hover {
+    color: #174d93;
+    background: rgba(218,231,249,.66);
+}
+
+/* Badge neutro: los estados .ok/.info/.warn/.bad conservan su semántica. */
+html:not([data-tema="noche"]) body.entorno-admin .badge:not(.ok):not(.info):not(.warn):not(.bad) {
+    color: #405675;
+    background: rgba(226,235,248,.56);
+    border-color: rgba(91,119,158,.20);
+}
+
+/* Menú de usuario / dropdown. */
+html:not([data-tema="noche"]) body.entorno-admin .menu-usuario a,
+html:not([data-tema="noche"]) body.entorno-admin .menu-usuario button {
+    color: #435975;
+}
+html:not([data-tema="noche"]) body.entorno-admin .menu-usuario a:hover,
+html:not([data-tema="noche"]) body.entorno-admin .menu-usuario button:hover {
+    color: #174d93;
+    background: rgba(221,233,249,.62);
+}
+
+/* Administradores: el icono VER era blanco sobre una superficie casi blanca. */
+html:not([data-tema="noche"]) body.entorno-admin .ab-ver {
+    color: #3c5f87;
+    background: rgba(238,244,252,.60);
+    border-color: rgba(92,120,158,.20);
+}
+html:not([data-tema="noche"]) body.entorno-admin .ab-ver:hover:not(:disabled) {
+    color: #174d93;
+    background: rgba(221,233,249,.72);
+}
+html:not([data-tema="noche"]) body.entorno-admin .ab-edit {
+    color: #2869c3;
+}
+
+/* Código/contraseña temporal dentro de modal claro. */
+html:not([data-tema="noche"]) body.entorno-admin .clave-caja {
+    background: rgba(230,237,247,.58);
+}
+
+/* ---------- NIGHT: normalización explícita de contraste ---------- */
+html[data-tema="noche"] body.entorno-admin {
+    --txt: #f3f6ff;
+    --txt-2: rgba(229,236,249,.76);
+    --txt-3: rgba(203,214,233,.58);
+    --pill: rgba(244,247,255,.92);
+    --pill-txt: #17213b;
+    --ok: #6ee7a0;
+    --warn: #fcd27a;
+    --bad: #fca5a5;
+    --info: #a5c8ff;
+    color: var(--txt);
+}
+html[data-tema="noche"] body.entorno-admin input,
+html[data-tema="noche"] body.entorno-admin select,
+html[data-tema="noche"] body.entorno-admin textarea {
+    color: #f3f6ff;
+    caret-color: #a5c8ff;
+}
+html[data-tema="noche"] body.entorno-admin input::placeholder,
+html[data-tema="noche"] body.entorno-admin textarea::placeholder {
+    color: rgba(218,227,243,.48);
+    opacity: 1;
+}
+html[data-tema="noche"] body.entorno-admin option {
+    color: #eef3ff;
+    background: #111a2e;
+}
+html[data-tema="noche"] body.entorno-admin .nav a.act,
+html[data-tema="noche"] body.entorno-admin .nav a:hover,
+html[data-tema="noche"] body.entorno-admin .icon-btn,
+html[data-tema="noche"] body.entorno-admin .menu-movil {
+    color: #f3f6ff;
+}
+html[data-tema="noche"] body.entorno-admin .avatar {
+    color: #fff;
+}
+html[data-tema="noche"] body.entorno-admin .ab-ver {
+    color: #eaf0ff;
+}
+
+/* Disabled sigue visible como control deshabilitado, no como texto perdido. */
+body.entorno-admin .btn:disabled,
+body.entorno-admin button:disabled,
+body.entorno-admin input:disabled,
+body.entorno-admin select:disabled {
+    opacity: .48;
+}
