@@ -10,6 +10,8 @@ const raiz = $('#raiz');
 let renderId = 0;
 let haySesion = !!Api.sesion();
 let pendientes = null;
+let notificacionesCache = null;
+let filtroNotificaciones = 'todas';
 
 const usuario = () => (Api.sesion() || {}).usuario;
 const esAdmin = () => !!usuario() && /^admin/i.test(usuario().rol);
@@ -106,6 +108,7 @@ function cambiarQuery(ruta, params) {
 
 async function render() {
   cerrarMenu();
+  cerrarNotificaciones();
   $('#app')?.classList.remove('menu-abierto');
   $('[data-menu-movil]')?.setAttribute('aria-expanded','false');
 
@@ -251,6 +254,7 @@ function montarShell(ruta, def) {
   window.scrollTo(0, 0);
 
   if (esAdmin() && pendientes === null) refrescarPendientes();
+  if (esAdmin() && notificacionesCache === null) cargarNotificaciones();
 
   return nueva;
 }
@@ -270,9 +274,188 @@ function pintarNav(activa) {
 
 function pintarFijas() {
   const u = usuario();
+  const noLeidas = notificacionesCache ? notificacionesCache.filter(n => !n.leida).length : (pendientes || 0);
   $('#accFijas').innerHTML = `<button class="icon-btn cuadro" type="button" data-tema-global aria-label="Cambiar modo día o noche">${document.documentElement.getAttribute('data-tema') === 'noche' ? '☀' : '☾'}</button>` +
-    (esAdmin() ? `<a class="icon-btn campana" href="#/alquileres?filtro=activos" title="Devoluciones pendientes" aria-label="Devoluciones pendientes${pendientes ? ': '+pendientes : ''}">${icon('bell')}${pendientes ? `<span class="punto">${pendientes}</span>` : ''}</a>` : '') +
+    (esAdmin() ? `<button class="icon-btn campana" type="button" data-notificaciones aria-haspopup="dialog" aria-expanded="false" title="Notificaciones" aria-label="Notificaciones${noLeidas ? ': '+noLeidas+' sin leer' : ''}">${icon('bell')}${noLeidas ? `<span class="punto">${Math.min(noLeidas,99)}</span>` : ''}</button>` : '') +
     (!u ? '<a class="btn sm" href="#/login">Iniciar sesión</a>' : !esAdmin() ? `<button class="icon-btn" type="button" data-menu aria-label="Mi cuenta">${icon('user')}</button>` : '');
+}
+
+
+/* =========================================================
+   NOTIFICACIONES DEL PANEL
+   Se construyen con datos ya disponibles en la API. El estado leído/no leído
+   se guarda por usuario en el navegador hasta que el backend exponga una
+   entidad de notificaciones propia.
+========================================================= */
+
+function claveNotifLeidas() {
+  const u = usuario();
+  return `autogo.notificaciones.leidas.${u ? u.id || u.correo : 'anon'}`;
+}
+
+function leerNotifLeidas() {
+  try { return new Set(JSON.parse(localStorage.getItem(claveNotifLeidas()) || '[]')); }
+  catch (_) { return new Set(); }
+}
+
+function guardarNotifLeidas(ids) {
+  try { localStorage.setItem(claveNotifLeidas(), JSON.stringify([...ids])); } catch (_) {}
+}
+
+function fechaNotif(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function textoTiempoNotif(fecha) {
+  const d = fechaNotif(fecha);
+  if (!d) return '';
+  const dif = Math.max(0, Date.now() - d.getTime());
+  const min = Math.floor(dif / 60000);
+  if (min < 1) return 'Ahora';
+  if (min < 60) return `Hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `Hace ${h} h`;
+  const dias = Math.floor(h / 24);
+  if (dias < 7) return `Hace ${dias} día${dias === 1 ? '' : 's'}`;
+  return d.toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
+}
+
+function normalizarNotif(n, leidas) {
+  return { ...n, leida: leidas.has(n.id) };
+}
+
+async function cargarNotificaciones({ repintar = true } = {}) {
+  if (!esAdmin()) return [];
+  const leidas = leerNotifLeidas();
+  const lista = [];
+  const hoyStr = hoy();
+  const limiteReciente = Date.now() - 3 * 24 * 60 * 60 * 1000;
+
+  try {
+    const r = await Api.alquileres({ first: 80, orden: 'vencimiento' });
+    (r.nodes || []).forEach(a => {
+      const nombre = a.clienteNombre || 'Cliente';
+      const veh = a.vehiculo || a.placa || 'vehículo';
+      if (a.estado === 'ACTIVO' && a.vencido) {
+        lista.push({ id:`alquiler-vencido-${a.id}`, tipo:'alerta', icono:'alert', titulo:'Devolución vencida', texto:`${nombre} · ${veh} · ${a.diasRetraso || 1} día(s) de retraso`, fecha:a.fechaFinPactada, ruta:`#/alquileres?filtro=vencidos` });
+      } else if (a.estado === 'ACTIVO' && a.fechaFinPactada === hoyStr) {
+        lista.push({ id:`alquiler-hoy-${a.id}`, tipo:'aviso', icono:'calendar', titulo:'Devolución para hoy', texto:`${nombre} debe devolver ${veh} hoy.`, fecha:a.fechaFinPactada, ruta:`#/alquileres?filtro=activos` });
+      } else if (a.estado === 'ACTIVO' && a.fechaFinPactada) {
+        const fin = new Date(a.fechaFinPactada + 'T23:59:59');
+        const dias = Math.ceil((fin - new Date()) / 86400000);
+        if (dias > 0 && dias <= 2) lista.push({ id:`alquiler-proximo-${a.id}`, tipo:'info', icono:'clock', titulo:'Alquiler próximo a vencer', texto:`${nombre} · ${veh} · vence en ${dias} día${dias === 1 ? '' : 's'}.`, fecha:a.fechaFinPactada, ruta:`#/alquileres?filtro=activos` });
+      }
+      const creada = fechaNotif(a.fechaCreacion);
+      if (creada && creada.getTime() >= limiteReciente) {
+        lista.push({ id:`alquiler-nuevo-${a.id}`, tipo:'nuevo', icono:'calendar', titulo:'Nuevo alquiler registrado', texto:`${nombre} · ${veh}`, fecha:a.fechaCreacion, ruta:`#/alquileres` });
+      }
+      if (a.estado === 'DEVUELTO' && a.fechaDevolucion) {
+        const dev = fechaNotif(a.fechaDevolucion);
+        if (dev && dev.getTime() >= limiteReciente) lista.push({ id:`alquiler-devuelto-${a.id}`, tipo:'ok', icono:'check', titulo:'Vehículo devuelto', texto:`${veh} · devolución de ${nombre}`, fecha:a.fechaDevolucion, ruta:`#/alquileres` });
+      }
+    });
+  } catch (_) {}
+
+  try {
+    const r = await Api.facturas({ first: 30 });
+    (r.nodes || []).forEach(f => {
+      const d = fechaNotif(f.fechaEmision);
+      if (d && d.getTime() >= limiteReciente) lista.push({ id:`factura-${f.id}`, tipo:'pago', icono:'receipt', titulo:'Factura emitida', texto:`${f.clienteNombre || 'Cliente'} · ${fmt(f.monto)} · ${metodoTxt(f.metodoPago)}`, fecha:f.fechaEmision, ruta:`#/factura/${f.id}` });
+    });
+  } catch (_) {}
+
+  if (Api.ADMIN_EXTRA && Api.administradores) {
+    try {
+      const r = await Api.administradores({});
+      const admins = r.nodes || r || [];
+      admins.forEach(a => {
+        const d = fechaNotif(a.fechaCreacion);
+        if (d && d.getTime() >= limiteReciente && String(a.id) !== String(usuario()?.id)) lista.push({ id:`admin-${a.id}`, tipo:'admin', icono:'shield', titulo:'Cuenta administrativa creada', texto:`${a.nombre} · ${a.perfil || a.rol || 'Administrador'}`, fecha:a.fechaCreacion, ruta:'#/administradores' });
+      });
+    } catch (_) {}
+  }
+
+  const unicas = [...new Map(lista.map(n => [n.id, n])).values()]
+    .map(n => normalizarNotif(n, leidas))
+    .sort((a,b) => (fechaNotif(b.fecha)?.getTime() || 0) - (fechaNotif(a.fecha)?.getTime() || 0));
+
+  notificacionesCache = unicas;
+  if (repintar && $('#app')) pintarFijas();
+  return unicas;
+}
+
+function cerrarNotificaciones() {
+  const p = $('#panelNotificaciones');
+  if (p) p.remove();
+  $('[data-notificaciones]')?.setAttribute('aria-expanded','false');
+  document.removeEventListener('click', clicFueraNotificaciones, true);
+}
+
+function clicFueraNotificaciones(e) {
+  if (!e.target.closest('#panelNotificaciones') && !e.target.closest('[data-notificaciones]')) cerrarNotificaciones();
+}
+
+function pintarListaNotificaciones() {
+  const panel = $('#panelNotificaciones');
+  if (!panel) return;
+  const lista = (notificacionesCache || []).filter(n => filtroNotificaciones === 'no-leidas' ? !n.leida : true);
+  const cont = $('[data-lista-notificaciones]', panel);
+  if (!cont) return;
+  cont.innerHTML = lista.length ? lista.map(n => `
+    <button type="button" class="notif-item ${n.leida ? 'leida' : 'nueva'}" data-notif-id="${esc(n.id)}" data-notif-ruta="${esc(n.ruta || '')}">
+      <span class="notif-ico ${esc(n.tipo)}">${icon(n.icono || 'bell')}</span>
+      <span class="notif-cuerpo"><b>${esc(n.titulo)}</b><span>${esc(n.texto)}</span><small>${esc(textoTiempoNotif(n.fecha))}</small></span>
+      ${n.leida ? '' : '<i class="notif-no-leida" aria-label="Sin leer"></i>'}
+    </button>`).join('') : `<div class="notif-vacio">${icon('bell')}<b>${filtroNotificaciones === 'no-leidas' ? 'No tienes notificaciones sin leer' : 'No hay notificaciones por ahora'}</b><span>Cuando haya actividad importante aparecerá aquí.</span></div>`;
+
+  $$('[data-filtro-notif]', panel).forEach(b => b.classList.toggle('act', b.dataset.filtroNotif === filtroNotificaciones));
+  const noLeidas = (notificacionesCache || []).filter(n => !n.leida).length;
+  $('[data-contador-notif]', panel).textContent = noLeidas ? `${noLeidas} sin leer` : 'Todo al día';
+  const todas = $('[data-marcar-todas]', panel);
+  if (todas) todas.disabled = !noLeidas;
+}
+
+async function abrirNotificaciones(btn) {
+  if ($('#panelNotificaciones')) return cerrarNotificaciones();
+  cerrarMenu();
+  btn.setAttribute('aria-expanded','true');
+  const p = document.createElement('section');
+  p.id = 'panelNotificaciones';
+  p.className = 'panel-notificaciones';
+  p.setAttribute('role','dialog');
+  p.setAttribute('aria-label','Notificaciones');
+  p.innerHTML = `
+    <header class="notif-cabecera"><div><h3>Notificaciones</h3><span data-contador-notif>Cargando…</span></div><button class="icon-btn notif-cerrar" type="button" data-cerrar-notif aria-label="Cerrar">×</button></header>
+    <div class="notif-herramientas"><div class="notif-filtros"><button type="button" data-filtro-notif="todas" class="act">Todas</button><button type="button" data-filtro-notif="no-leidas">Sin leer</button></div><button type="button" class="notif-marcar" data-marcar-todas>Marcar todas como leídas</button></div>
+    <div class="notif-lista" data-lista-notificaciones><div class="notif-cargando">Cargando notificaciones…</div></div>`;
+  document.body.appendChild(p);
+  const r = btn.getBoundingClientRect();
+  const ancho = Math.min(430, innerWidth - 24);
+  p.style.width = ancho + 'px';
+  p.style.right = Math.max(12, innerWidth - r.right) + 'px';
+  p.style.top = Math.min(r.bottom + 10, innerHeight - 120) + 'px';
+  await cargarNotificaciones({ repintar:false });
+  pintarListaNotificaciones();
+  setTimeout(() => document.addEventListener('click', clicFueraNotificaciones, true));
+}
+
+function marcarNotificacion(id, navegar = true) {
+  const leidas = leerNotifLeidas(); leidas.add(id); guardarNotifLeidas(leidas);
+  if (notificacionesCache) notificacionesCache = notificacionesCache.map(n => n.id === id ? { ...n, leida:true } : n);
+  pintarFijas();
+  const n = notificacionesCache?.find(x => x.id === id);
+  if (navegar && n?.ruta) { cerrarNotificaciones(); location.hash = n.ruta; }
+  else pintarListaNotificaciones();
+}
+
+function marcarTodasNotificaciones() {
+  const leidas = leerNotifLeidas();
+  (notificacionesCache || []).forEach(n => leidas.add(n.id));
+  guardarNotifLeidas(leidas);
+  notificacionesCache = (notificacionesCache || []).map(n => ({ ...n, leida:true }));
+  pintarFijas(); pintarListaNotificaciones();
 }
 
 async function refrescarPendientes() {
@@ -350,6 +533,7 @@ async function salir() {
 
   Api.cerrarSesion();
   pendientes = null;
+  notificacionesCache = null;
   UI.toast('Sesión cerrada.', 'info');
   ir('login');
 }
@@ -363,6 +547,7 @@ function manejarSesion(e) {
   if (e.code === 'AUTH_NOT_AUTHENTICATED') {
     Api.cerrarSesion();
     pendientes = null;
+    notificacionesCache = null;
     UI.toast('Tu sesión expiró. Inicia sesión de nuevo.', 'warn');
     ir('login');
     return true;
@@ -3629,6 +3814,7 @@ setInterval(() => {
   if (haySesion && !Api.sesion()) {
     haySesion = false;
     pendientes = null;
+    notificacionesCache = null;
     UI.toast('Tu sesión expiró. Inicia sesión de nuevo.', 'warn');
     ir('login');
   }
@@ -3720,6 +3906,14 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-tema-global]')) {
     cambiarTemaManual();
   }
+  const nb = e.target.closest('[data-notificaciones]');
+  if (nb) { e.preventDefault(); e.stopPropagation(); abrirNotificaciones(nb); return; }
+  if (e.target.closest('[data-cerrar-notif]')) { cerrarNotificaciones(); return; }
+  const filtroN = e.target.closest('[data-filtro-notif]');
+  if (filtroN) { filtroNotificaciones = filtroN.dataset.filtroNotif; pintarListaNotificaciones(); return; }
+  if (e.target.closest('[data-marcar-todas]')) { marcarTodasNotificaciones(); return; }
+  const itemN = e.target.closest('[data-notif-id]');
+  if (itemN) { marcarNotificacion(itemN.dataset.notifId, true); return; }
   const pending = e.target.closest('[data-modulo-pendiente]');
   if (pending) UI.toast(pending.dataset.moduloPendiente + ': este módulo todavía no está implementado.', 'info');
   if (e.target.closest('[data-menu-movil]')) {
@@ -3732,4 +3926,4 @@ document.addEventListener('click', e => {
     try { localStorage.setItem('autogo.menu','1'); } catch (_) {}
   }
 });
-document.addEventListener('keydown', e => { if(e.key === 'Escape') { $('#app')?.classList.remove('menu-abierto'); $('[data-menu-movil]')?.setAttribute('aria-expanded','false'); } });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') { cerrarNotificaciones(); $('#app')?.classList.remove('menu-abierto'); $('[data-menu-movil]')?.setAttribute('aria-expanded','false'); } });
