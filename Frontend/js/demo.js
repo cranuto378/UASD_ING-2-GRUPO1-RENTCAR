@@ -8,7 +8,7 @@
 
 const Demo = (() => {
   const CLAVE = 'autogo.demo.db';
-  const VERSION = 4;
+  const VERSION = 5;
   const PERFILES = ['Administrador', 'Facturación', 'Operaciones', 'Soporte'];
 
   class Fallo extends Error {
@@ -39,6 +39,39 @@ const Demo = (() => {
   const plano = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   let db = null;
+
+  const CONFIG_FINANCIERA_KEY = 'autogo_config_financiera_v1';
+  const FIN_DEFAULT = Object.freeze({ impuestoPct: 0, retencionPct: 0, recargoMoraPct: 30, retiroWalletClientePct: 30 });
+
+  function finanzasVigentes() {
+    try {
+      const x = JSON.parse(localStorage.getItem(CONFIG_FINANCIERA_KEY) || '{}');
+      const out = {};
+      Object.entries(FIN_DEFAULT).forEach(([k, def]) => {
+        const n = Number(x[k]);
+        out[k] = Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : def;
+      });
+      return out;
+    } catch (_) {
+      return { ...FIN_DEFAULT };
+    }
+  }
+
+  const finDeAlquiler = a => ({ ...FIN_DEFAULT, ...(a && a.configFinanciera ? a.configFinanciera : {}) });
+
+  function calcularCargo(subtotal, cfg) {
+    const base = dinero(Math.max(0, Number(subtotal) || 0));
+    const impuesto = dinero(base * (Number(cfg.impuestoPct) || 0) / 100);
+    const retencion = dinero(base * (Number(cfg.retencionPct) || 0) / 100);
+    return { subtotal: base, impuesto, retencion, total: dinero(base + impuesto - retencion) };
+  }
+
+  function calcularCreditoAnticipado(subtotal, cfg) {
+    const base = dinero(Math.max(0, Number(subtotal) || 0));
+    const impuesto = dinero(base * (Number(cfg.impuestoPct) || 0) / 100);
+    const retencion = dinero(base * (Number(cfg.retencionPct) || 0) / 100);
+    return { subtotal: base, impuesto, retencion, total: dinero(Math.max(0, base - impuesto - retencion)) };
+  }
 
 
   /* Datos iniciales */
@@ -157,16 +190,48 @@ const Demo = (() => {
   }
 
   function cerrar(a, fechaDevolucion, metodoMora) {
+    const cfg = finDeAlquiler(a);
     const diasMora = Math.max(0, entre(a.fechaFinPactada, fechaDevolucion));
+    const diasNoUsados = Math.max(0, entre(fechaDevolucion, a.fechaFinPactada));
 
     a.fechaDevolucion = fechaDevolucion;
     a.diasMora = diasMora;
-    a.montoMora = dinero(a.precioDia * 1.3 * diasMora);
-    a.estado = 'COMPLETADO';
+    a.creditoWallet = 0;
 
     if (diasMora > 0) {
-      facturar(a, 'MORA', `Mora por ${diasMora} día(s) de retraso`, a.montoMora, metodoMora || 'EFECTIVO', fechaDevolucion);
+      const subtotalMora = dinero(a.precioDia * diasMora);
+      const recargoMora = dinero(subtotalMora * (cfg.recargoMoraPct || 0) / 100);
+      const baseMora = dinero(subtotalMora + recargoMora);
+      const cargoMora = calcularCargo(baseMora, cfg);
+      a.montoMora = cargoMora.total;
+      a.subtotalMora = subtotalMora;
+      a.recargoMora = recargoMora;
+      facturar(a, 'MORA', `Mora por ${diasMora} día(s) de retraso`, baseMora, metodoMora || 'EFECTIVO', fechaDevolucion, { cfg, desgloseModo: 'MORA' });
+    } else {
+      a.montoMora = 0;
+      a.subtotalMora = 0;
+      a.recargoMora = 0;
     }
+
+    if (diasNoUsados > 0) {
+      const baseCredito = dinero(a.precioDia * diasNoUsados);
+      const credito = calcularCreditoAnticipado(baseCredito, cfg);
+      a.creditoWallet = credito.total;
+      a.diasNoUsados = diasNoUsados;
+      if (credito.total > 0) {
+        facturar(a, 'AJUSTE', `Nota de crédito por devolución anticipada · ${diasNoUsados} día(s) no utilizado(s)`, -baseCredito, 'WALLET', fechaDevolucion, {
+          cfg,
+          montoFinal: -credito.total,
+          desglose: { subtotal: credito.subtotal, impuesto: credito.impuesto, retencion: credito.retencion },
+          desgloseModo: 'CREDITO_DEVOLUCION'
+        });
+        movWallet(a.clienteId, 'ABONO', credito.total, `Devolución anticipada del alquiler #${a.id} · ${diasNoUsados} día(s) no utilizado(s)`, a.id, null, cfg);
+      }
+    } else {
+      a.diasNoUsados = 0;
+    }
+
+    a.estado = 'COMPLETADO';
   }
 
 
@@ -179,9 +244,29 @@ const Demo = (() => {
 
     try { db = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { db = null; }
 
-    // Datos de la versión 3 -> se conservan y se agregan los administradores de ejemplo
+    // Migraciones: nunca recalculamos operaciones históricas con porcentajes nuevos.
     if (db && db.seq && db.version === 3) {
       agregarAdminsDemo();
+      db.version = 4;
+    }
+
+    if (db && db.seq && db.version === 4) {
+      const historica = { ...FIN_DEFAULT };
+      (db.alquileres || []).forEach(a => {
+        a.configFinanciera = a.configFinanciera || { ...historica };
+        a.impuestoAlquiler = Number(a.impuestoAlquiler) || 0;
+        a.retencionAlquiler = Number(a.retencionAlquiler) || 0;
+        a.totalAlquiler = Number.isFinite(Number(a.totalAlquiler)) ? Number(a.totalAlquiler) : Number(a.montoBase) || 0;
+        a.creditoWallet = Number(a.creditoWallet) || 0;
+      });
+      (db.facturas || []).forEach(f => {
+        const totalHistorico = Number(f.monto) || 0;
+        f.configFinanciera = f.configFinanciera || { ...historica };
+        f.subtotal = Number.isFinite(Number(f.subtotal)) ? Number(f.subtotal) : totalHistorico;
+        f.impuesto = Number(f.impuesto) || 0;
+        f.retencion = Number(f.retencion) || 0;
+        f.desgloseModo = f.desgloseModo || 'HISTORICO';
+      });
       db.version = VERSION;
       guardar();
     }
@@ -201,6 +286,8 @@ const Demo = (() => {
 
   function nuevoAlquiler(clienteId, veh, fechaInicio, fechaFin, metodoPago, canal, creado, wallet = 0) {
     const dias = entre(fechaInicio, fechaFin);
+    const cfg = finanzasVigentes();
+    const cargo = calcularCargo(dias * veh.precioDia, cfg);
 
     const a = {
       id: db.seq.alquiler++,
@@ -212,9 +299,14 @@ const Demo = (() => {
       fechaDevolucion: null,
       precioDia: veh.precioDia,
       dias,
-      montoBase: dinero(dias * veh.precioDia),
+      montoBase: cargo.subtotal,
+      impuestoAlquiler: cargo.impuesto,
+      retencionAlquiler: cargo.retencion,
+      totalAlquiler: cargo.total,
+      configFinanciera: { ...cfg },
       diasMora: 0,
       montoMora: 0,
+      creditoWallet: 0,
       estado: 'ACTIVO',
       observaciones: null,
       fechaCreacion: emision(creado || hoy(), '09:40')
@@ -222,19 +314,38 @@ const Demo = (() => {
 
     db.alquileres.push(a);
     const concepto = `Alquiler de vehículo por ${dias} día(s)` + (wallet > 0 ? ` · Wallet GO: ${pesos(wallet)}` : '');
-    facturar(a, 'ALQUILER', concepto, a.montoBase, metodoPago, creado);
-    if (wallet > 0) movWallet(clienteId, 'USO', wallet, `Pago del alquiler #${a.id}`, a.id);
+    facturar(a, 'ALQUILER', concepto, cargo.subtotal, metodoPago, creado, { cfg });
+    if (wallet > 0) movWallet(clienteId, 'USO', wallet, `Pago del alquiler #${a.id}`, a.id, null, { ...cfg });
 
     return a;
   }
 
-  function facturar(a, tipo, concepto, monto, metodoPago, fecha) {
+  function facturar(a, tipo, concepto, subtotal, metodoPago, fecha, opciones = {}) {
+    const cfg = { ...finDeAlquiler(a), ...(opciones.cfg || {}) };
+    let calc = calcularCargo(Math.abs(Number(subtotal) || 0), cfg);
+    let monto = Number(subtotal) < 0 ? -calc.total : calc.total;
+    let sub = Number(subtotal) < 0 ? -calc.subtotal : calc.subtotal;
+    let imp = Number(subtotal) < 0 ? -calc.impuesto : calc.impuesto;
+    let ret = Number(subtotal) < 0 ? -calc.retencion : calc.retencion;
+
+    if (opciones.desglose) {
+      sub = dinero(opciones.desglose.subtotal);
+      imp = dinero(opciones.desglose.impuesto || 0);
+      ret = dinero(opciones.desglose.retencion || 0);
+    }
+    if (opciones.montoFinal != null) monto = dinero(opciones.montoFinal);
+
     const f = {
       id: db.seq.factura++,
       alquilerId: a.id,
       tipo,
       concepto,
+      subtotal: sub,
+      impuesto: imp,
+      retencion: ret,
       monto: dinero(monto),
+      configFinanciera: { ...cfg },
+      desgloseModo: opciones.desgloseModo || 'CARGO',
       metodoPago: metodoPago || null,
       fechaEmision: fecha ? emision(fecha, '11:' + String(10 + (db.seq.factura % 49)).padStart(2, '0')) : new Date().toISOString()
     };
@@ -246,20 +357,19 @@ const Demo = (() => {
 
   /* Wallet GO: fondos de reservas canceladas o no atendidas */
 
-  const PORC_RETIRO = 30; // % que recibe el cliente al retirar; la empresa retiene el resto
-
   function billetera(clienteId) {
     if (!db.wallets) db.wallets = {};
     if (!db.wallets[clienteId]) db.wallets[clienteId] = { saldo: 0, mov: [] };
     return db.wallets[clienteId];
   }
 
-  function movWallet(clienteId, tipo, monto, concepto, alquilerId, fecha) {
+  function movWallet(clienteId, tipo, monto, concepto, alquilerId, fecha, configFinanciera = null) {
     const w = billetera(clienteId);
     w.saldo = dinero(w.saldo + (tipo === 'ABONO' ? monto : -monto));
     w.mov.push({
       id: w.mov.length + 1, tipo, monto: dinero(monto), concepto,
-      fecha: fecha || new Date().toISOString(), alquilerId: alquilerId || null
+      fecha: fecha || new Date().toISOString(), alquilerId: alquilerId || null,
+      configFinanciera: configFinanciera ? { ...configFinanciera } : null
     });
   }
 
@@ -365,7 +475,7 @@ const Demo = (() => {
       clienteCedula: cli.cedula,
       placa: veh.placa,
       vehiculo: `${veh.marca} ${veh.modelo}`,
-      montoTotal: dinero(a.montoBase + a.montoMora),
+      montoTotal: dinero((a.totalAlquiler != null ? a.totalAlquiler : a.montoBase) + (a.montoMora || 0) - (a.creditoWallet || 0)),
       totalFacturado: dinero(db.facturas.filter(f => f.alquilerId === a.id).reduce((t, f) => t + f.monto, 0)),
       vencido,
       diasRetraso: vencido ? entre(a.fechaFinPactada, h) : 0
@@ -628,7 +738,7 @@ const Demo = (() => {
     miWallet(v, ctx) {
       const u = cliente(ctx);
       const w = billetera(u.clienteId);
-      return { saldo: w.saldo, porcentajeRetiro: PORC_RETIRO, movimientos: w.mov.slice().reverse().slice(0, 10) };
+      return { saldo: w.saldo, porcentajeRetiro: finanzasVigentes().retiroWalletClientePct, movimientos: w.mov.slice().reverse().slice(0, 10) };
     },
 
     retirarWallet(v, ctx) {
@@ -636,14 +746,16 @@ const Demo = (() => {
       const w = billetera(u.clienteId);
       if (!(w.saldo > 0)) falla('REGLA_NEGOCIO', 'No tienes saldo disponible en tu Wallet GO.');
 
+      const cfg = finanzasVigentes();
+      const pctRetiro = cfg.retiroWalletClientePct;
       const total = w.saldo;
-      const montoCliente = dinero(total * PORC_RETIRO / 100);
+      const montoCliente = dinero(total * pctRetiro / 100);
       const montoEmpresa = dinero(total - montoCliente);
 
-      movWallet(u.clienteId, 'RETIRO', total, `Retiro de fondos: recibes ${pesos(montoCliente)} (${PORC_RETIRO} %)`, null);
+      movWallet(u.clienteId, 'RETIRO', total, `Retiro de fondos: recibes ${pesos(montoCliente)} (${pctRetiro} %)`, null, null, cfg);
       db.walletIngresos.push({
         id: db.walletIngresos.length + 1, clienteId: u.clienteId,
-        montoRetirado: total, monto: montoEmpresa, fecha: new Date().toISOString()
+        montoRetirado: total, montoCliente, monto: montoEmpresa, porcentajeCliente: pctRetiro, configFinanciera: { ...cfg }, fecha: new Date().toISOString()
       });
 
       return { montoRetirado: total, montoCliente, montoEmpresa, saldo: 0 };
@@ -676,7 +788,9 @@ const Demo = (() => {
       if (!fechaInicio || !fechaFin || fechaFin <= fechaInicio) falla('FECHAS_INVALIDAS', 'La fecha de entrega debe ser posterior a la salida.');
       if (entre(fechaInicio, fechaFin) > 90) falla('FECHAS_INVALIDAS', 'El alquiler no puede superar 90 días.');
       const dias = entre(fechaInicio, fechaFin);
-      return { vehiculoId, fechaInicio, fechaFin, dias, precioDia: veh.precioDia, total: dinero(dias * veh.precioDia) };
+      const cfg = finanzasVigentes();
+      const cargo = calcularCargo(dias * veh.precioDia, cfg);
+      return { vehiculoId, fechaInicio, fechaFin, dias, precioDia: veh.precioDia, subtotal: cargo.subtotal, impuesto: cargo.impuesto, retencion: cargo.retencion, total: cargo.total, configFinanciera: { ...cfg } };
     },
 
     vehiculo({ id }) {
@@ -838,7 +952,9 @@ const Demo = (() => {
       if (!veh) falla('NO_ENCONTRADO', 'El vehículo no existe.');
       if (!libre(veh, input.fechaInicio, input.fechaFin)) falla('VEHICULO_NO_DISPONIBLE', 'El vehículo ya está comprometido en ese rango de fechas.');
 
-      const total = dinero(entre(input.fechaInicio, input.fechaFin) * veh.precioDia);
+      const cfg = finanzasVigentes();
+      const cot = calcularCargo(entre(input.fechaInicio, input.fechaFin) * veh.precioDia, cfg);
+      const total = cot.total;
       const wallet = input.usarWallet ? dinero(Math.min(billetera(clienteId).saldo, total)) : 0;
       const resto = dinero(total - wallet);
       const metodo = metodoValido(input.metodoPago, resto > 0);
@@ -902,13 +1018,19 @@ const Demo = (() => {
       if (!libre(veh, input.fechaInicio, input.fechaFin, a.id)) falla('VEHICULO_NO_DISPONIBLE', 'El vehículo ya está comprometido en ese rango de fechas.');
 
       const dias = entre(input.fechaInicio, input.fechaFin);
+      const cfg = finDeAlquiler(a);
+      const anteriorBase = a.montoBase;
       const nuevo = dinero(dias * veh.precioDia);
-      const diferencia = dinero(nuevo - a.montoBase);
-      const metodo = metodoValido(input.metodoPago, diferencia > 0);
+      const diferencia = dinero(nuevo - anteriorBase);
+      const ajusteCalc = calcularCargo(Math.abs(diferencia), cfg);
+      const diferenciaTotal = diferencia < 0 ? -ajusteCalc.total : ajusteCalc.total;
+      const metodo = metodoValido(input.metodoPago, diferenciaTotal > 0);
+      const nuevoCargo = calcularCargo(nuevo, cfg);
 
       Object.assign(a, {
         vehiculoId: veh.id, fechaInicio: input.fechaInicio, fechaFinPactada: input.fechaFin,
-        precioDia: veh.precioDia, dias, montoBase: nuevo
+        precioDia: veh.precioDia, dias, montoBase: nuevo, impuestoAlquiler: nuevoCargo.impuesto,
+        retencionAlquiler: nuevoCargo.retencion, totalAlquiler: nuevoCargo.total
       });
 
       let factura = null;
@@ -932,8 +1054,10 @@ const Demo = (() => {
       a.estado = 'CANCELADO';
       a.observaciones = motivo || null;
 
-      const f = facturar(a, 'AJUSTE', 'Nota de crédito por cancelación (abonada a Wallet GO)', -pagado, 'WALLET', null);
-      if (pagado > 0) movWallet(a.clienteId, 'ABONO', dinero(pagado), `Cancelación del alquiler #${a.id}`, a.id);
+      const f = facturar(a, 'AJUSTE', 'Nota de crédito por cancelación (abonada a Wallet GO)', -Math.abs(a.montoBase), 'WALLET', null, {
+        cfg: finDeAlquiler(a), montoFinal: -pagado, desgloseModo: 'REVERSO_TOTAL'
+      });
+      if (pagado > 0) movWallet(a.clienteId, 'ABONO', dinero(pagado), `Cancelación del alquiler #${a.id}`, a.id, null, finDeAlquiler(a));
       return { facturaId: f.id, alquiler: vAlquiler(a) };
     },
 
@@ -962,7 +1086,7 @@ const Demo = (() => {
       const f = db.facturas.length > antes ? db.facturas[db.facturas.length - 1] : null;
       if (f) f.fechaEmision = new Date().toISOString();
 
-      return { facturaId: f ? f.id : null, alquiler: vAlquiler(a) };
+      return { facturaId: f ? f.id : null, creditoWallet: a.creditoWallet || 0, diasNoUsados: a.diasNoUsados || 0, alquiler: vAlquiler(a) };
     },
 
 
@@ -1039,9 +1163,26 @@ const Demo = (() => {
     const f = fecha || hoy();
     if (f > hoy()) falla('FECHAS_INVALIDAS', 'La fecha de devolución no puede ser futura.');
     if (f < a.fechaInicio) falla('FECHAS_INVALIDAS', 'La fecha de devolución no puede ser anterior a la salida.');
+
+    const cfg = finDeAlquiler(a);
     const diasMora = Math.max(0, entre(a.fechaFinPactada, f));
-    const montoMora = dinero(a.precioDia * 1.3 * diasMora);
-    return { alquilerId: a.id, fechaDevolucion: f, diasMora, montoMora, montoBase: a.montoBase, montoTotal: dinero(a.montoBase + montoMora) };
+    const diasNoUsados = Math.max(0, entre(f, a.fechaFinPactada));
+
+    const subtotalMora = dinero(a.precioDia * diasMora);
+    const recargoMora = dinero(subtotalMora * (cfg.recargoMoraPct || 0) / 100);
+    const cargoMora = calcularCargo(subtotalMora + recargoMora, cfg);
+
+    const subtotalReembolso = dinero(a.precioDia * diasNoUsados);
+    const credito = calcularCreditoAnticipado(subtotalReembolso, cfg);
+    const totalAlquiler = a.totalAlquiler != null ? a.totalAlquiler : a.montoBase;
+
+    return {
+      alquilerId: a.id, fechaDevolucion: f,
+      diasMora, subtotalMora, recargoMora, impuestoMora: cargoMora.impuesto, retencionMora: cargoMora.retencion, montoMora: cargoMora.total,
+      diasNoUsados, subtotalReembolso, impuestoReembolso: credito.impuesto, retencionReembolso: credito.retencion, creditoWallet: credito.total,
+      montoBase: a.montoBase, subtotalAlquiler: a.montoBase, impuestoAlquiler: a.impuestoAlquiler || 0, retencionAlquiler: a.retencionAlquiler || 0, totalAlquiler,
+      montoTotal: dinero(totalAlquiler + cargoMora.total - credito.total), configFinanciera: { ...cfg }
+    };
   }
 
   function validarVehiculo(input, id) {

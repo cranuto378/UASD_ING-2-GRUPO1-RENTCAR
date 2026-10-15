@@ -5795,3 +5795,180 @@ html[data-tema="noche"] .cliente-mini.activa{box-shadow:0 0 0 2px color-mix(in s
 .cliente-resumen-modal-6{grid-template-columns:repeat(6,minmax(0,1fr));}
 @media(max-width:900px){.cliente-resumen-modal-6{grid-template-columns:repeat(3,minmax(0,1fr));}}
 @media(max-width:560px){.cliente-resumen-modal-6{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+
+/* =========================================================
+   OCT 2026 · CONFIGURACIÓN · FACTURACIÓN Y WALLET GO
+========================================================= */
+.config-col-principal{display:grid;gap:16px;min-width:0;}
+.config-finanzas{overflow:hidden;}
+.config-card-ico-fin{color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--glass));border-color:color-mix(in srgb,var(--ok) 24%,var(--borde-2));}
+.config-fin-form{margin:0;}
+.config-fin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;}
+.config-fin-grid .campo{margin:0;}
+.config-fin-resumen{margin-top:16px;padding:13px;border-radius:15px;background:var(--glass-3);border:1px solid var(--borde-2);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;}
+.config-fin-resumen>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 8px;border-radius:10px;}
+.config-fin-resumen span{font-size:11px;color:var(--txt-3);}
+.config-fin-resumen b{font-size:11px;text-align:right;}
+.config-fin-acciones{display:flex;justify-content:flex-end;margin-top:14px;}
+.config-info-sec{margin-top:9px!important;}
+html[data-tema="noche"] .config-fin-resumen{box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
+@media(max-width:700px){.config-fin-grid,.config-fin-resumen{grid-template-columns:1fr;}.config-fin-acciones .btn{width:100%;}}
+
+/* OCT 2026 · Desglose financiero y crédito Wallet GO */
+.fac-desglose{
+  width:min(420px,100%);
+  margin:18px 0 0 auto;
+  padding:14px 16px;
+  border:1px solid var(--borde-2);
+  border-radius:16px;
+  background:var(--glass-3);
+}
+.fac-desglose>div{display:flex;justify-content:space-between;gap:18px;padding:6px 0;font-size:12px;}
+.fac-desglose span{color:var(--txt-2);}
+.fac-desglose b{text-align:right;}
+.fac-tasas{margin-top:14px;color:var(--txt-3);font-size:11px;line-height:1.55;text-align:right;}
+.devolucion-credito{margin-top:14px;padding-top:14px;border-top:1px solid var(--borde-2);}
+.devolucion-credito .info-banda{margin-bottom:10px;}
+
+/* =========================================================
+   OCT 2026 · FACTURACIÓN — RESUMEN + FILTROS + DETALLE
+========================================================= */
+.fact-resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px;}
+.fact-mini{appearance:none;width:100%;min-height:112px;padding:17px;text-align:left;display:flex;align-items:center;gap:13px;cursor:pointer;color:var(--txt);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;}
+.fact-mini:hover{transform:translateY(-2px);}
+.fact-mini.act{border-color:color-mix(in srgb,var(--acento,#568cf0) 55%,var(--borde));box-shadow:0 0 0 2px color-mix(in srgb,var(--acento,#568cf0) 9%,transparent),0 15px 34px rgba(25,45,78,.10);}
+.fact-mini-ico{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;background:color-mix(in srgb,var(--txt) 7%,transparent);border:1px solid var(--borde-2);}
+.fact-mini-ico .ic{width:21px;height:21px;}
+.fact-mini small,.fact-mini b,.fact-mini em{display:block;}
+.fact-mini small{font-size:11px;font-weight:800;letter-spacing:.045em;text-transform:uppercase;color:var(--txt-2);}
+.fact-mini b{font-size:21px;margin:4px 0 2px;letter-spacing:-.025em;}
+.fact-mini em{font-style:normal;font-size:11px;color:var(--txt-3);}
+.fact-mini.tono-blue .fact-mini-ico{color:#3976d8;background:rgba(65,126,220,.10);}
+.fact-mini.tono-green .fact-mini-ico{color:var(--ok);background:color-mix(in srgb,var(--ok) 11%,transparent);}
+.fact-mini.tono-orange .fact-mini-ico{color:var(--warn);background:color-mix(in srgb,var(--warn) 11%,transparent);}
+.fact-mini.tono-purple .fact-mini-ico{color:#7652c7;background:rgba(118,82,199,.10);}
+.fact-filtros{padding:14px;display:grid;grid-template-columns:minmax(180px,.7fr) minmax(180px,.7fr) auto;gap:12px;align-items:end;margin-bottom:16px;}
+.tabla-facturas tr.fila-credito td{background:color-mix(in srgb,#8b5cf6 4%,transparent);}
+.tabla-facturas tr.fila-mora td{background:color-mix(in srgb,#d99a25 4%,transparent);}
+
+/* El logo del documento también debe reaccionar al tema, no solo navegación/marca. */
+html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .factura .fac-h img{
+  filter:brightness(0) saturate(100%) invert(18%) sepia(19%) saturate(1635%) hue-rotate(178deg) brightness(90%) contrast(94%);
+}
+html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .factura .fac-h img{filter:brightness(0) invert(1);}
+
+/* Factura: mayor jerarquía sin abandonar Glass */
+.factura{width:min(100%,920px);margin-inline:auto;}
+.fac-cols>section{background:var(--glass-3);border:1px solid var(--borde-2);border-radius:16px;padding:16px;}
+.fac-desglose{margin-left:auto;margin-top:20px;width:min(100%,410px);display:grid;gap:8px;padding:16px;border-radius:16px;background:var(--glass-3);border:1px solid var(--borde-2);}
+.fac-desglose>div{display:flex;justify-content:space-between;gap:24px;font-size:13px;}
+.fac-desglose span{color:var(--txt-2);}
+.fac-total{margin-left:auto;width:min(100%,410px);margin-top:10px;padding:16px 18px;border-radius:16px;background:color-mix(in srgb,var(--info) 8%,var(--glass-3));border:1px solid color-mix(in srgb,var(--info) 24%,var(--borde));display:flex;align-items:flex-end;justify-content:space-between;gap:20px;}
+.fac-total span{color:var(--txt-2);font-size:12px;font-weight:700;}
+.fac-total b{font-size:25px;letter-spacing:-.03em;}
+.fac-tasas{margin-top:15px;padding:12px 14px;border-radius:13px;background:color-mix(in srgb,var(--info) 6%,transparent);border:1px solid color-mix(in srgb,var(--info) 17%,transparent);color:var(--txt-3);font-size:11px;line-height:1.5;}
+@media(max-width:1050px){.fact-resumen{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:700px){.fact-resumen{grid-template-columns:1fr 1fr;gap:10px}.fact-mini{min-height:100px;padding:13px}.fact-filtros{grid-template-columns:1fr}.fac-cols{grid-template-columns:1fr}.factura{padding:20px}.fac-h{align-items:center}.fac-h img{height:42px}}
+
+
+
+
+/* =========================================================
+   FACTURA · EXTENSIÓN FINANCIERA PARA IMPRESIÓN ORIGINAL
+   Conserva la plantilla original y solo incorpora los nuevos
+   datos de subtotal, impuestos y retención.
+========================================================= */
+@media print {
+    .fac-tasas {
+        display: none !important;
+    }
+
+    .fac-desglose {
+        width: 280px !important;
+        margin: 18px 0 0 auto !important;
+        padding: 0 !important;
+        display: grid !important;
+        gap: 0 !important;
+        background: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+
+    .fac-desglose > div {
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 20px !important;
+        padding: 7px 0 !important;
+        border-bottom: 1px solid #ddd !important;
+        font-size: 11px !important;
+        background: none !important;
+    }
+
+    .fac-desglose > div:last-child {
+        border-bottom: none !important;
+    }
+
+    .fac-desglose span,
+    .fac-desglose b {
+        color: #111 !important;
+    }
+
+    .fac-total {
+        width: auto !important;
+        margin-top: 16px !important;
+        padding-top: 16px !important;
+        background: none !important;
+        border: 0 !important;
+        border-top: 1px solid #ccc !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+}
+
+/* Ajuste final de impresión solicitado: conservar estructura original */
+@media print {
+  .factura .fac-h img {
+    height: 58px !important;
+    width: auto !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+
+  .factura .fac-cols {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+  }
+
+  .factura .fac-cols > section {
+    min-width: 0 !important;
+  }
+}
+
+/* Impresión: eliminar cualquier sombra heredada del Glass */
+@media print {
+  html body:is(.entorno-admin,.entorno-cliente) .factura.card,
+  html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .factura.card,
+  html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .factura.card {
+    background: #fff !important;
+    box-shadow: none !important;
+    filter: none !important;
+    text-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  html body:is(.entorno-admin,.entorno-cliente) .factura.card::before,
+  html body:is(.entorno-admin,.entorno-cliente) .factura.card::after {
+    content: none !important;
+    display: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+}

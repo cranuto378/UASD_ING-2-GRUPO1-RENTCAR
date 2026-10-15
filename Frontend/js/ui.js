@@ -218,7 +218,12 @@ const UI = (() => {
 
     document.addEventListener('keydown', teclas);
     bg.addEventListener('mousedown', e => { if (e.target === bg) cerrar(); });
-    $$('[data-cerrar]', bg).forEach(b => { b.onclick = cerrar; });
+    // Delegado: también funciona con botones/enlaces data-cerrar que se inyectan
+    // después de abrir el modal (p. ej. Detalle de cliente e historial).
+    bg.addEventListener('click', e => {
+      const b = e.target.closest('[data-cerrar]');
+      if (b && bg.contains(b)) cerrar();
+    });
 
     const primero = $('input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea', bg);
     setTimeout(() => (primero || $('[data-cerrar]', bg)).focus(), 30);

@@ -31,6 +31,36 @@ const debounce = (fn, ms = 300) => {
 };
 
 
+/* Parámetros financieros configurables del frontend.
+   La persistencia en backend se conectará cuando exista el endpoint de configuración. */
+const CONFIG_FINANCIERA_KEY = 'autogo_config_financiera_v1';
+const CONFIG_FINANCIERA_DEFAULT = Object.freeze({
+  impuestoPct: 0,
+  retencionPct: 0,
+  recargoMoraPct: 30,
+  retiroWalletClientePct: 30
+});
+
+function leerConfigFinanciera() {
+  try {
+    const guardada = JSON.parse(localStorage.getItem(CONFIG_FINANCIERA_KEY) || '{}');
+    return { ...CONFIG_FINANCIERA_DEFAULT, ...guardada };
+  } catch (_) {
+    return { ...CONFIG_FINANCIERA_DEFAULT };
+  }
+}
+
+function guardarConfigFinanciera(cfg) {
+  const limpia = {};
+  for (const [k, def] of Object.entries(CONFIG_FINANCIERA_DEFAULT)) {
+    const n = Number(cfg[k]);
+    limpia[k] = Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : def;
+  }
+  localStorage.setItem(CONFIG_FINANCIERA_KEY, JSON.stringify(limpia));
+  return limpia;
+}
+
+
 /* =========================================================
    RUTAS
 ========================================================= */
@@ -1198,6 +1228,9 @@ function confirmarAlquiler(v, ini, fin, refrescar) {
         <dt>Entrega</dt><dd>${fmt.fecha(fin)}</dd>
         <dt>Días</dt><dd data-k="dias">…</dd>
         <dt>Precio por día</dt><dd data-k="precio">…</dd>
+        <dt>Subtotal</dt><dd data-k="subtotal">…</dd>
+        <dt>Impuestos</dt><dd data-k="impuesto">…</dd>
+        <dt>Retención</dt><dd data-k="retencion">…</dd>
       </dl>
 
       <div class="total"><span>Monto total</span><b data-k="total">…</b></div>
@@ -1246,6 +1279,9 @@ function confirmarAlquiler(v, ini, fin, refrescar) {
   Api.cotizarAlquiler(v.id, ini, fin).then(cot => {
     $('[data-k=dias]', m.el).textContent = cot.dias;
     $('[data-k=precio]', m.el).textContent = fmt.dinero(cot.precioDia);
+    $('[data-k=subtotal]', m.el).textContent = fmt.dinero(cot.subtotal != null ? cot.subtotal : cot.total);
+    $('[data-k=impuesto]', m.el).textContent = fmt.dinero(cot.impuesto || 0);
+    $('[data-k=retencion]', m.el).textContent = cot.retencion ? `− ${fmt.dinero(cot.retencion)}` : fmt.dinero(0);
     $('[data-k=total]', m.el).textContent = fmt.dinero(cot.total);
     btn.disabled = false;
     cotizacion = cot;
@@ -1509,7 +1545,7 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
     Api.cotizarDevolucion(a.id).then(d => {
       $('#estimado', m.el).innerHTML = `
         <div class="info-banda" style="margin-top:16px">${icon('info')}
-          <span>Si lo devuelves hoy: ${d.diasMora ? `${d.diasMora} día(s) de mora por <b>${fmt.dinero(d.montoMora)}</b>, total <b>${fmt.dinero(d.montoTotal)}</b>.` : 'sin cargos por mora.'}</span>
+          <span>Si lo devuelves hoy: ${d.diasMora ? `${d.diasMora} día(s) de mora por <b>${fmt.dinero(d.montoMora)}</b>, total neto <b>${fmt.dinero(d.montoTotal)}</b>.` : (d.diasNoUsados ? `recibirías <b>${fmt.dinero(d.creditoWallet || 0)}</b> en Wallet GO por ${d.diasNoUsados} día(s) no utilizado(s), después de impuestos y retención.` : 'sin cargos adicionales.')}</span>
         </div>`;
     }).catch(() => { /* la vista previa es opcional */ });
   }
@@ -1534,9 +1570,10 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
 }
 
 async function cancelarAlquiler(a, alCambiar) {
+  const pctRetiro = leerConfigFinanciera().retiroWalletClientePct;
   const r = await UI.confirmar(
     `Cancelar alquiler #${a.id}`,
-    `Se cancelará el alquiler del <b>${esc(a.vehiculo)}</b> (${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaFinPactada)}) y se emitirá una nota de crédito. El monto pagado quedará como saldo en la <b>Wallet GO</b> ${esAdmin() ? 'del cliente' : 'de tu perfil'}: podrá usarse en otro alquiler y, si se retira, solo se devuelve el 30 %.`,
+    `Se cancelará el alquiler del <b>${esc(a.vehiculo)}</b> (${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaFinPactada)}) y se emitirá una nota de crédito. El monto pagado quedará como saldo en la <b>Wallet GO</b> ${esAdmin() ? 'del cliente' : 'de tu perfil'}: podrá usarse en otro alquiler y, si se retira, se aplicará el porcentaje de retiro vigente (${pctRetiro} % para el cliente).`,
     { boton: 'Cancelar alquiler', peligro: true, motivo: true }
   );
 
@@ -1573,20 +1610,19 @@ async function vMisFacturas(c, ctx) {
 function tablaFacturas(lista, admin) {
   return `
     <div class="tabla-wrap">
-      <table class="tabla">
+      <table class="tabla tabla-facturas">
         <thead><tr>
-          <th>No.</th><th>Emisión</th><th>Tipo</th>${admin ? '<th>Cliente</th>' : ''}<th>Vehículo</th><th>Concepto</th><th>Método</th><th class="num">Monto</th><th></th>
+          <th>No.</th><th>Emisión</th><th>Tipo</th>${admin ? '<th>Cliente</th>' : ''}<th>Vehículo</th><th>Método</th><th class="num">Total</th><th></th>
         </tr></thead>
         <tbody>${lista.map(f => `
-          <tr>
+          <tr class="${Number(f.monto) < 0 ? 'fila-credito' : (f.tipo === 'MORA' ? 'fila-mora' : '')}">
             <td class="nowrap"><b>${String(f.id).padStart(4, '0')}</b></td>
             <td class="nowrap">${fmt.fechaHora(f.fechaEmision)}</td>
             <td>${tipoFactura(f)}</td>
             ${admin ? `<td class="principal"><b>${esc(f.clienteNombre)}</b><small>${esc(f.clienteCedula)}</small></td>` : ''}
             <td class="principal"><b>${esc(f.vehiculo)}</b><small>${esc(f.placa)}</small></td>
-            <td>${esc(f.concepto)}</td>
             <td>${f.metodoPago ? metodoTxt(f.metodoPago) : '—'}</td>
-            <td class="num">${montoFactura(f.monto)}</td>
+            <td class="num"><b>${montoFactura(f.monto)}</b></td>
             <td><div class="acciones"><a class="icon-btn" href="#/factura/${f.id}" title="Ver factura" aria-label="Ver factura ${f.id}">${icon('eye')}</a></div></td>
           </tr>`).join('')}
         </tbody>
@@ -1667,10 +1703,24 @@ async function vFactura(c, ctx) {
         </table>
       </div>
 
-      <div class="fac-total">
-        <span>${credito ? 'Total acreditado' : 'Total pagado'}</span>
-        <b>${fmt.dinero(f.monto)}</b>
+      <div class="fac-desglose">
+        ${f.desgloseModo === 'CREDITO_DEVOLUCION' ? `
+          <div><span>Valor de días no utilizados</span><b>${fmt.dinero(Math.abs(f.subtotal != null ? f.subtotal : f.monto))}</b></div>
+          <div><span>Impuestos descontados</span><b>− ${fmt.dinero(Math.abs(f.impuesto || 0))}</b></div>
+          <div><span>Retención</span><b>− ${fmt.dinero(Math.abs(f.retencion || 0))}</b></div>
+        ` : `
+          <div><span>Subtotal</span><b>${fmt.dinero(f.subtotal != null ? f.subtotal : f.monto)}</b></div>
+          <div><span>Impuestos</span><b>${fmt.dinero(f.impuesto || 0)}</b></div>
+          <div><span>Retención</span><b>${f.retencion ? `− ${fmt.dinero(Math.abs(f.retencion))}` : fmt.dinero(0)}</b></div>
+        `}
       </div>
+
+      <div class="fac-total">
+        <span>${credito ? (f.desgloseModo === 'CREDITO_DEVOLUCION' ? 'Crédito a Wallet GO' : 'Total acreditado') : 'Total pagado'}</span>
+        <b>${fmt.dinero(Math.abs(f.monto))}</b>
+      </div>
+
+      ${f.configFinanciera ? `<p class="fac-tasas">Tasas aplicadas en esta operación: impuesto ${Number(f.configFinanciera.impuestoPct || 0).toFixed(2)} %, retención ${Number(f.configFinanciera.retencionPct || 0).toFixed(2)} %${f.tipo === 'MORA' ? `, recargo por mora ${Number(f.configFinanciera.recargoMoraPct || 0).toFixed(2)} %` : ''}. Estas tasas quedan registradas con la operación y no cambian si Configuración se modifica posteriormente.</p>` : ''}
 
       <p class="fac-pie">Gracias por preferir AutoGo Rent a Car. Montos expresados en pesos dominicanos (RD$).</p>
     </article>`;
@@ -1685,7 +1735,7 @@ function tarjetaWallet(w) {
       <div class="wallet-h">${icon('wallet')}<h3>Wallet GO</h3></div>
       <p class="wallet-lbl">Saldo disponible</p>
       <div class="wallet-saldo">${fmt.dinero(saldo)}</div>
-      <p class="wallet-nota">Aquí se guardan los pagos de reservas canceladas o que AutoGo no pudo atender. Úsalos en tu próximo alquiler; si el saldo no alcanza, pagas la diferencia.</p>
+      <p class="wallet-nota">Aquí se guardan créditos por cancelaciones y devoluciones anticipadas. Úsalos en tu próximo alquiler; si el saldo no alcanza, pagas la diferencia.</p>
       <div class="wallet-acc">
         <a class="btn" href="#/catalogo">${icon('car')} Hacer reserva</a>
         <button class="btn ghost" type="button" data-retiro${saldo > 0 ? '' : ' disabled'}>${icon('logout')} Retiro</button>
@@ -2490,11 +2540,21 @@ function devolverAlquiler(a, alCambiar) {
           ${UI.campo({ name: 'fechaDevolucion', label: 'Fecha de devolución', tipo: 'date', value: hoy(), attrs: `min="${a.fechaInicio}" max="${hoy()}"` })}
 
           <dl class="dl devolucion-costos">
-            <dt>Monto base</dt><dd data-k="base">…</dd>
+            <dt>Subtotal del alquiler</dt><dd data-k="base">…</dd>
             <dt>Días de mora</dt><dd data-k="dias">…</dd>
-            <dt>Monto de mora</dt><dd data-k="mora">…</dd>
+            <dt>Recargo de mora</dt><dd data-k="recargo-mora">…</dd>
+            <dt>Monto final de mora</dt><dd data-k="mora">…</dd>
           </dl>
-          <div class="total devolucion-total"><span>Total actual del alquiler</span><b data-k="total">…</b></div>
+          <div class="devolucion-credito" data-k="credito-box" hidden>
+            <div class="info-banda">${icon('wallet')}<span>Devolución anticipada: <b data-k="dias-no-usados"></b> día(s) no utilizado(s). Se generará un crédito neto para Wallet GO.</span></div>
+            <dl class="dl devolucion-costos">
+              <dt>Valor de días no usados</dt><dd data-k="reembolso-base">…</dd>
+              <dt>Impuestos descontados</dt><dd data-k="reembolso-impuesto">…</dd>
+              <dt>Retención</dt><dd data-k="reembolso-retencion">…</dd>
+              <dt>Crédito Wallet GO</dt><dd data-k="credito-wallet">…</dd>
+            </dl>
+          </div>
+          <div class="total devolucion-total"><span>Total neto del alquiler</span><b data-k="total">…</b></div>
 
           <div data-k="pago" hidden>
             ${UI.campo({ name: 'metodoPagoMora', label: 'Método de pago de la mora', tipo: 'select', opciones: opcionesMetodo() })}
@@ -2585,18 +2645,28 @@ function devolverAlquiler(a, alCambiar) {
   async function cotizar() {
     UI.limpiarErrores(f);
     btn.disabled = true;
-    ['base', 'dias', 'mora', 'total'].forEach(k => { $(`[data-k=${k}]`, m.el).textContent = '…'; });
+    ['base', 'dias', 'recargo-mora', 'mora', 'total', 'dias-no-usados', 'reembolso-base', 'reembolso-impuesto', 'reembolso-retencion', 'credito-wallet'].forEach(k => { const x = $(`[data-k=${k}]`, m.el); if (x) x.textContent = '…'; });
 
     try {
       cot = await Api.cotizarDevolucion(a.id, f.fechaDevolucion.value || null);
-      $('[data-k=base]', m.el).textContent = fmt.dinero(cot.montoBase);
+      $('[data-k=base]', m.el).textContent = fmt.dinero(cot.subtotalAlquiler != null ? cot.subtotalAlquiler : cot.montoBase);
       $('[data-k=dias]', m.el).textContent = cot.diasMora;
+      $('[data-k=recargo-mora]', m.el).textContent = fmt.dinero(cot.recargoMora || 0);
       $('[data-k=mora]', m.el).textContent = fmt.dinero(cot.montoMora);
       $('[data-k=total]', m.el).textContent = fmt.dinero(cot.montoTotal);
       $('[data-k=pago]', m.el).hidden = !(cot.diasMora > 0);
+      const creditoBox = $('[data-k=credito-box]', m.el);
+      creditoBox.hidden = !(cot.diasNoUsados > 0);
+      if (cot.diasNoUsados > 0) {
+        $('[data-k=dias-no-usados]', m.el).textContent = cot.diasNoUsados;
+        $('[data-k=reembolso-base]', m.el).textContent = fmt.dinero(cot.subtotalReembolso || 0);
+        $('[data-k=reembolso-impuesto]', m.el).textContent = `− ${fmt.dinero(cot.impuestoReembolso || 0)}`;
+        $('[data-k=reembolso-retencion]', m.el).textContent = `− ${fmt.dinero(cot.retencionReembolso || 0)}`;
+        $('[data-k=credito-wallet]', m.el).textContent = fmt.dinero(cot.creditoWallet || 0);
+      }
       btn.disabled = false;
     } catch (e) {
-      ['base', 'dias', 'mora', 'total'].forEach(k => { $(`[data-k=${k}]`, m.el).textContent = '—'; });
+      ['base', 'dias', 'recargo-mora', 'mora', 'total', 'dias-no-usados', 'reembolso-base', 'reembolso-impuesto', 'reembolso-retencion', 'credito-wallet'].forEach(k => { const x = $(`[data-k=${k}]`, m.el); if (x) x.textContent = '—'; });
       errorEnForm(f, e);
     }
   }
@@ -2631,9 +2701,10 @@ function devolverAlquiler(a, alCambiar) {
             <div><small>Mora</small><b>${cot.diasMora ? `${cot.diasMora} día(s)` : 'Sin mora'}</b><span>${fmt.dinero(cot.montoMora)}</span></div>
             <div><small>Inspección</small><b>${danos ? 'Con daños reportados' : 'Sin daños reportados'}</b><span>${fotosInspeccion.length} foto(s)</span></div>
             <div><small>Pago de mora</small><b>${cot.diasMora ? etq(metodo) : 'No aplica'}</b></div>
+            ${cot.diasNoUsados ? `<div><small>Crédito Wallet GO</small><b>${fmt.dinero(cot.creditoWallet || 0)}</b><span>${cot.diasNoUsados} día(s) no utilizado(s)</span></div>` : ''}
           </div>
           ${observaciones ? `<div class="devolucion-confirmar-obs"><small>Observaciones</small><p>${esc(observaciones)}</p></div>` : ''}
-          <div class="revision-total"><span>Total actual del alquiler</span><b>${fmt.dinero(cot.montoTotal)}</b></div>
+          <div class="revision-total"><span>Total neto del alquiler</span><b>${fmt.dinero(cot.montoTotal)}</b></div>
           <div class="info-banda">${icon('info')}<span>El vehículo quedará en mantenimiento automáticamente después de registrar la devolución.</span></div>
           <div class="modal-acc">
             <button class="btn ghost" type="button" data-volver-dev>Volver y revisar</button>
@@ -2668,7 +2739,10 @@ function devolverAlquiler(a, alCambiar) {
         fotosInspeccion.forEach(x => URL.revokeObjectURL(x.url));
         resumen.cerrar();
         m.cerrar();
-        avisoOperacion(r.facturaId ? 'Devolución registrada. Se emitió la factura de mora.' : 'Devolución registrada sin cargos de mora.', r.facturaId);
+        const mensajeDev = r.creditoWallet > 0
+          ? `Devolución registrada. Se acreditaron ${fmt.dinero(r.creditoWallet)} al Wallet GO por ${r.diasNoUsados || 0} día(s) no utilizado(s).`
+          : (cot.diasMora > 0 ? 'Devolución registrada. Se emitió la factura de mora.' : 'Devolución registrada sin cargos adicionales.');
+        avisoOperacion(mensajeDev, r.facturaId);
         refrescarPendientes();
         if (alCambiar) alCambiar();
       } catch (err) {
@@ -2686,6 +2760,7 @@ function devolverAlquiler(a, alCambiar) {
 ========================================================= */
 
 async function vNuevoAlquiler(c, ctx) {
+  ctx.acciones(`<a class="btn ghost" href="#/alquileres">${icon('x')} Cerrar</a>`);
   const h = hoy();
   const st = {
     cliente: null,
@@ -3010,12 +3085,14 @@ async function vNuevoAlquiler(c, ctx) {
               <div><span>Método de pago</span><b>${esc(metodoTxt(metodo))}</b></div>
               <div><span>Tarifa diaria</span><b>${fmt.dinero(cot.precioDia)}</b></div>
               <div><span>Días</span><b>${cot.dias}</b></div>
-              <div class="revision-subtotal"><span>Subtotal del alquiler</span><b>${fmt.dinero(cot.total)}</b></div>
+              <div class="revision-subtotal"><span>Subtotal del alquiler</span><b>${fmt.dinero(cot.subtotal != null ? cot.subtotal : cot.total)}</b></div>
+              <div><span>Impuestos</span><b>${fmt.dinero(cot.impuesto || 0)}</b></div>
+              <div><span>Retención</span><b>${cot.retencion ? `− ${fmt.dinero(cot.retencion)}` : fmt.dinero(0)}</b></div>
             </div>
             <div class="revision-total revision-total-final"><span>Total actual</span><b>${fmt.dinero(cot.total)}</b></div>
           </section>
 
-          <p class="revision-nota">Al confirmar se registrará el alquiler y se generará la factura correspondiente. Los impuestos se incorporarán cuando se configure el módulo de Facturación.</p>
+          <p class="revision-nota">Los porcentajes mostrados son los vigentes al registrar este alquiler y quedarán vinculados a la operación. Cambios posteriores en Configuración no modificarán esta factura.</p>
 
           <div class="modal-acc revision-acciones-finales">
             <button class="btn ghost" type="button" data-cerrar>${icon('edit')} Volver y revisar</button>
@@ -3102,7 +3179,9 @@ async function vNuevoAlquiler(c, ctx) {
       <div class="resumen-seccion costo-alquiler">
         <span class="resumen-seccion-titulo">Costos</span>
         <div class="resumen-fila"><span>Precio por día</span><b>${st.cot ? fmt.dinero(st.cot.precioDia) : '—'}</b></div>
-        <div class="resumen-fila"><span>Subtotal actual</span><b>${st.cot ? fmt.dinero(st.cot.total) : '—'}</b></div>
+        <div class="resumen-fila"><span>Subtotal</span><b>${st.cot ? fmt.dinero(st.cot.subtotal != null ? st.cot.subtotal : st.cot.total) : '—'}</b></div>
+        <div class="resumen-fila"><span>Impuestos</span><b>${st.cot ? fmt.dinero(st.cot.impuesto || 0) : '—'}</b></div>
+        <div class="resumen-fila"><span>Retención</span><b>${st.cot ? (st.cot.retencion ? `− ${fmt.dinero(st.cot.retencion)}` : fmt.dinero(0)) : '—'}</b></div>
       </div>
 
       <div class="total total-registro"><span>Total</span><b>${st.cot ? fmt.dinero(st.cot.total) : '—'}</b></div>
@@ -3801,27 +3880,58 @@ function nuevaCategoria(alGuardar) {
 
 async function vConfiguracion(c, ctx) {
   let categorias = [];
+  let fin = leerConfigFinanciera();
 
   c.innerHTML = `
     <div class="config-grid">
-      <section class="card config-card">
-        <div class="config-card-h">
-          <div>
-            <span class="config-card-ico">${icon('tag')}</span>
+      <div class="config-col-principal">
+        <section class="card config-card">
+          <div class="config-card-h">
             <div>
-              <h3>Categorías de vehículos</h3>
-              <p>Organiza la flota por tipo de vehículo. Estas categorías se utilizan al registrar y filtrar vehículos.</p>
+              <span class="config-card-ico">${icon('tag')}</span>
+              <div>
+                <h3>Categorías de vehículos</h3>
+                <p>Organiza la flota por tipo de vehículo. Estas categorías se utilizan al registrar y filtrar vehículos.</p>
+              </div>
+            </div>
+            <button class="btn sm" type="button" data-config-nueva-cat>${icon('plus')} Nueva categoría</button>
+          </div>
+          <div class="categorias-lista" id="configCategorias"><span class="skeleton" style="height:44px"></span></div>
+        </section>
+
+        <section class="card config-card config-finanzas">
+          <div class="config-card-h">
+            <div>
+              <span class="config-card-ico config-card-ico-fin">${icon('receipt')}</span>
+              <div>
+                <h3>Facturación y Wallet GO</h3>
+                <p>Define los porcentajes que utilizará AutoGo para facturas, mora, créditos por devolución anticipada y retiros de Wallet GO.</p>
+              </div>
             </div>
           </div>
-          <button class="btn sm" type="button" data-config-nueva-cat>${icon('plus')} Nueva categoría</button>
-        </div>
-        <div class="categorias-lista" id="configCategorias"><span class="skeleton" style="height:44px"></span></div>
-      </section>
+
+          <form class="form config-fin-form" id="configFinForm" novalidate>
+            <div class="config-fin-grid">
+              ${UI.campo({ name:'impuestoPct', label:'Impuesto (%)', tipo:'number', value:fin.impuestoPct, attrs:'min="0" max="100" step="0.01"', ayuda:'Se aplicará sobre el subtotal cuando activemos el cálculo fiscal de Facturación.' })}
+              ${UI.campo({ name:'retencionPct', label:'Retención (%)', tipo:'number', value:fin.retencionPct, attrs:'min="0" max="100" step="0.01"', ayuda:'Se utilizará en los cálculos financieros definidos por AutoGo, incluyendo el crédito neto por devolución anticipada.' })}
+              ${UI.campo({ name:'recargoMoraPct', label:'Recargo por mora (%)', tipo:'number', value:fin.recargoMoraPct, attrs:'min="0" max="100" step="0.01"', ayuda:'Porcentaje adicional sobre la tarifa diaria por cada día de retraso. Actualmente la lógica equivale a 30 %.' })}
+              ${UI.campo({ name:'retiroWalletClientePct', label:'Cliente recibe al retirar Wallet GO (%)', tipo:'number', value:fin.retiroWalletClientePct, attrs:'min="0" max="100" step="0.01"', ayuda:'Porcentaje del saldo que recibe el cliente si decide retirar Wallet GO en efectivo. Actualmente es 30 %.' })}
+            </div>
+
+            <div class="config-fin-resumen" id="configFinResumen"></div>
+            <div class="form-err" data-err-form hidden></div>
+            <div class="config-fin-acciones">
+              <button class="btn" type="submit">${icon('check')} Guardar parámetros</button>
+            </div>
+          </form>
+        </section>
+      </div>
 
       <aside class="card config-info">
         <h3>Configuración del sistema</h3>
-        <p>Este módulo concentrará los parámetros administrativos que no forman parte de la operación diaria. Por ahora comenzamos con las categorías de la flota.</p>
-        <div class="info-banda">${icon('info')}<span>Crear una categoría aquí la hará disponible inmediatamente al crear o editar un vehículo.</span></div>
+        <p>Centraliza aquí los parámetros administrativos que afectan a varios módulos. Así evitamos porcentajes ocultos o diferentes entre Alquileres, Facturación, Devoluciones y Wallet GO.</p>
+        <div class="info-banda">${icon('info')}<span>Impuesto y retención permanecen en 0 % hasta que se definan los valores reales del proyecto.</span></div>
+        <div class="info-banda config-info-sec">${icon('wallet')}<span>Los cambios aplican únicamente a operaciones nuevas. Cada alquiler, factura, mora, devolución y retiro guarda las tasas utilizadas para que modificar estos parámetros no altere operaciones anteriores. En el backend real estos valores también deberán persistirse por operación.</span></div>
       </aside>
     </div>`;
 
@@ -3849,6 +3959,40 @@ async function vConfiguracion(c, ctx) {
     categorias.sort((a,b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
     pintar();
   });
+
+  const ffin = $('#configFinForm', c);
+  const resumenFin = $('#configFinResumen', c);
+  const valoresFin = () => ({
+    impuestoPct: Number(ffin.impuestoPct.value) || 0,
+    retencionPct: Number(ffin.retencionPct.value) || 0,
+    recargoMoraPct: Number(ffin.recargoMoraPct.value) || 0,
+    retiroWalletClientePct: Number(ffin.retiroWalletClientePct.value) || 0
+  });
+
+  const pintarResumenFin = () => {
+    const x = valoresFin();
+    const autoGoRetieneWallet = Math.max(0, 100 - x.retiroWalletClientePct);
+    resumenFin.innerHTML = `
+      <div><span>Impuesto</span><b>${x.impuestoPct.toFixed(2)} %</b></div>
+      <div><span>Retención</span><b>${x.retencionPct.toFixed(2)} %</b></div>
+      <div><span>Mora adicional</span><b>${x.recargoMoraPct.toFixed(2)} %</b></div>
+      <div><span>Retiro Wallet</span><b>Cliente ${x.retiroWalletClientePct.toFixed(2)} % · AutoGo ${autoGoRetieneWallet.toFixed(2)} %</b></div>`;
+  };
+
+  $$('input[type="number"]', ffin).forEach(i => i.addEventListener('input', pintarResumenFin));
+  pintarResumenFin();
+
+  ffin.onsubmit = e => {
+    e.preventDefault();
+    UI.limpiarErrores(ffin);
+    const x = valoresFin();
+    for (const [campo, valor] of Object.entries(x)) {
+      if (valor < 0 || valor > 100) return UI.errorCampo(ffin, campo, 'Debe estar entre 0 y 100 %.');
+    }
+    fin = guardarConfigFinanciera(x);
+    pintarResumenFin();
+    UI.toast('Parámetros de facturación guardados.', 'ok');
+  };
 
   await cargar();
 }
@@ -4156,53 +4300,77 @@ function editarCliente(x, alGuardar) {
 ========================================================= */
 
 async function vFacturas(c, ctx) {
+  let tipo = ['todos','alquileres','moras','creditos'].includes(ctx.q.get('tipo')) ? ctx.q.get('tipo') : 'todos';
   const filtros = { desde: ctx.q.get('desde') || '', hasta: ctx.q.get('hasta') || '' };
 
   c.innerHTML = `
-    <form class="herramientas con-campos" id="ff" novalidate>
+    <div class="fact-resumen" id="factResumen">
+      ${Array.from({length:4},()=>'<div class="card fact-mini"><span class="skeleton"></span></div>').join('')}
+    </div>
+    <form class="card fact-filtros" id="ff" novalidate>
       ${UI.campo({ name: 'desde', label: 'Desde', tipo: 'date', value: filtros.desde })}
       ${UI.campo({ name: 'hasta', label: 'Hasta', tipo: 'date', value: filtros.hasta })}
-      <button class="btn ghost" type="button" data-limpiar>Limpiar</button>
+      <button class="btn ghost" type="button" data-limpiar>Limpiar fechas</button>
     </form>
     <div class="card" id="lista"></div>`;
 
   const f = $('#ff', c);
 
+  const cargarTodas = () => panelTodas(p => Api.facturas({ desde: filtros.desde || null, hasta: filtros.hasta || null, ...p }));
+  const coincide = x => tipo === 'todos' ||
+    (tipo === 'alquileres' && x.tipo === 'ALQUILER') ||
+    (tipo === 'moras' && x.tipo === 'MORA') ||
+    (tipo === 'creditos' && Number(x.monto) < 0);
+
+  const cargarFiltradas = async ({ first=15, after=null, last=null, before=null }) => {
+    const r = await cargarTodas();
+    const lista = r.nodes.filter(coincide);
+    const cantidad = last || first;
+    const inicio = before !== null ? Math.max(0, Number(before)-cantidad) : Number(after)||0;
+    const nodes = lista.slice(inicio, inicio+cantidad);
+    return {nodes,totalCount:lista.length,pageInfo:{hasNextPage:inicio+cantidad<lista.length,endCursor:String(inicio+cantidad),hasPreviousPage:inicio>0,startCursor:String(inicio)}};
+  };
+
   const l = listado({
-    cont: $('#lista', c),
-    vigente: ctx.vigente,
-    porPagina: 15,
-    cargar: pag => Api.facturas({ desde: filtros.desde || null, hasta: filtros.hasta || null, ...pag }),
-    pintar: r => (r.nodes.length ? tablaFacturas(r.nodes, true) : UI.vacio('No hay facturas en ese período.', 'receipt'))
+    cont: $('#lista', c), vigente: ctx.vigente, porPagina: 15,
+    cargar: cargarFiltradas,
+    pintar: r => r.nodes.length ? tablaFacturas(r.nodes,true) : UI.vacio('No hay documentos que coincidan con los filtros.','receipt')
   });
+
+  async function pintarResumen(){
+    const caja=$('#factResumen',c);
+    try{
+      const {nodes}=await cargarTodas();
+      if(!ctx.vigente()) return;
+      const alq=nodes.filter(x=>x.tipo==='ALQUILER');
+      const mora=nodes.filter(x=>x.tipo==='MORA');
+      const cred=nodes.filter(x=>Number(x.monto)<0);
+      const neto=nodes.reduce((t,x)=>t+Number(x.monto||0),0);
+      const suma=a=>a.reduce((t,x)=>t+Math.abs(Number(x.monto||0)),0);
+      caja.innerHTML=`
+        <button type="button" class="card fact-mini tono-blue ${tipo==='todos'?'act':''}" data-fact-tipo="todos"><span class="fact-mini-ico">${icon('receipt')}</span><span><small>Facturado</small><b>${fmt.dinero(neto)}</b><em>${nodes.length} documento(s)</em></span></button>
+        <button type="button" class="card fact-mini tono-green ${tipo==='alquileres'?'act':''}" data-fact-tipo="alquileres"><span class="fact-mini-ico">${icon('car')}</span><span><small>Alquileres</small><b>${fmt.dinero(suma(alq))}</b><em>${alq.length} factura(s)</em></span></button>
+        <button type="button" class="card fact-mini tono-orange ${tipo==='moras'?'act':''}" data-fact-tipo="moras"><span class="fact-mini-ico">${icon('alert')}</span><span><small>Moras</small><b>${fmt.dinero(suma(mora))}</b><em>${mora.length} cargo(s)</em></span></button>
+        <button type="button" class="card fact-mini tono-purple ${tipo==='creditos'?'act':''}" data-fact-tipo="creditos"><span class="fact-mini-ico">${icon('wallet')}</span><span><small>Notas de crédito</small><b>${fmt.dinero(suma(cred))}</b><em>${cred.length} crédito(s)</em></span></button>`;
+    }catch(_){caja.innerHTML='';}
+  }
 
   const aplicar = () => {
     UI.limpiarErrores(f);
-    filtros.desde = f.desde.value;
-    filtros.hasta = f.hasta.value;
-
-    if (filtros.desde && filtros.hasta && filtros.hasta < filtros.desde) {
-      return UI.errorCampo(f, 'hasta', 'Debe ser igual o posterior a "Desde".');
-    }
-
-    cambiarQuery('facturas', filtros);
-    l.recargar(true);
+    filtros.desde=f.desde.value; filtros.hasta=f.hasta.value;
+    if(filtros.desde&&filtros.hasta&&filtros.hasta<filtros.desde) return UI.errorCampo(f,'hasta','Debe ser igual o posterior a "Desde".');
+    cambiarQuery('facturas',{...filtros,tipo:tipo==='todos'?'':tipo});
+    l.recargar(true); pintarResumen();
   };
-
-  f.desde.onchange = aplicar;
-  f.hasta.onchange = aplicar;
-  f.onsubmit = e => {
-    e.preventDefault();
-    aplicar();
-  };
-
-  $('[data-limpiar]', f).onclick = () => {
-    f.desde.value = '';
-    f.hasta.value = '';
-    aplicar();
-  };
-
-  await l.recargar(true);
+  f.desde.onchange=aplicar; f.hasta.onchange=aplicar; f.onsubmit=e=>{e.preventDefault();aplicar();};
+  $('[data-limpiar]',f).onclick=()=>{f.desde.value='';f.hasta.value='';aplicar();};
+  c.addEventListener('click',e=>{
+    const b=e.target.closest('[data-fact-tipo]'); if(!b)return;
+    const nuevo=b.dataset.factTipo; tipo=tipo===nuevo&&nuevo!=='todos'?'todos':nuevo;
+    cambiarQuery('facturas',{...filtros,tipo:tipo==='todos'?'':tipo});
+    l.recargar(true); pintarResumen();
+  });
+  await Promise.all([l.recargar(true),pintarResumen()]);
 }
 
 
