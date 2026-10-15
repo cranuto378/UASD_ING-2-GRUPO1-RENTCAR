@@ -57,6 +57,15 @@ const Demo = (() => {
     }
   }
 
+
+  function sistemaVigente() {
+    try {
+      return { diasMantenimientoPostDevolucion: 1, ...JSON.parse(localStorage.getItem('autogo_config_sistema_v1') || '{}') };
+    } catch (_) {
+      return { diasMantenimientoPostDevolucion: 1 };
+    }
+  }
+
   const finDeAlquiler = a => ({ ...FIN_DEFAULT, ...(a && a.configFinanciera ? a.configFinanciera : {}) });
 
   function calcularCargo(subtotal, cfg) {
@@ -1105,8 +1114,9 @@ const Demo = (() => {
       cerrar(a, c.fechaDevolucion, metodo);
 
       const veh = vehiculoDe(a.vehiculoId);
-      veh.estadoOperativo = 'MANTENIMIENTO';
-      veh.mantenimientoHasta = siguienteLaborable(c.fechaDevolucion);
+      const diasMant = Math.max(0, Number(sistemaVigente().diasMantenimientoPostDevolucion) || 0);
+      veh.estadoOperativo = diasMant > 0 ? 'MANTENIMIENTO' : 'DISPONIBLE';
+      veh.mantenimientoHasta = diasMant > 0 ? mas(c.fechaDevolucion, diasMant) : null;
 
       const f = db.facturas.length > antes ? db.facturas[db.facturas.length - 1] : null;
       if (f) f.fechaEmision = new Date().toISOString();

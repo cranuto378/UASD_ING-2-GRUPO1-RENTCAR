@@ -6066,3 +6066,18 @@ html[data-tema="noche"] body.entorno-cliente .side-cerrar-sesion:hover{backgroun
 html[data-tema="noche"] .rep-mini.tono-purple .rep-mini-ico{color:#c6b6ff;background:rgba(167,139,250,.12)}
 @media(max-width:1100px){.rep-resumen{grid-template-columns:repeat(2,minmax(0,1fr))}.rep-filtros{grid-template-columns:1fr 1fr}.rep-filtros .btn{width:100%}.config-hist-item{grid-template-columns:1fr}}
 @media(max-width:720px){.rep-resumen,.rep-grid{grid-template-columns:1fr}.rep-card.rep-ancha{grid-column:auto}.rep-filtros{grid-template-columns:1fr}.rep-mini{min-height:92px}.rep-card{padding:14px}}
+
+/* OCT 2026 · Configuración por secciones */
+.config-shell{display:grid;grid-template-columns:210px minmax(0,1fr);gap:16px;align-items:start}
+.config-tabs{padding:9px;display:grid;gap:5px;position:sticky;top:8px}
+.config-tab{appearance:none;border:0;background:transparent;color:var(--txt-2);border-radius:12px;padding:11px 12px;display:flex;gap:10px;align-items:center;text-align:left;font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.18s ease}
+.config-tab .ic{width:17px;height:17px}.config-tab:hover{background:var(--glass-3);color:var(--txt)}
+.config-tab.act{color:var(--info);background:color-mix(in srgb,var(--info) 10%,var(--glass-3));box-shadow:inset 3px 0 0 color-mix(in srgb,var(--info) 75%,transparent)}
+.config-contenido{min-width:0}.config-panel{padding:20px}.config-panel[hidden]{display:none!important}
+.config-subtitulo{margin:8px 0 12px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--txt-3)}
+.config-hist-title{margin-top:22px;padding-top:16px;border-top:1px solid var(--borde-2)}
+.config-inline-form{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:12px;align-items:end;margin-top:18px;padding-top:16px;border-top:1px solid var(--borde-2)}
+.config-switch{display:grid;gap:8px}.switch-line{display:flex;align-items:center;gap:10px;min-height:40px}.switch-line input{width:18px;height:18px}.switch-line b{font-size:12px}
+.config-form>.campo:last-of-type{margin-top:12px}
+@media(max-width:900px){.config-shell{grid-template-columns:1fr}.config-tabs{position:static;grid-template-columns:repeat(5,minmax(0,1fr));overflow:auto}.config-tab{justify-content:center}.config-tab span{display:none}}
+@media(max-width:640px){.config-tabs{grid-template-columns:repeat(5,52px)}.config-inline-form{grid-template-columns:1fr}.config-inline-form .btn{width:100%}}

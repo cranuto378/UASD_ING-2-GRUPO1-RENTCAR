@@ -100,6 +100,38 @@ function registrarCambioConfigFinanciera(anterior, nueva) {
 }
 
 
+/* Configuración general del sistema (frontend hasta que exista endpoint propio). */
+const CONFIG_SISTEMA_KEY = 'autogo_config_sistema_v1';
+const CONFIG_SISTEMA_DEFAULT = Object.freeze({
+  nombreComercial: 'AutoGo Rent a Car',
+  rnc: '',
+  telefono: '',
+  correo: '',
+  direccion: '',
+  diasMantenimientoPostDevolucion: 1,
+  permitirRetirosWallet: true,
+  diasAvisoVencimiento: 2
+});
+function leerConfigSistema(){
+  try { return { ...CONFIG_SISTEMA_DEFAULT, ...JSON.parse(localStorage.getItem(CONFIG_SISTEMA_KEY)||'{}') }; }
+  catch (_) { return { ...CONFIG_SISTEMA_DEFAULT }; }
+}
+function guardarConfigSistema(cfg){
+  const limpia = {
+    nombreComercial: String(cfg.nombreComercial || CONFIG_SISTEMA_DEFAULT.nombreComercial).trim(),
+    rnc: String(cfg.rnc || '').trim(),
+    telefono: String(cfg.telefono || '').trim(),
+    correo: String(cfg.correo || '').trim(),
+    direccion: String(cfg.direccion || '').trim(),
+    diasMantenimientoPostDevolucion: Math.max(0, Math.min(30, Number(cfg.diasMantenimientoPostDevolucion)||0)),
+    permitirRetirosWallet: !!cfg.permitirRetirosWallet,
+    diasAvisoVencimiento: Math.max(0, Math.min(30, Number(cfg.diasAvisoVencimiento)||0))
+  };
+  localStorage.setItem(CONFIG_SISTEMA_KEY, JSON.stringify(limpia));
+  return limpia;
+}
+
+
 /* =========================================================
    RUTAS
 ========================================================= */
@@ -422,7 +454,7 @@ async function cargarNotificaciones({ repintar = true } = {}) {
       } else if (a.estado === 'ACTIVO' && a.fechaFinPactada) {
         const fin = new Date(a.fechaFinPactada + 'T23:59:59');
         const dias = Math.ceil((fin - new Date()) / 86400000);
-        if (dias > 0 && dias <= 2) lista.push({ id:`alquiler-proximo-${a.id}`, tipo:'info', icono:'clock', titulo:'Alquiler próximo a vencer', texto:`${nombre} · ${veh} · vence en ${dias} día${dias === 1 ? '' : 's'}.`, fecha:a.fechaFinPactada, ruta:`#/alquileres?filtro=activos` });
+        if (dias > 0 && dias <= leerConfigSistema().diasAvisoVencimiento) lista.push({ id:`alquiler-proximo-${a.id}`, tipo:'info', icono:'clock', titulo:'Alquiler próximo a vencer', texto:`${nombre} · ${veh} · vence en ${dias} día${dias === 1 ? '' : 's'}.`, fecha:a.fechaFinPactada, ruta:`#/alquileres?filtro=activos` });
       }
       const creada = fechaNotif(a.fechaCreacion);
       if (creada && creada.getTime() >= limiteReciente) {
@@ -1699,7 +1731,11 @@ async function vFactura(c, ctx) {
       <header class="fac-h">
         <div class="empresa">
           <img src="logo.png" alt="AutoGo Rent a Car">
-          <small>AutoGo Rent a Car</small>
+          <small>${esc(leerConfigSistema().nombreComercial)}</small>
+          ${leerConfigSistema().rnc ? `<small>RNC: ${esc(leerConfigSistema().rnc)}</small>` : ''}
+          ${leerConfigSistema().telefono ? `<small>${esc(leerConfigSistema().telefono)}</small>` : ''}
+          ${leerConfigSistema().correo ? `<small>${esc(leerConfigSistema().correo)}</small>` : ''}
+          ${leerConfigSistema().direccion ? `<small>${esc(leerConfigSistema().direccion)}</small>` : ''}
         </div>
         <div class="fac-num">
           <span>${credito ? 'Nota de crédito' : 'Factura'}</span>
@@ -1767,7 +1803,7 @@ async function vFactura(c, ctx) {
 
       ${f.configFinanciera ? `<p class="fac-tasas">Tasas aplicadas en esta operación: impuesto ${Number(f.configFinanciera.impuestoPct || 0).toFixed(2)} %, retención ${Number(f.configFinanciera.retencionPct || 0).toFixed(2)} %${f.tipo === 'MORA' ? `, recargo por mora ${Number(f.configFinanciera.recargoMoraPct || 0).toFixed(2)} %` : ''}. Estas tasas quedan registradas con la operación y no cambian si Configuración se modifica posteriormente.</p>` : ''}
 
-      <p class="fac-pie">Gracias por preferir AutoGo Rent a Car. Montos expresados en pesos dominicanos (RD$).</p>
+      <p class="fac-pie">Gracias por preferir ${esc(leerConfigSistema().nombreComercial)}. Montos expresados en pesos dominicanos (RD$).</p>
     </article>`;
 }
 
@@ -1784,7 +1820,7 @@ function tarjetaWallet(w) {
       <div class="wallet-acc">
         <a class="btn" href="#/wallet">${icon('wallet')} Ver Wallet GO</a>
         <a class="btn ghost" href="#/catalogo">${icon('car')} Reservar</a>
-        <button class="btn ghost" type="button" data-retiro${saldo > 0 ? '' : ' disabled'}>${icon('logout')} Retiro</button>
+        <button class="btn ghost" type="button" data-retiro${saldo > 0 && leerConfigSistema().permitirRetirosWallet ? '' : ' disabled'}>${icon('logout')} Retiro</button>
       </div>
       ${movs.length ? `<ul class="wallet-mov">${movs.map(m => `
         <li>
@@ -1816,7 +1852,7 @@ async function vWalletGo(c, ctx) {
           <p>Tu saldo puede utilizarse en futuros alquileres. Los créditos provienen de cancelaciones y devoluciones anticipadas.</p>
           <div class="wallet-hero-actions">
             <a class="btn" href="#/catalogo">${icon('car')} Hacer una reserva</a>
-            <button class="btn ghost" type="button" data-wallet-retirar${Number(w.saldo) > 0 ? '' : ' disabled'}>${icon('logout')} Retirar saldo</button>
+            <button class="btn ghost" type="button" data-wallet-retirar${Number(w.saldo) > 0 && leerConfigSistema().permitirRetirosWallet ? '' : ' disabled'}>${icon('logout')} Retirar saldo</button>
           </div>
         </div>
         <div class="wallet-hero-info">
@@ -1870,6 +1906,10 @@ async function vWalletGo(c, ctx) {
 }
 
 async function retirarWallet(w, alCambiar) {
+  const cfgSistema = leerConfigSistema();
+  if (!cfgSistema.permitirRetirosWallet) {
+    return UI.toast('Los retiros de Wallet GO están deshabilitados por configuración.', 'warn');
+  }
   const saldo = Number(w.saldo) || 0;
   const pct = w.porcentajeRetiro || 30;
   const aCliente = Math.round(saldo * pct) / 100;
@@ -4105,140 +4145,110 @@ async function vConfiguracion(c, ctx) {
   const puedeEditarConfig = puede('configuracion.editar');
   let categorias = [];
   let fin = leerConfigFinanciera();
+  let sis = leerConfigSistema();
+  let seccion = 'general';
 
+  const disabled = puedeEditarConfig ? '' : ' disabled';
   c.innerHTML = `
-    <div class="config-grid">
-      <div class="config-col-principal">
-        <section class="card config-card">
-          <div class="config-card-h">
-            <div>
-              <span class="config-card-ico">${icon('tag')}</span>
-              <div>
-                <h3>Categorías de vehículos</h3>
-                <p>Organiza la flota por tipo de vehículo. Estas categorías se utilizan al registrar y filtrar vehículos.</p>
-              </div>
-            </div>
-            <button class="btn sm" type="button" data-config-nueva-cat>${icon('plus')} Nueva categoría</button>
-          </div>
-          <div class="categorias-lista" id="configCategorias"><span class="skeleton" style="height:44px"></span></div>
-        </section>
+    <div class="config-shell">
+      <nav class="card config-tabs" aria-label="Secciones de configuración">
+        <button class="config-tab act" type="button" data-config-tab="general">${icon('home')}<span>General</span></button>
+        <button class="config-tab" type="button" data-config-tab="vehiculos">${icon('car')}<span>Vehículos</span></button>
+        <button class="config-tab" type="button" data-config-tab="facturacion">${icon('receipt')}<span>Facturación</span></button>
+        <button class="config-tab" type="button" data-config-tab="wallet">${icon('wallet')}<span>Wallet GO</span></button>
+        <button class="config-tab" type="button" data-config-tab="notificaciones">${icon('bell')}<span>Notificaciones</span></button>
+      </nav>
 
-        <section class="card config-card config-finanzas">
-          <div class="config-card-h">
-            <div>
-              <span class="config-card-ico config-card-ico-fin">${icon('receipt')}</span>
-              <div>
-                <h3>Facturación y Wallet GO</h3>
-                <p>Define los porcentajes que utilizará AutoGo para facturas, mora, créditos por devolución anticipada y retiros de Wallet GO.</p>
-              </div>
-            </div>
-          </div>
-
-          <form class="form config-fin-form" id="configFinForm" novalidate>
+      <div class="config-contenido">
+        <section class="card config-card config-panel" data-config-panel="general">
+          <div class="config-card-h"><div><span class="config-card-ico">${icon('home')}</span><div><h3>Datos generales de AutoGo</h3><p>Información institucional utilizada en facturas y documentos del sistema.</p></div></div></div>
+          <form class="form config-form" id="configGeneralForm" novalidate>
             <div class="config-fin-grid">
-              ${UI.campo({ name:'impuestoPct', label:'Impuesto (%)', tipo:'number', value:fin.impuestoPct, attrs:'min="0" max="100" step="0.01"', ayuda:'Se aplicará sobre el subtotal cuando activemos el cálculo fiscal de Facturación.' })}
-              ${UI.campo({ name:'retencionPct', label:'Retención (%)', tipo:'number', value:fin.retencionPct, attrs:'min="0" max="100" step="0.01"', ayuda:'Se utilizará en los cálculos financieros definidos por AutoGo, incluyendo el crédito neto por devolución anticipada.' })}
-              ${UI.campo({ name:'recargoMoraPct', label:'Recargo por mora (%)', tipo:'number', value:fin.recargoMoraPct, attrs:'min="0" max="100" step="0.01"', ayuda:'Porcentaje adicional sobre la tarifa diaria por cada día de retraso. Actualmente la lógica equivale a 30 %.' })}
-              ${UI.campo({ name:'retiroWalletClientePct', label:'Cliente recibe al retirar Wallet GO (%)', tipo:'number', value:fin.retiroWalletClientePct, attrs:'min="0" max="100" step="0.01"', ayuda:'Porcentaje del saldo que recibe el cliente si decide retirar Wallet GO en efectivo. Actualmente es 30 %.' })}
+              ${UI.campo({name:'nombreComercial',label:'Nombre comercial',value:sis.nombreComercial,attrs:disabled})}
+              ${UI.campo({name:'rnc',label:'RNC',value:sis.rnc,placeholder:'Ej.: 1-31-00000-0',attrs:disabled})}
+              ${UI.campo({name:'telefono',label:'Teléfono',value:sis.telefono,attrs:disabled})}
+              ${UI.campo({name:'correo',label:'Correo',tipo:'email',value:sis.correo,attrs:disabled})}
             </div>
-
-            <div class="config-fin-resumen" id="configFinResumen"></div>
-            <div class="form-err" data-err-form hidden></div>
-            <div class="config-fin-acciones">
-              <button class="btn" type="submit">${icon('check')} Guardar parámetros</button>
-            </div>
+            ${UI.campo({name:'direccion',label:'Dirección',value:sis.direccion,attrs:disabled})}
+            ${puedeEditarConfig ? `<div class="config-fin-acciones"><button class="btn" type="submit">${icon('check')} Guardar datos</button></div>` : '<div class="info-banda">Solo el Superadministrador puede modificar esta configuración.</div>'}
           </form>
         </section>
 
-        <section class="card config-card">
-          <div class="config-card-h"><div><span class="config-card-ico">${icon('clock')}</span><div><h3>Historial de parámetros financieros</h3><p>Registro de cambios para saber desde cuándo estuvo vigente cada configuración.</p></div></div></div>
+        <section class="card config-card config-panel" data-config-panel="vehiculos" hidden>
+          <div class="config-card-h"><div><span class="config-card-ico">${icon('car')}</span><div><h3>Vehículos y mantenimiento</h3><p>Categorías de la flota y comportamiento posterior a una devolución.</p></div></div>${puedeEditarConfig ? `<button class="btn sm" type="button" data-config-nueva-cat>${icon('plus')} Nueva categoría</button>`:''}</div>
+          <div class="config-subtitulo">Categorías de vehículos</div>
+          <div class="categorias-lista" id="configCategorias"><span class="skeleton" style="height:44px"></span></div>
+          <form class="form config-inline-form" id="configVehForm" novalidate>
+            ${UI.campo({name:'diasMantenimientoPostDevolucion',label:'Días de mantenimiento después de una devolución',tipo:'number',value:sis.diasMantenimientoPostDevolucion,attrs:`min="0" max="30" step="1"${disabled}`,ayuda:'0 = sin mantenimiento automático. Se aplica a devoluciones nuevas.'})}
+            ${puedeEditarConfig ? `<button class="btn" type="submit">${icon('check')} Guardar</button>`:''}
+          </form>
+        </section>
+
+        <section class="card config-card config-panel" data-config-panel="facturacion" hidden>
+          <div class="config-card-h"><div><span class="config-card-ico config-card-ico-fin">${icon('receipt')}</span><div><h3>Facturación</h3><p>Impuestos, retención y recargo por mora aplicables a operaciones nuevas.</p></div></div></div>
+          <form class="form config-fin-form" id="configFinForm" novalidate>
+            <div class="config-fin-grid">
+              ${UI.campo({name:'impuestoPct',label:'Impuesto (%)',tipo:'number',value:fin.impuestoPct,attrs:`min="0" max="100" step="0.01"${disabled}`})}
+              ${UI.campo({name:'retencionPct',label:'Retención (%)',tipo:'number',value:fin.retencionPct,attrs:`min="0" max="100" step="0.01"${disabled}`})}
+              ${UI.campo({name:'recargoMoraPct',label:'Recargo por mora (%)',tipo:'number',value:fin.recargoMoraPct,attrs:`min="0" max="100" step="0.01"${disabled}`})}
+            </div>
+            <div class="config-fin-resumen" id="configFinResumen"></div>
+            ${puedeEditarConfig ? `<div class="config-fin-acciones"><button class="btn" type="submit">${icon('check')} Guardar parámetros</button></div>`:''}
+          </form>
+          <div class="config-subtitulo config-hist-title">Historial de cambios financieros</div>
           <div id="configHistFin" class="config-historial"></div>
         </section>
-      </div>
 
-      <aside class="card config-info">
-        <h3>Configuración del sistema</h3>
-        <p>Centraliza aquí los parámetros administrativos que afectan a varios módulos. Así evitamos porcentajes ocultos o diferentes entre Alquileres, Facturación, Devoluciones y Wallet GO.</p>
-        <div class="info-banda">${icon('info')}<span>Impuesto y retención permanecen en 0 % hasta que se definan los valores reales del proyecto.</span></div>
-        <div class="info-banda config-info-sec">${icon('wallet')}<span>Los cambios aplican únicamente a operaciones nuevas. Cada alquiler, factura, mora, devolución y retiro guarda las tasas utilizadas para que modificar estos parámetros no altere operaciones anteriores. En el backend real estos valores también deberán persistirse por operación.</span></div>
-      </aside>
+        <section class="card config-card config-panel" data-config-panel="wallet" hidden>
+          <div class="config-card-h"><div><span class="config-card-ico">${icon('wallet')}</span><div><h3>Wallet GO</h3><p>Controla los retiros. El uso del saldo en nuevos alquileres continúa disponible.</p></div></div></div>
+          <form class="form config-form" id="configWalletForm" novalidate>
+            <div class="config-fin-grid">
+              ${UI.campo({name:'retiroWalletClientePct',label:'Cliente recibe al retirar (%)',tipo:'number',value:fin.retiroWalletClientePct,attrs:`min="0" max="100" step="0.01"${disabled}`})}
+              <label class="campo config-switch"><span>Permitir retiros de Wallet GO</span><span class="switch-line"><input type="checkbox" name="permitirRetirosWallet" ${sis.permitirRetirosWallet?'checked':''}${disabled}><b>${sis.permitirRetirosWallet?'Activado':'Desactivado'}</b></span><small>Si se desactiva, el saldo solo podrá utilizarse en futuros alquileres.</small></label>
+            </div>
+            <div class="config-fin-resumen" id="configWalletResumen"></div>
+            ${puedeEditarConfig ? `<div class="config-fin-acciones"><button class="btn" type="submit">${icon('check')} Guardar Wallet GO</button></div>`:''}
+          </form>
+        </section>
+
+        <section class="card config-card config-panel" data-config-panel="notificaciones" hidden>
+          <div class="config-card-h"><div><span class="config-card-ico">${icon('bell')}</span><div><h3>Notificaciones</h3><p>Define con cuánta anticipación AutoGo avisa sobre devoluciones próximas.</p></div></div></div>
+          <form class="form config-inline-form" id="configNotifForm" novalidate>
+            ${UI.campo({name:'diasAvisoVencimiento',label:'Avisar devolución próxima con',tipo:'number',value:sis.diasAvisoVencimiento,attrs:`min="0" max="30" step="1"${disabled}`,ayuda:'Cantidad de días antes de la fecha pactada de entrega.'})}
+            ${puedeEditarConfig ? `<button class="btn" type="submit">${icon('check')} Guardar</button>`:''}
+          </form>
+        </section>
+      </div>
     </div>`;
 
-  const lista = $('#configCategorias', c);
-
-  const pintar = () => {
-    lista.innerHTML = categorias.length ? categorias.map(cat => `
-      <div class="categoria-item">
-        <div><span class="categoria-dot"></span><b>${esc(cat.nombre)}</b></div>
-        <small>ID ${esc(cat.id)}</small>
-      </div>`).join('') : UI.vacio('No hay categorías registradas.', 'tag');
+  const activar = nombre => {
+    seccion = nombre;
+    $$('.config-tab',c).forEach(b=>{ const on=b.dataset.configTab===nombre; b.classList.toggle('act',on); b.setAttribute('aria-selected',on); });
+    $$('.config-panel',c).forEach(p=>p.hidden=p.dataset.configPanel!==nombre);
   };
+  c.addEventListener('click',e=>{ const b=e.target.closest('[data-config-tab]'); if(b) activar(b.dataset.configTab); });
 
-  const cargar = async () => {
-    try {
-      categorias = await Api.categorias();
-      if (ctx.vigente()) pintar();
-    } catch (err) {
-      lista.innerHTML = UI.vacio('No se pudieron cargar las categorías.', 'alert');
-    }
-  };
+  const lista = $('#configCategorias',c);
+  const pintarCategorias=()=>{ lista.innerHTML=categorias.length?categorias.map(cat=>`<div class="categoria-item"><div><span class="categoria-dot"></span><b>${esc(cat.nombre)}</b></div><small>ID ${esc(cat.id)}</small></div>`).join(''):UI.vacio('No hay categorías registradas.','tag'); };
+  try { categorias=await Api.categorias(); if(ctx.vigente()) pintarCategorias(); } catch(_){ lista.innerHTML=UI.vacio('No se pudieron cargar las categorías.','alert'); }
+  $('[data-config-nueva-cat]',c)?.addEventListener('click',()=>nuevaCategoria(cat=>{categorias.push(cat);categorias.sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));pintarCategorias();}));
 
-  $('[data-config-nueva-cat]', c).onclick = () => nuevaCategoria(cat => {
-    categorias.push(cat);
-    categorias.sort((a,b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
-    pintar();
-  });
+  const guardarSisParcial = cambios => { sis=guardarConfigSistema({...sis,...cambios}); UI.toast('Configuración guardada.','ok'); };
+  const fg=$('#configGeneralForm',c); if(fg&&puedeEditarConfig) fg.onsubmit=e=>{e.preventDefault(); const d=UI.datos(fg); guardarSisParcial({nombreComercial:d.nombreComercial,rnc:d.rnc,telefono:d.telefono,correo:d.correo,direccion:d.direccion});};
+  const fv=$('#configVehForm',c); if(fv&&puedeEditarConfig) fv.onsubmit=e=>{e.preventDefault(); guardarSisParcial({diasMantenimientoPostDevolucion:Number(fv.diasMantenimientoPostDevolucion.value)||0});};
+  const fn=$('#configNotifForm',c); if(fn&&puedeEditarConfig) fn.onsubmit=e=>{e.preventDefault(); guardarSisParcial({diasAvisoVencimiento:Number(fn.diasAvisoVencimiento.value)||0}); notificacionesCache=null; cargarNotificaciones();};
 
-  const ffin = $('#configFinForm', c);
-  const resumenFin = $('#configFinResumen', c);
-  const valoresFin = () => ({
-    impuestoPct: Number(ffin.impuestoPct.value) || 0,
-    retencionPct: Number(ffin.retencionPct.value) || 0,
-    recargoMoraPct: Number(ffin.recargoMoraPct.value) || 0,
-    retiroWalletClientePct: Number(ffin.retiroWalletClientePct.value) || 0
-  });
+  const ffin=$('#configFinForm',c), resumenFin=$('#configFinResumen',c);
+  const valoresFin=()=>({impuestoPct:Number(ffin.impuestoPct.value)||0,retencionPct:Number(ffin.retencionPct.value)||0,recargoMoraPct:Number(ffin.recargoMoraPct.value)||0,retiroWalletClientePct:fin.retiroWalletClientePct});
+  const pintarResumenFin=()=>{const x=valoresFin(); resumenFin.innerHTML=`<div><span>Impuesto</span><b>${x.impuestoPct.toFixed(2)} %</b></div><div><span>Retención</span><b>${x.retencionPct.toFixed(2)} %</b></div><div><span>Mora adicional</span><b>${x.recargoMoraPct.toFixed(2)} %</b></div>`;};
+  $$('input[type="number"]',ffin).forEach(i=>i.addEventListener('input',pintarResumenFin)); pintarResumenFin();
+  const pintarHistorialFin=()=>{const caja=$('#configHistFin',c),hist=leerHistorialConfigFinanciera(),nombres={impuestoPct:'Impuesto',retencionPct:'Retención',recargoMoraPct:'Mora',retiroWalletClientePct:'Retiro Wallet'}; caja.innerHTML=hist.length?hist.slice(0,12).map(h=>`<div class="config-hist-item"><div><b>${fmt.fechaHora(h.fecha)}</b><small>${esc(h.usuario||'Administrador')}</small></div><div class="config-hist-cambios">${(h.cambios||[]).map(k=>`<span>${nombres[k]||k}: <s>${Number(h.anterior?.[k]||0).toFixed(2)}%</s> → <b>${Number(h.nueva?.[k]||0).toFixed(2)}%</b></span>`).join('')}</div></div>`).join(''):`<div class="vacio-mini">Aún no hay cambios registrados.</div>`;}; pintarHistorialFin();
+  if(puedeEditarConfig) ffin.onsubmit=e=>{e.preventDefault();const x=valoresFin();for(const [k,v] of Object.entries(x)){if(v<0||v>100)return UI.toast('Los porcentajes deben estar entre 0 y 100 %.','warn');}const anterior={...fin};fin=guardarConfigFinanciera(x);registrarCambioConfigFinanciera(anterior,fin);pintarHistorialFin();UI.toast('Parámetros de facturación guardados.','ok');};
 
-  const pintarResumenFin = () => {
-    const x = valoresFin();
-    const autoGoRetieneWallet = Math.max(0, 100 - x.retiroWalletClientePct);
-    resumenFin.innerHTML = `
-      <div><span>Impuesto</span><b>${x.impuestoPct.toFixed(2)} %</b></div>
-      <div><span>Retención</span><b>${x.retencionPct.toFixed(2)} %</b></div>
-      <div><span>Mora adicional</span><b>${x.recargoMoraPct.toFixed(2)} %</b></div>
-      <div><span>Retiro Wallet</span><b>Cliente ${x.retiroWalletClientePct.toFixed(2)} % · AutoGo ${autoGoRetieneWallet.toFixed(2)} %</b></div>`;
-  };
-
-  $$('input[type="number"]', ffin).forEach(i => i.addEventListener('input', pintarResumenFin));
-  pintarResumenFin();
-
-  const pintarHistorialFin = () => {
-    const caja = $('#configHistFin', c);
-    const hist = leerHistorialConfigFinanciera();
-    const nombres = { impuestoPct:'Impuesto', retencionPct:'Retención', recargoMoraPct:'Mora', retiroWalletClientePct:'Retiro Wallet' };
-    caja.innerHTML = hist.length ? hist.slice(0,12).map(h => `
-      <div class="config-hist-item">
-        <div><b>${fmt.fechaHora(h.fecha)}</b><small>${esc(h.usuario || 'Administrador')}</small></div>
-        <div class="config-hist-cambios">${(h.cambios||[]).map(k=>`<span>${nombres[k]||k}: <s>${Number(h.anterior?.[k]||0).toFixed(2)}%</s> → <b>${Number(h.nueva?.[k]||0).toFixed(2)}%</b></span>`).join('')}</div>
-      </div>`).join('') : `<div class="vacio-mini">Aún no hay cambios registrados. Las operaciones anteriores conservan sus propias tasas.</div>`;
-  };
-
-  ffin.onsubmit = e => {
-    e.preventDefault();
-    UI.limpiarErrores(ffin);
-    const x = valoresFin();
-    for (const [campo, valor] of Object.entries(x)) {
-      if (valor < 0 || valor > 100) return UI.errorCampo(ffin, campo, 'Debe estar entre 0 y 100 %.');
-    }
-    const anterior = { ...fin };
-    fin = guardarConfigFinanciera(x);
-    registrarCambioConfigFinanciera(anterior, fin);
-    pintarResumenFin();
-    pintarHistorialFin();
-    UI.toast('Parámetros de facturación guardados.', 'ok');
-  };
-
-  pintarHistorialFin();
-  await cargar();
+  const fw=$('#configWalletForm',c),rw=$('#configWalletResumen',c);
+  const pintarWallet=()=>{const pct=Number(fw.retiroWalletClientePct.value)||0, activo=fw.permitirRetirosWallet.checked; rw.innerHTML=`<div><span>Retiros</span><b>${activo?'Permitidos':'Deshabilitados'}</b></div><div><span>Distribución</span><b>Cliente ${pct.toFixed(2)} % · AutoGo ${(100-pct).toFixed(2)} %</b></div>`; const txt=fw.querySelector('.switch-line b');if(txt)txt.textContent=activo?'Activado':'Desactivado';};
+  fw?.addEventListener('input',pintarWallet); pintarWallet();
+  if(fw&&puedeEditarConfig) fw.onsubmit=e=>{e.preventDefault();const pct=Number(fw.retiroWalletClientePct.value)||0;if(pct<0||pct>100)return UI.toast('El porcentaje debe estar entre 0 y 100 %.','warn');const anterior={...fin};fin=guardarConfigFinanciera({...fin,retiroWalletClientePct:pct});registrarCambioConfigFinanciera(anterior,fin);guardarSisParcial({permitirRetirosWallet:fw.permitirRetirosWallet.checked});pintarHistorialFin();pintarWallet();};
 }
 
 
