@@ -89,7 +89,7 @@ const Demo = (() => {
     const h = hoy();
 
     const categorias = ['Compacto', 'Económico', 'Sedán', 'SUV', 'Van', 'Negocio']
-      .map((nombre, i) => ({ id: i + 1, nombre }));
+      .map((nombre, i) => ({ id: i + 1, nombre, activo: true }));
 
     const foto = (marca, modelo) => `img/vehiculos/${`${marca}-${modelo}`.toLowerCase().replace(/\s+/g, '-')}.jpg`;
 
@@ -613,6 +613,33 @@ const Demo = (() => {
   }
 
 
+  /* Configuración DEMO compatible con el frontend final */
+  const DEMO_CONFIG_KEY = 'autogo.demo.config.v2';
+  const DEMO_CONFIG_HIST_KEY = 'autogo.demo.config.hist.v2';
+  const DEMO_CONFIG_DEFAULT = {
+    nombreComercial: 'AutoGo Rent a Car', rnc: '1-31-00000-0', telefono: '809-555-0101',
+    correo: 'info@autogo.com', direccion: 'Bonao, República Dominicana',
+    diasMantenimientoPostDevolucion: 1, permitirRetirosWallet: true, diasAvisoVencimiento: 1,
+    impuestoPct: 0, retencionPct: 0, recargoMoraPct: 30, retiroWalletClientePct: 85
+  };
+  function demoConfigLeer(){
+    try { return { ...DEMO_CONFIG_DEFAULT, ...JSON.parse(localStorage.getItem(DEMO_CONFIG_KEY) || '{}') }; }
+    catch (_) { return { ...DEMO_CONFIG_DEFAULT }; }
+  }
+  function demoConfigGuardar(x){
+    const limpio={...DEMO_CONFIG_DEFAULT,...x};
+    localStorage.setItem(DEMO_CONFIG_KEY, JSON.stringify(limpio));
+    localStorage.setItem(CONFIG_FINANCIERA_KEY, JSON.stringify({
+      impuestoPct:+limpio.impuestoPct||0, retencionPct:+limpio.retencionPct||0,
+      recargoMoraPct:+limpio.recargoMoraPct||0, retiroWalletClientePct:+limpio.retiroWalletClientePct||0
+    }));
+    localStorage.setItem('autogo_config_sistema_v1', JSON.stringify({diasMantenimientoPostDevolucion:+limpio.diasMantenimientoPostDevolucion||0}));
+    return limpio;
+  }
+  function demoHistLeer(){ try{return JSON.parse(localStorage.getItem(DEMO_CONFIG_HIST_KEY)||'[]')}catch(_){return []} }
+  function demoHistGuardar(x){ localStorage.setItem(DEMO_CONFIG_HIST_KEY, JSON.stringify(x)); }
+
+
   /* Operaciones */
 
   const H = {
@@ -806,7 +833,45 @@ const Demo = (() => {
         .map(i => ({ ...i, clienteNombre: clienteDe(i.clienteId).nombre }));
     },
 
+    configuracion(v, ctx) {
+      permiso(ctx, 'configuracion.ver');
+      return demoConfigLeer();
+    },
+
+    actualizarConfiguracion({ input }, ctx) {
+      const u = permiso(ctx, 'configuracion.editar');
+      const anterior = demoConfigLeer();
+      const nuevo = demoConfigGuardar({ ...anterior, ...(input || {}) });
+      const cambios = Object.keys(nuevo).filter(k => JSON.stringify(anterior[k]) !== JSON.stringify(nuevo[k]));
+      const hist = demoHistLeer();
+      hist.unshift({ id: Date.now(), fecha: new Date().toISOString(), usuario: u.nombre, cambios: cambios.join(', '), anteriorJson: JSON.stringify(anterior), nuevoJson: JSON.stringify(nuevo) });
+      demoHistGuardar(hist.slice(0,100));
+      return nuevo;
+    },
+
+    historialConfiguracion(v, ctx) {
+      permiso(ctx, 'configuracion.ver');
+      return demoHistLeer();
+    },
+
     categorias: () => db.categorias,
+
+    actualizarCategoria({ id, nombre }, ctx) {
+      permiso(ctx, 'configuracion.editar');
+      const cat = db.categorias.find(x => x.id === id);
+      if (!cat) falla('NO_ENCONTRADO', 'La categoría no existe.');
+      if (!nombre || !nombre.trim()) falla('DATO_INVALIDO', 'El nombre es obligatorio.');
+      if (db.categorias.some(x => x.id !== id && plano(x.nombre) === plano(nombre.trim()) && x.activo !== false)) falla('CATEGORIA_DUPLICADA','Ya existe una categoría con ese nombre.');
+      cat.nombre = nombre.trim(); cat.activo = true; return cat;
+    },
+
+    desactivarCategoria({ id }, ctx) {
+      permiso(ctx, 'configuracion.editar');
+      const cat = db.categorias.find(x => x.id === id);
+      if (!cat) falla('NO_ENCONTRADO', 'La categoría no existe.');
+      if (db.vehiculos.some(v => v.categoriaId === id && v.activo)) falla('REGLA_NEGOCIO','No puedes desactivar una categoría con vehículos activos.');
+      cat.activo = false; return true;
+    },
 
     vehiculosDisponibles({ fechaInicio, fechaFin, categoriaId }) {
       validarRango(fechaInicio, fechaFin);
@@ -848,7 +913,7 @@ const Demo = (() => {
       permiso(ctx, 'configuracion.editar');
       if (!nombre || !nombre.trim()) falla('DATO_INVALIDO', 'El nombre es obligatorio.');
       if (db.categorias.some(x => plano(x.nombre) === plano(nombre.trim()))) falla('CATEGORIA_DUPLICADA', 'Ya existe una categoría con ese nombre.');
-      const cat = { id: db.seq.categoria++, nombre: nombre.trim() };
+      const cat = { id: db.seq.categoria++, nombre: nombre.trim(), activo: true };
       db.categorias.push(cat);
       return cat;
     },
@@ -1125,6 +1190,17 @@ const Demo = (() => {
     },
 
 
+    async subirFotoDevolucion({ alquilerId, foto }, ctx) {
+      permiso(ctx, 'alquileres.devolver');
+      const a = db.alquileres.find(x => x.id === alquilerId);
+      if (!a) falla('NO_ENCONTRADO','El alquiler no existe.');
+      if (!foto || !/\.(jpe?g|png|webp)$/i.test(foto.name || '')) falla('DATO_INVALIDO','La foto debe ser jpg, jpeg, png o webp.');
+      if (foto.size > 5 * 1024 * 1024) falla('DATO_INVALIDO','La foto no puede superar 5 MB.');
+      const url = await new Promise((ok, mal) => { const r=new FileReader(); r.onload=()=>ok(r.result); r.onerror=()=>mal(new Fallo('DATO_INVALIDO','No se pudo leer la foto.')); r.readAsDataURL(foto); });
+      a.fotosDevolucion = a.fotosDevolucion || []; a.fotosDevolucion.push(url); return url;
+    },
+
+
     facturas(v, ctx) {
       permiso(ctx, 'facturas.ver');
       const local = iso => {
@@ -1285,7 +1361,7 @@ const Demo = (() => {
       falla('AUTH_NOT_AUTHENTICATED', 'Tu sesión expiró.');
     }
 
-    const entrada = op === 'subirFotoVehiculo' ? { ...vars } : (copia(vars) || {});
+    const entrada = ['subirFotoVehiculo','subirFotoDevolucion'].includes(op) ? { ...vars } : (copia(vars) || {});
     const r = await fn(entrada, ctx);
     guardar();
 
