@@ -2802,699 +2802,276 @@ input[type=file]::file-selector-button {
 
 
 /* =========================================================
-   DISEÑO EXTRA
-   Nuevo vehículo · Wallet GO · Administradores
+   BANNER EN LA PANTALLA DE INICIO
+   (detrás del saludo y las tarjetas de resumen)
 ========================================================= */
 
-:root {
-    --azul: #6f8dff;
-    --azul-bg: rgba(111, 141, 255, .18);
-    --azul-bd: rgba(111, 141, 255, .45);
-    --naranja: #ffb066;
-    --morado: #b9a4ff;
-}
-
-
-/* =========================================================
-   COMPONENTES COMUNES
-========================================================= */
-
-/* Cabecera de tarjeta con icono + título + descripción */
-.card-cab {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
-}
-
-.card-cab > .ic {
-    width: 40px;
-    height: 40px;
-    padding: 9px;
-    border-radius: 12px;
-    background: var(--glass-2);
-    border: 1px solid var(--borde-2);
-    flex: none;
-}
-
-.card-cab h3 {
-    font-size: 17px;
-    font-weight: 700;
-}
-
-.card-cab p {
-    color: var(--txt-2);
-    font-size: 12.5px;
-    margin-top: 2px;
-}
-
-/* Campo con icono / prefijo dentro del input */
-.con-pref {
+.main.hero-on {
     position: relative;
-    display: flex;
-    align-items: center;
-    min-width: 0;
+    isolation: isolate;
 }
 
-.con-pref .pref {
+.main.hero-on::before {
+    content: "";
     position: absolute;
-    left: 1px;
-    top: 1px;
-    bottom: 1px;
-    width: 42px;
-    display: grid;
-    place-items: center;
-    color: var(--txt-2);
-    font-weight: 600;
-    border-radius: 13px 0 0 13px;
-    border-right: 1px solid var(--borde-2);
+    z-index: 0;
+    top: 18px;
+    left: 22px;
+    right: 22px;
+    height: calc(var(--hero-h, 240px) + var(--banner-extra, 48px));
+    border-radius: var(--r-xl);
+    border: 1px solid var(--borde);
+    box-shadow: var(--sombra), var(--brillo);
+    background:
+        linear-gradient(90deg, rgba(14, 18, 42, .72) 0%, rgba(14, 18, 42, .38) 45%, rgba(14, 18, 42, .05) 80%),
+        var(--banner) no-repeat;
+    /* La foto se agranda un poco y se ancla a la izquierda: el carro se corre a la derecha */
+    background-size: 100% 100%, 110% auto;
+    background-position: 0 0, 0% var(--banner-y, 70%);
     pointer-events: none;
 }
 
-.con-pref .pref .ic {
-    width: 18px;
-    height: 18px;
+.main.hero-on .topbar,
+.main.hero-on .kpis {
+    position: relative;
+    z-index: 1;
 }
 
-.con-pref input,
-.con-pref select {
-    padding-left: 54px;
+.main.hero-on .kpis {
+    margin-bottom: 16px;
 }
 
-/* Punto de estado (Disponible, Activo...) */
-.pe {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 2px solid var(--ok);
-    background: transparent;
-    display: block;
-}
-
-.pe-DISPONIBLE {
-    border-color: var(--ok);
-}
-
-.pe-MANTENIMIENTO {
-    border-color: var(--warn);
-}
-
-.pe-FUERA_DE_SERVICIO {
-    border-color: var(--bad);
-}
-
-/* Quita las flechas nativas de los inputs numéricos */
-input[type=number] {
-    appearance: textfield;
-    -moz-appearance: textfield;
+@media (max-width: 760px) {
+    .main.hero-on::before {
+        top: 10px;
+        left: 6px;
+        right: 6px;
+        background-size: 100% 100%, cover;
+        background-position: 0 0, 80% center;
+    }
 }
 
 
 /* =========================================================
-   1) MODAL: AGREGAR / EDITAR VEHÍCULO
+   INICIO: botón "Rentar un vehículo" verde + tarjetas del mismo tamaño
 ========================================================= */
 
-.modal-h {
-    align-items: flex-start;
+.main.hero-on .kpis {
+    /* Las tarjetas ocupan ~70% del ancho: llegan hasta donde empieza el carro */
+    grid-template-columns: minmax(130px, .9fr) repeat(4, minmax(0, 1fr));
+    width: 70%;
+    min-width: min(100%, 780px);
+    align-items: stretch;
+    gap: 14px;
 }
 
-.modal-sub {
-    color: var(--txt-2);
-    font-size: 13px;
-    font-weight: 400;
-    margin-top: 4px;
+.main.hero-on .kpi {
+    gap: 4px;
+    padding: 14px 16px;
+    min-width: 0;
 }
 
-.vh-grid {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 16px 18px;
-}
-
-.vh-grid .c2 { grid-column: span 2; }
-.vh-grid .c3 { grid-column: span 3; }
-.vh-grid .c6 { grid-column: span 6; }
-
-.vh .campo label {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--txt-2);
-}
-
-/* Zona para arrastrar la foto */
-.dz {
-    position: relative;
-    height: 170px;
-    border: 1.5px dashed rgba(255, 255, 255, .35);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, .05);
-    display: grid;
-    place-items: center;
-    text-align: center;
-    cursor: pointer;
-    overflow: hidden;
-    transition: border-color .2s, background .2s;
-}
-
-.dz:hover,
-.dz.sobre {
-    border-color: rgba(255, 255, 255, .75);
-    background: rgba(255, 255, 255, .12);
-}
-
-.dz:focus-visible {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
-}
-
-.dz-txt {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    padding: 10px;
-}
-
-.dz-txt .ic {
-    width: 30px;
-    height: 30px;
-    margin-bottom: 8px;
-    stroke-width: 1.5;
-}
-
-.dz-txt b {
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.dz-txt span {
-    color: var(--txt-2);
+.main.hero-on .kpi .etq {
     font-size: 12px;
 }
 
-.dz-txt small {
-    color: var(--txt-3);
-    font-size: 11px;
-    margin-top: 10px;
+.main.hero-on .kpi .etq .ic {
+    width: 15px;
+    height: 15px;
 }
 
-.dz-prev {
-    position: absolute;
-    inset: 0;
-    display: none;
+.main.hero-on .kpi .valor {
+    font-size: clamp(15px, 1.2vw, 20px);
+    white-space: nowrap;
 }
 
-.dz-prev img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.dz.tiene .dz-prev {
-    display: block;
-}
-
-.dz.tiene .dz-txt {
-    display: none;
-}
-
-/* Observaciones con contador */
-.vh-obs {
-    position: relative;
-    height: 170px;
-}
-
-.vh-obs textarea {
-    height: 100%;
-    min-height: 0;
-    resize: none;
-    padding-bottom: 28px;
-    border-radius: 16px;
-}
-
-.vh-cont {
-    position: absolute;
-    right: 14px;
-    bottom: 9px;
-    font-size: 11px;
-    color: var(--txt-3);
-    pointer-events: none;
-}
-
-.vh-acc {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid var(--borde-2);
-}
-
-
-/* =========================================================
-   2) WALLET GO (Mi perfil)
-========================================================= */
-
-.perfil-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 20px;
-    align-items: start;
-}
-
-.perfil-grid .angosta {
-    max-width: none;
-}
-
-.wallet-card {
-    display: flex;
-    flex-direction: column;
-}
-
-.wallet-h {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-}
-
-.wallet-h .ic {
-    width: 20px;
-    height: 20px;
-    color: var(--ok);
-}
-
-.wallet-h h3 {
-    font-size: 17px;
-    font-weight: 700;
-}
-
-.wallet-lbl {
-    color: var(--txt-2);
-    font-size: 12.5px;
-}
-
-.wallet-saldo {
-    font-size: 40px;
-    font-weight: 800;
-    letter-spacing: -.02em;
-    line-height: 1.15;
-    margin: 4px 0 12px;
-    font-variant-numeric: tabular-nums;
-}
-
-.wallet-nota {
-    color: var(--txt-2);
-    font-size: 12.5px;
-    line-height: 1.5;
-}
-
-.wallet-acc {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 18px;
-}
-
-.wallet-mov {
-    list-style: none;
-    margin-top: 20px;
-    padding-top: 6px;
-    border-top: 1px solid var(--borde-2);
-}
-
-.wallet-mov li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 13px 0;
-    border-bottom: 1px solid var(--borde-2);
-}
-
-.wallet-mov li:last-child {
-    border-bottom: none;
-}
-
-.wallet-mov b {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.wallet-mov small {
-    color: var(--txt-3);
+.main.hero-on .kpi .nota {
     font-size: 11.5px;
 }
 
-.wallet-mov span {
-    font-weight: 700;
-    font-size: 13px;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
-.wallet-mov .mas { color: var(--ok); }
-.wallet-mov .menos { color: var(--bad); }
-
-/* Wallet dentro del modal de confirmar alquiler / retiro */
-.wallet-uso {
-    padding: 12px 14px;
-    border-radius: var(--r-sm);
-    background: rgba(110, 231, 160, .1);
-    border: 1px solid rgba(110, 231, 160, .3);
-    display: grid;
-    gap: 6px;
-}
-
-.wallet-uso small {
-    color: var(--txt-2);
-}
-
-.retiro-lista {
-    padding-left: 18px;
-    display: grid;
-    gap: 6px;
-}
-
-
-/* =========================================================
-   3) ADMINISTRADORES
-========================================================= */
-
-.adm-top {
-    display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-    gap: 20px;
-    align-items: start;
-}
-
-.adm-form {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px 22px;
-    margin-top: 20px;
-}
-
-.adm-col {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
-}
-
-.adm-form .form-err,
-.adm-btns {
-    grid-column: 1 / -1;
-}
-
-.adm-btns {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.pass-fila {
-    display: flex;
-    gap: 10px;
-}
-
-.pass-fila .con-pref {
-    flex: 1;
-}
-
-/* Checkbox "forzar cambio" */
-.adm-chk {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 12px;
-    row-gap: 2px;
-    align-items: start;
-    cursor: pointer;
-}
-
-.adm-chk input {
-    grid-row: 1 / span 2;
-    margin-top: 2px;
-    accent-color: var(--azul);
-}
-
-.adm-chk b {
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.adm-chk small {
-    color: var(--txt-3);
-    font-size: 12px;
-}
-
-/* Buenas prácticas */
-.adm-bulb {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    flex: none;
-    background: rgba(252, 210, 122, .18);
-    color: var(--warn);
-}
-
-.adm-bulb .ic {
-    width: 22px;
-    height: 22px;
-}
-
-.adm-tips {
-    margin-top: 14px;
-}
-
-.adm-tip {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--borde-2);
-}
-
-.adm-tip:last-child {
-    border-bottom: none;
-}
-
-.adm-tip .ico {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    flex: none;
-    background: var(--glass-2);
-    border: 1px solid var(--borde-2);
-}
-
-.adm-tip .ico .ic {
-    width: 18px;
-    height: 18px;
-}
-
-.adm-tip b {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.adm-tip small {
-    display: block;
-    color: var(--txt-3);
-    font-size: 12px;
-    margin-top: 1px;
-}
-
-/* Cabecera de la lista (título + buscador + filtro) */
-.adm-lh {
-    flex-wrap: wrap;
-    margin-bottom: 18px;
-}
-
-.adm-filtros {
-    margin: 0;
-    flex-wrap: nowrap;
-}
-
-.adm-filtros .buscar {
-    flex: none;
-    width: 260px;
-}
-
-.adm-filtros select {
-    min-width: 160px;
-}
-
-/* Tabla */
-.adm-tabla th {
-    padding-top: 10px;
-}
-
-.adm-nom {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.adm-nom b {
-    font-weight: 600;
-}
-
-/* Etiquetas de rol */
-.rol-tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    border: 1px solid transparent;
-}
-
-.rol-admin {
-    color: var(--morado);
-    background: rgba(185, 164, 255, .16);
-    border-color: rgba(185, 164, 255, .4);
-}
-
-.rol-fact {
-    color: var(--info);
-    background: rgba(165, 200, 255, .14);
-    border-color: rgba(165, 200, 255, .4);
-}
-
-.rol-oper {
-    color: var(--ok);
-    background: rgba(110, 231, 160, .13);
-    border-color: rgba(110, 231, 160, .4);
-}
-
-.rol-sop {
-    color: var(--warn);
-    background: rgba(252, 210, 122, .13);
-    border-color: rgba(252, 210, 122, .4);
-}
-
-/* Botones de acción de la tabla */
-.adm-acc {
-    display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-}
-
-.ab {
-    width: 36px;
-    height: 30px;
-    border-radius: 9px;
-    display: inline-grid;
-    place-items: center;
-    border: 1px solid transparent;
-    transition: background .2s, transform .15s;
-}
-
-.ab .ic {
-    width: 16px;
-    height: 16px;
-}
-
-.ab:hover:not(:disabled) {
-    transform: translateY(-1px);
-}
-
-.ab:disabled {
-    opacity: .3;
-    cursor: not-allowed;
-}
-
-.ab-ver {
+.kpi-accion {
+    background: linear-gradient(135deg, #34d27b 0%, #16a34a 100%);
     color: #fff;
-    background: var(--glass-3);
-    border-color: var(--borde-2);
+    border: 1px solid rgba(255, 255, 255, .45);
+    border-radius: 20px;
+    min-height: 0;
+    padding: 14px 22px;
+    box-shadow: 0 8px 22px rgba(22, 163, 74, .35), inset 0 1px 0 rgba(255, 255, 255, .4);
 }
 
-.ab-edit {
-    color: #bcd0ff;
-    background: var(--azul-bg);
-    border-color: var(--azul-bd);
+.kpi-accion:hover {
+    background: linear-gradient(135deg, #4ade8c 0%, #1fb454 100%);
+    color: #fff;
 }
 
-.ab-clave {
-    color: var(--naranja);
-    background: rgba(255, 176, 102, .16);
-    border-color: rgba(255, 176, 102, .45);
-}
-
-.ab-del {
-    color: #ff9c9c;
-    background: rgba(255, 112, 112, .16);
-    border-color: rgba(255, 112, 112, .45);
-}
-
-/* Modal de contraseña temporal */
-.clave-caja {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 16px 0 8px;
-    padding: 12px 14px;
-    border-radius: var(--r);
-    background: rgba(0, 0, 0, .22);
-    border: 1px solid var(--borde-2);
-}
-
-.clave-caja code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 17px;
-    letter-spacing: .06em;
-}
-
-.clave-correo {
-    color: var(--txt-3);
-}
-
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media (max-width: 1180px) {
-
-    .adm-top,
-    .perfil-grid {
-        grid-template-columns: 1fr;
+@media (max-width: 1100px) {
+    .main.hero-on .kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+        min-width: 0;
     }
 
+    .main.hero-on .kpis .kpi-accion {
+        grid-column: 1 / -1;
+        min-height: 46px;
+    }
+}
+
+/* Banner más alto para que se vean las llantas del carro.
+   --banner-extra = altura que se le suma al banner
+   --banner-y     = qué parte de la foto se muestra (0% arriba, 100% abajo) */
+.main.hero-on {
+    --banner-extra: 48px;
+    --banner-y: 70%;
+}
+
+.main.hero-on .kpis {
+    margin-bottom: calc(16px + var(--banner-extra));
+}
+
+
+/* =========================================================
+   PANTALLA DE ACCESO: logo azul más grande y texto más legible
+========================================================= */
+
+/* Zona de arriba un poco más oscura (detrás del texto); el carro queda igual */
+.auth-foto {
+    background:
+        linear-gradient(180deg, rgba(14, 18, 44, .62) 0%, rgba(14, 18, 44, .34) 38%, rgba(14, 18, 44, 0) 60%, rgba(14, 18, 44, .55) 100%),
+        var(--foto) center 65% / cover no-repeat;
+}
+
+.auth-foto .marca {
+    display: block;
+    height: auto;
+}
+
+.auth-foto .marca img {
+    height: 84px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 7px rgba(255, 255, 255, .85));
+}
+
+.auth-foto p {
+    max-width: 400px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.5;
+    text-shadow: 0 1px 3px rgba(6, 9, 28, .7), 0 2px 18px rgba(6, 9, 28, .55);
+}
+
+
+/* Botón verde que invita a ver el catálogo (pantallas de acceso y registro) */
+.auth-promo {
+    margin-top: 22px;
+}
+
+.auth-promo a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #34d27b 0%, #16a34a 100%);
+    border: 1px solid rgba(255, 255, 255, .45);
+    box-shadow: 0 6px 18px rgba(22, 163, 74, .38);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform .15s ease, filter .15s ease;
+}
+
+.auth-promo a:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+}
+
+/* El logo no es un enlace */
+.auth-foto .marca,
+.auth-foto .marca a,
+.auth-foto .marca img {
+    pointer-events: none;
+    cursor: default;
+}
+
+
+/* =========================================================
+   BOTÓN "VER CATÁLOGO" SIEMPRE VISIBLE (acceso y registro)
+========================================================= */
+
+.auth-foto .auth-promo {
+    position: relative;
+    z-index: 2;
+    display: block;
+    flex: none;
+}
+
+.auth-foto .auth-promo a {
+    display: inline-flex;
 }
 
 @media (max-width: 860px) {
-
-    .adm-form {
-        grid-template-columns: 1fr;
+    .auth-foto {
+        min-height: 300px;
+        overflow: visible;
     }
 
-    .adm-filtros {
-        flex-wrap: wrap;
-        width: 100%;
+    .auth-foto .auth-promo {
+        margin-top: 16px;
     }
+}
 
-    .adm-filtros .buscar {
-        width: 100%;
-        flex: 1 1 100%;
-    }
 
-    .vh-grid .c2,
-    .vh-grid .c3 {
-        grid-column: span 6;
-    }
+/* =========================================================
+   BOTÓN DE HERRAMIENTAS (engranaje): más grande
+   Cambia --gear para agrandarlo o achicarlo (el ícono se ajusta solo)
+========================================================= */
 
-    .wallet-acc {
-        grid-template-columns: 1fr;
-    }
+.topbar .acc-fijas .icon-btn,
+.top-acc .icon-btn {
+    --gear: 48px;
+    width: var(--gear);
+    height: var(--gear);
+}
 
+.topbar .acc-fijas .icon-btn .ic,
+.top-acc .icon-btn .ic {
+    width: calc(var(--gear) * .5);
+    height: calc(var(--gear) * .5);
+}
+
+.topbar .acc-fijas .icon-btn.cuadro,
+.top-acc .icon-btn.cuadro {
+    border-radius: 14px;
+}
+
+
+/* =========================================================
+   ENGRANAJE (esquina derecha del banner): tamaño forzado
+   Cambia --gear para agrandarlo o achicarlo
+========================================================= */
+
+.main .topbar {
+    --gear: 56px;
+}
+
+.main .topbar .icon-btn,
+.main .topbar .icon-btn.sm,
+.main .topbar .acc-fijas .icon-btn,
+.main .topbar .top-acc .icon-btn {
+    width: var(--gear) !important;
+    height: var(--gear) !important;
+    min-width: var(--gear) !important;
+}
+
+.main .topbar .icon-btn .ic,
+.main .topbar .icon-btn svg,
+.main .topbar .icon-btn.sm .ic,
+.main .topbar .icon-btn.sm svg {
+    width: calc(var(--gear) * .55) !important;
+    height: calc(var(--gear) * .55) !important;
 }

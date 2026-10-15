@@ -1118,24 +1118,7 @@ input[type=file]::file-selector-button {
     white-space: nowrap;
 }
 
-.auth-foto .marca img {
-    height: 60px;
-    filter:
-        drop-shadow(0 0 3px rgba(255, 255, 255, .95))
-        drop-shadow(0 0 12px rgba(255, 255, 255, .55))
-        drop-shadow(0 4px 14px rgba(0, 0, 0, .35));
-}
 
-.auth-foto p {
-    max-width: 360px;
-    color: #fff;
-    margin-top: 12px;
-    font-size: 1s5px;
-    font-weight: 500;
-    text-shadow:
-        0 1px 3px rgba(0, 0, 0, .6),
-        0 2px 14px rgba(0, 0, 0, .45);
-}
 /* =========================================================
    PANEL (DASHBOARD)
 ========================================================= */
@@ -2819,270 +2802,496 @@ input[type=file]::file-selector-button {
 
 
 /* =========================================================
-   DISEÑO EXTRA
-   Nuevo vehículo · Wallet GO · Administradores
+   BANNER EN LA PANTALLA DE INICIO
+   (detrás del saludo y las tarjetas de resumen)
 ========================================================= */
 
-:root {
-    --azul: #6f8dff;
-    --azul-bg: rgba(111, 141, 255, .18);
-    --azul-bd: rgba(111, 141, 255, .45);
-    --naranja: #ffb066;
-    --morado: #b9a4ff;
-}
-
-
-/* =========================================================
-   COMPONENTES COMUNES
-========================================================= */
-
-/* Cabecera de tarjeta con icono + título + descripción */
-.card-cab {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
-}
-
-.card-cab > .ic {
-    width: 40px;
-    height: 40px;
-    padding: 9px;
-    border-radius: 12px;
-    background: var(--glass-2);
-    border: 1px solid var(--borde-2);
-    flex: none;
-}
-
-.card-cab h3 {
-    font-size: 17px;
-    font-weight: 700;
-}
-
-.card-cab p {
-    color: var(--txt-2);
-    font-size: 12.5px;
-    margin-top: 2px;
-}
-
-/* Campo con icono / prefijo dentro del input */
-.con-pref {
+.main.hero-on {
     position: relative;
-    display: flex;
-    align-items: center;
-    min-width: 0;
+    isolation: isolate;
 }
 
-.con-pref .pref {
+.main.hero-on::before {
+    content: "";
     position: absolute;
-    left: 1px;
-    top: 1px;
-    bottom: 1px;
-    width: 42px;
-    display: grid;
-    place-items: center;
-    color: var(--txt-2);
-    font-weight: 600;
-    border-radius: 13px 0 0 13px;
-    border-right: 1px solid var(--borde-2);
+    z-index: 0;
+    top: 18px;
+    left: 22px;
+    right: 22px;
+    height: calc(var(--hero-h, 240px) + var(--banner-extra, 48px));
+    border-radius: var(--r-xl);
+    border: 1px solid var(--borde);
+    box-shadow: var(--sombra), var(--brillo);
+    background:
+        linear-gradient(90deg, rgba(14, 18, 42, .72) 0%, rgba(14, 18, 42, .38) 45%, rgba(14, 18, 42, .05) 80%),
+        var(--banner) no-repeat;
+    /* La foto se agranda un poco y se ancla a la izquierda: el carro se corre a la derecha */
+    background-size: 100% 100%, 110% auto;
+    background-position: 0 0, 0% var(--banner-y, 70%);
     pointer-events: none;
 }
 
-.con-pref .pref .ic {
-    width: 18px;
-    height: 18px;
+.main.hero-on .topbar,
+.main.hero-on .kpis {
+    position: relative;
+    z-index: 1;
 }
 
-.con-pref input,
-.con-pref select {
-    padding-left: 54px;
+.main.hero-on .kpis {
+    margin-bottom: 16px;
 }
 
-/* Punto de estado (Disponible, Activo...) */
-.pe {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 2px solid var(--ok);
-    background: transparent;
-    display: block;
-}
-
-.pe-DISPONIBLE {
-    border-color: var(--ok);
-}
-
-.pe-MANTENIMIENTO {
-    border-color: var(--warn);
-}
-
-.pe-FUERA_DE_SERVICIO {
-    border-color: var(--bad);
-}
-
-/* Quita las flechas nativas de los inputs numéricos */
-input[type=number] {
-    appearance: textfield;
-    -moz-appearance: textfield;
+@media (max-width: 760px) {
+    .main.hero-on::before {
+        top: 10px;
+        left: 6px;
+        right: 6px;
+        background-size: 100% 100%, cover;
+        background-position: 0 0, 80% center;
+    }
 }
 
 
 /* =========================================================
-   1) MODAL: AGREGAR / EDITAR VEHÍCULO
+   INICIO: botón "Rentar un vehículo" verde + tarjetas del mismo tamaño
 ========================================================= */
 
-.modal-h {
-    align-items: flex-start;
+.main.hero-on .kpis {
+    /* Las tarjetas ocupan ~70% del ancho: llegan hasta donde empieza el carro */
+    grid-template-columns: minmax(130px, .9fr) repeat(4, minmax(0, 1fr));
+    width: 70%;
+    min-width: min(100%, 780px);
+    align-items: stretch;
+    gap: 14px;
 }
 
-.modal-sub {
-    color: var(--txt-2);
-    font-size: 13px;
-    font-weight: 400;
-    margin-top: 4px;
+.main.hero-on .kpi {
+    gap: 4px;
+    padding: 14px 16px;
+    min-width: 0;
 }
 
-.vh-grid {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 16px 18px;
-}
-
-.vh-grid .c2 { grid-column: span 2; }
-.vh-grid .c3 { grid-column: span 3; }
-.vh-grid .c6 { grid-column: span 6; }
-
-.vh .campo label {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--txt-2);
-}
-
-/* Zona para arrastrar la foto */
-.dz {
-    position: relative;
-    height: 170px;
-    border: 1.5px dashed rgba(255, 255, 255, .35);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, .05);
-    display: grid;
-    place-items: center;
-    text-align: center;
-    cursor: pointer;
-    overflow: hidden;
-    transition: border-color .2s, background .2s;
-}
-
-.dz:hover,
-.dz.sobre {
-    border-color: rgba(255, 255, 255, .75);
-    background: rgba(255, 255, 255, .12);
-}
-
-.dz:focus-visible {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
-}
-
-.dz-txt {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    padding: 10px;
-}
-
-.dz-txt .ic {
-    width: 30px;
-    height: 30px;
-    margin-bottom: 8px;
-    stroke-width: 1.5;
-}
-
-.dz-txt b {
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.dz-txt span {
-    color: var(--txt-2);
+.main.hero-on .kpi .etq {
     font-size: 12px;
 }
 
-.dz-txt small {
-    color: var(--txt-3);
-    font-size: 11px;
-    margin-top: 10px;
+.main.hero-on .kpi .etq .ic {
+    width: 15px;
+    height: 15px;
 }
 
-.dz-prev {
-    position: absolute;
-    inset: 0;
-    display: none;
+.main.hero-on .kpi .valor {
+    font-size: clamp(15px, 1.2vw, 20px);
+    white-space: nowrap;
 }
 
-.dz-prev img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.main.hero-on .kpi .nota {
+    font-size: 11.5px;
 }
 
-.dz.tiene .dz-prev {
-    display: block;
-}
-
-.dz.tiene .dz-txt {
-    display: none;
-}
-
-/* Observaciones con contador */
-.vh-obs {
-    position: relative;
-    height: 170px;
-}
-
-.vh-obs textarea {
-    height: 100%;
+.kpi-accion {
+    background: linear-gradient(135deg, #34d27b 0%, #16a34a 100%);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, .45);
+    border-radius: 20px;
     min-height: 0;
-    resize: none;
-    padding-bottom: 28px;
-    border-radius: 16px;
+    padding: 14px 22px;
+    box-shadow: 0 8px 22px rgba(22, 163, 74, .35), inset 0 1px 0 rgba(255, 255, 255, .4);
 }
 
-.vh-cont {
-    position: absolute;
-    right: 14px;
-    bottom: 9px;
-    font-size: 11px;
-    color: var(--txt-3);
-    pointer-events: none;
+.kpi-accion:hover {
+    background: linear-gradient(135deg, #4ade8c 0%, #1fb454 100%);
+    color: #fff;
 }
 
-.vh-acc {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid var(--borde-2);
+@media (max-width: 1100px) {
+    .main.hero-on .kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+        min-width: 0;
+    }
+
+    .main.hero-on .kpis .kpi-accion {
+        grid-column: 1 / -1;
+        min-height: 46px;
+    }
+}
+
+/* Banner más alto para que se vean las llantas del carro.
+   --banner-extra = altura que se le suma al banner
+   --banner-y     = qué parte de la foto se muestra (0% arriba, 100% abajo) */
+.main.hero-on {
+    --banner-extra: 48px;
+    --banner-y: 70%;
+}
+
+.main.hero-on .kpis {
+    margin-bottom: calc(16px + var(--banner-extra));
 }
 
 
 /* =========================================================
-   2) WALLET GO (Mi perfil)
+   PANTALLA DE ACCESO: logo azul más grande y texto más legible
 ========================================================= */
 
+/* Zona de arriba un poco más oscura (detrás del texto); el carro queda igual */
+.auth-foto {
+    background:
+        linear-gradient(180deg, rgba(14, 18, 44, .62) 0%, rgba(14, 18, 44, .34) 38%, rgba(14, 18, 44, 0) 60%, rgba(14, 18, 44, .55) 100%),
+        var(--foto) center 65% / cover no-repeat;
+}
+
+.auth-foto .marca {
+    display: block;
+    height: auto;
+}
+
+.auth-foto .marca img {
+    height: 84px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 7px rgba(255, 255, 255, .85));
+}
+
+.auth-foto p {
+    max-width: 400px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.5;
+    text-shadow: 0 1px 3px rgba(6, 9, 28, .7), 0 2px 18px rgba(6, 9, 28, .55);
+}
+
+
+/* Botón verde que invita a ver el catálogo (pantallas de acceso y registro) */
+.auth-promo {
+    margin-top: 22px;
+}
+
+.auth-promo a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #34d27b 0%, #16a34a 100%);
+    border: 1px solid rgba(255, 255, 255, .45);
+    box-shadow: 0 6px 18px rgba(22, 163, 74, .38);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform .15s ease, filter .15s ease;
+}
+
+.auth-promo a:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+}
+
+/* El logo no es un enlace */
+.auth-foto .marca,
+.auth-foto .marca a,
+.auth-foto .marca img {
+    pointer-events: none;
+    cursor: default;
+}
+
+
+/* =========================================================
+   BOTÓN "VER CATÁLOGO" SIEMPRE VISIBLE (acceso y registro)
+========================================================= */
+
+.auth-foto .auth-promo {
+    position: relative;
+    z-index: 2;
+    display: block;
+    flex: none;
+}
+
+.auth-foto .auth-promo a {
+    display: inline-flex;
+}
+
+@media (max-width: 860px) {
+    .auth-foto {
+        min-height: 300px;
+        overflow: visible;
+    }
+
+    .auth-foto .auth-promo {
+        margin-top: 16px;
+    }
+}
+
+
+/* =========================================================
+   BOTÓN DE HERRAMIENTAS (engranaje): más grande
+   Cambia --gear para agrandarlo o achicarlo (el ícono se ajusta solo)
+========================================================= */
+
+.topbar .acc-fijas .icon-btn,
+.top-acc .icon-btn {
+    --gear: 48px;
+    width: var(--gear);
+    height: var(--gear);
+}
+
+.topbar .acc-fijas .icon-btn .ic,
+.top-acc .icon-btn .ic {
+    width: calc(var(--gear) * .5);
+    height: calc(var(--gear) * .5);
+}
+
+.topbar .acc-fijas .icon-btn.cuadro,
+.top-acc .icon-btn.cuadro {
+    border-radius: 14px;
+}
+
+
+/* =========================================================
+   ENGRANAJE (esquina derecha del banner): tamaño forzado
+   Cambia --gear para agrandarlo o achicarlo
+========================================================= */
+
+.main .topbar {
+    --gear: 56px;
+}
+
+.main .topbar .icon-btn,
+.main .topbar .icon-btn.sm,
+.main .topbar .acc-fijas .icon-btn,
+.main .topbar .top-acc .icon-btn {
+    width: var(--gear) !important;
+    height: var(--gear) !important;
+    min-width: var(--gear) !important;
+}
+
+.main .topbar .icon-btn .ic,
+.main .topbar .icon-btn svg,
+.main .topbar .icon-btn.sm .ic,
+.main .topbar .icon-btn.sm svg {
+    width: calc(var(--gear) * .55) !important;
+    height: calc(var(--gear) * .55) !important;
+}
+
+
+/* =========================================================
+   ENGRANAJE ELIMINADO: sus acciones ahora viven en el menú lateral
+   (Cambiar contraseña · Modo noche · Cerrar sesión)
+========================================================= */
+
+.gear-oculto {
+    display: none !important;
+}
+
+/* El menú original se usa por detrás; el cliente no lo ve parpadear */
+body.menu-oculto .menu-usuario {
+    visibility: hidden;
+}
+
+.nav .nav-extra {
+    cursor: pointer;
+}
+
+.nav .nav-extra.salir:hover {
+    background: rgba(252, 165, 165, .16);
+    color: #ffd6d6;
+}
+
+/* Separador sutil entre la navegación y las acciones de cuenta */
+.nav .nav-extra.primero {
+    margin-top: 14px;
+    position: relative;
+}
+
+.nav .nav-extra.primero::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: -8px;
+    height: 1px;
+    background: var(--borde-2);
+}
+
+@media (max-width: 860px) {
+    .nav .nav-extra.primero {
+        margin-top: 0;
+    }
+
+    .nav .nav-extra.primero::after {
+        display: none;
+    }
+}
+
+
+/* =========================================================
+   MODO NOCHE (mantiene el efecto glass)
+   Se activa con <html data-tema="noche">
+========================================================= */
+
+html[data-tema="noche"] {
+    --txt-2: rgba(255, 255, 255, .72);
+    --txt-3: rgba(255, 255, 255, .5);
+
+    --glass: rgba(8, 11, 28, .40);
+    --glass-2: rgba(255, 255, 255, .06);
+    --glass-3: rgba(255, 255, 255, .11);
+    --glass-osc: rgba(3, 5, 14, .5);
+
+    --borde: rgba(255, 255, 255, .15);
+    --borde-2: rgba(255, 255, 255, .08);
+
+    --sombra: 0 30px 70px rgba(0, 0, 0, .55);
+    --brillo: inset 0 1px 0 rgba(255, 255, 255, .14);
+}
+
+html[data-tema="noche"] body {
+    background: #05070f;
+}
+
+html[data-tema="noche"] .fondo {
+    background: #05070f;
+}
+
+html[data-tema="noche"] .fondo::before {
+    filter: blur(30px) saturate(.85) brightness(.3);
+}
+
+html[data-tema="noche"] .fondo::after {
+    background:
+        radial-gradient(38% 34% at 8% 88%, rgba(255, 140, 70, .14), transparent 70%),
+        radial-gradient(30% 28% at 92% 82%, rgba(220, 90, 150, .12), transparent 70%),
+        radial-gradient(46% 40% at 72% 4%, rgba(110, 90, 230, .2), transparent 70%),
+        radial-gradient(30% 30% at 30% 20%, rgba(60, 120, 230, .14), transparent 70%),
+        linear-gradient(180deg, rgba(4, 6, 20, .66), rgba(2, 3, 10, .84));
+}
+
+html[data-tema="noche"] .card {
+    background: rgba(255, 255, 255, .055);
+}
+
+html[data-tema="noche"] .veh-card:hover {
+    background: rgba(255, 255, 255, .1);
+}
+
+html[data-tema="noche"] .veh-card.sel {
+    background: rgba(255, 255, 255, .14);
+}
+
+html[data-tema="noche"] input,
+html[data-tema="noche"] select,
+html[data-tema="noche"] textarea {
+    background: rgba(255, 255, 255, .07);
+}
+
+html[data-tema="noche"] input:hover,
+html[data-tema="noche"] select:hover,
+html[data-tema="noche"] textarea:hover {
+    background-color: rgba(255, 255, 255, .1);
+}
+
+html[data-tema="noche"] input:focus,
+html[data-tema="noche"] select:focus,
+html[data-tema="noche"] textarea:focus {
+    background-color: rgba(255, 255, 255, .12);
+}
+
+html[data-tema="noche"] .modal,
+html[data-tema="noche"] .menu-usuario {
+    background: rgba(10, 13, 34, .66);
+}
+
+html[data-tema="noche"] .modal-bg {
+    background: rgba(0, 0, 8, .55);
+}
+
+html[data-tema="noche"] .aviso {
+    background: rgba(8, 11, 30, .8);
+}
+
+html[data-tema="noche"] .tip {
+    background: rgba(4, 6, 20, .88);
+}
+
+html[data-tema="noche"] .auth-foto {
+    background:
+        linear-gradient(180deg, rgba(3, 5, 18, .78) 0%, rgba(3, 5, 18, .55) 38%, rgba(3, 5, 18, .3) 60%, rgba(3, 5, 18, .72) 100%),
+        var(--foto) center 65% / cover no-repeat;
+}
+
+html[data-tema="noche"] .main.hero-on::before {
+    background-image:
+        linear-gradient(90deg, rgba(3, 5, 16, .86) 0%, rgba(3, 5, 16, .62) 45%, rgba(3, 5, 16, .4) 100%),
+        var(--banner);
+}
+
+@media (max-width: 860px) {
+    html[data-tema="noche"] .side {
+        background: rgba(6, 8, 22, .7);
+    }
+}
+
+html[data-tema="noche"] .btn.ghost {
+    background: rgba(255, 255, 255, .07);
+}
+
+html[data-tema="noche"] .kpi-accion {
+    background: linear-gradient(135deg, #1fa862 0%, #0f7a3a 100%);
+}
+
+html[data-tema="noche"] .auth-promo a {
+    background: linear-gradient(135deg, #1fa862 0%, #0f7a3a 100%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    html[data-tema="noche"] .app,
+    html[data-tema="noche"] .card,
+    html[data-tema="noche"] .auth-panel,
+    html[data-tema="noche"] .modal,
+    html[data-tema="noche"] .menu-usuario,
+    html[data-tema="noche"] .aviso,
+    html[data-tema="noche"] .side {
+        background: #0c1024 !important;
+    }
+}
+
+
+/* =========================================================
+   WALLET GO + BOTÓN DE MODO NOCHE EN EL LOGIN
+========================================================= */
+
+/* ---- Botón de modo noche (esquina superior derecha del login) ---- */
+.tema-login {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 20;
+    width: 48px;
+    height: 48px;
+}
+
+.tema-login .ic {
+    width: 24px;
+    height: 24px;
+}
+
+/* ---- Perfil en dos columnas: datos | Wallet GO ---- */
 .perfil-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
     gap: 20px;
     align-items: start;
 }
 
-.perfil-grid .angosta {
-    max-width: none;
-}
-
 .wallet-card {
-    display: flex;
-    flex-direction: column;
+    max-width: 560px;
+    padding: 24px;
+    background:
+        radial-gradient(80% 90% at 100% 0%, rgba(110, 231, 160, .18), transparent 65%),
+        var(--glass-2);
 }
 
 .wallet-h {
@@ -3093,13 +3302,13 @@ input[type=number] {
 }
 
 .wallet-h .ic {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     color: var(--ok);
 }
 
 .wallet-h h3 {
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 700;
 }
 
@@ -3109,30 +3318,33 @@ input[type=number] {
 }
 
 .wallet-saldo {
-    font-size: 40px;
+    font-size: 34px;
     font-weight: 800;
     letter-spacing: -.02em;
-    line-height: 1.15;
-    margin: 4px 0 12px;
     font-variant-numeric: tabular-nums;
+    margin: 2px 0 10px;
 }
 
 .wallet-nota {
-    color: var(--txt-2);
+    color: var(--txt-3);
     font-size: 12.5px;
     line-height: 1.5;
 }
 
 .wallet-acc {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
     gap: 12px;
+    flex-wrap: wrap;
     margin-top: 18px;
+}
+
+.wallet-acc .btn {
+    flex: 1 1 140px;
 }
 
 .wallet-mov {
     list-style: none;
-    margin-top: 20px;
+    margin-top: 18px;
     padding-top: 6px;
     border-top: 1px solid var(--borde-2);
 }
@@ -3141,9 +3353,10 @@ input[type=number] {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    padding: 13px 0;
+    gap: 12px;
+    padding: 10px 0;
     border-bottom: 1px solid var(--borde-2);
+    font-size: 13px;
 }
 
 .wallet-mov li:last-child {
@@ -3152,7 +3365,6 @@ input[type=number] {
 
 .wallet-mov b {
     display: block;
-    font-size: 13px;
     font-weight: 600;
 }
 
@@ -3161,600 +3373,407 @@ input[type=number] {
     font-size: 11.5px;
 }
 
-.wallet-mov span {
+.wallet-mov li > span {
     font-weight: 700;
-    font-size: 13px;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
 
-.wallet-mov .mas { color: var(--ok); }
-.wallet-mov .menos { color: var(--bad); }
+.wallet-mov .mas {
+    color: var(--ok);
+}
 
-/* Wallet dentro del modal de confirmar alquiler / retiro */
-.wallet-uso {
-    padding: 12px 14px;
+.wallet-mov .menos {
+    color: var(--bad);
+}
+
+/* ---- Modal de retiro ---- */
+.retiro-lista {
+    list-style: none;
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.retiro-lista li {
+    position: relative;
+    padding: 10px 14px 10px 36px;
     border-radius: var(--r-sm);
-    background: rgba(110, 231, 160, .1);
-    border: 1px solid rgba(110, 231, 160, .3);
+    background: var(--glass-2);
+    border: 1px solid var(--borde-2);
+    font-size: 13.5px;
+}
+
+.retiro-lista li::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 17px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warn);
+}
+
+@media (max-width: 1180px) {
+    .perfil-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .wallet-card {
+        max-width: none;
+    }
+}
+
+@media (max-width: 860px) {
+    .tema-login {
+        top: 12px;
+        right: 12px;
+        width: 44px;
+        height: 44px;
+    }
+}
+
+
+/* ---- Reserva: usar saldo de Wallet GO ---- */
+.wallet-uso {
     display: grid;
     gap: 6px;
+    padding: 12px 14px;
+    border-radius: var(--r);
+    background: rgba(110, 231, 160, .1);
+    border: 1px solid rgba(110, 231, 160, .3);
 }
 
 .wallet-uso small {
     color: var(--txt-2);
+    font-size: 12.5px;
+    line-height: 1.45;
 }
 
-.retiro-lista {
-    padding-left: 18px;
-    display: grid;
-    gap: 6px;
+.wallet-uso small:empty {
+    display: none;
 }
 
 
 /* =========================================================
-   3) ADMINISTRADORES
+   FORMULARIO "AGREGAR NUEVO VEHÍCULO"
 ========================================================= */
 
-.adm-top {
+.modal-sub {
+    color: var(--txt-2);
+    font-size: 13.5px;
+    font-weight: 400;
+    margin-top: 4px;
+}
+
+.vh-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px 18px;
     align-items: start;
 }
 
-.adm-form {
+.vh-grid > .c2 { grid-column: span 2; }
+.vh-grid > .c3 { grid-column: span 3; }
+.vh-grid > .c6 { grid-column: 1 / -1; }
+
+/* Campos con icono a la izquierda ($, pasajeros, estado) */
+.con-pref {
+    position: relative;
+}
+
+.con-pref > .pref {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px 22px;
-    margin-top: 20px;
-}
-
-.adm-col {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
-}
-
-.adm-form .form-err,
-.adm-btns {
-    grid-column: 1 / -1;
-}
-
-.adm-btns {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.pass-fila {
-    display: flex;
-    gap: 10px;
-}
-
-.pass-fila .con-pref {
-    flex: 1;
-}
-
-/* Checkbox "forzar cambio" */
-.adm-chk {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 12px;
-    row-gap: 2px;
-    align-items: start;
-    cursor: pointer;
-}
-
-.adm-chk input {
-    grid-row: 1 / span 2;
-    margin-top: 2px;
-    accent-color: var(--azul);
-}
-
-.adm-chk b {
-    font-size: 13px;
+    place-items: center;
+    color: var(--txt-2);
     font-weight: 600;
+    pointer-events: none;
 }
 
-.adm-chk small {
-    color: var(--txt-3);
-    font-size: 12px;
-}
-
-/* Buenas prácticas */
-.adm-bulb {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    flex: none;
-    background: rgba(252, 210, 122, .18);
-    color: var(--warn);
-}
-
-.adm-bulb .ic {
-    width: 22px;
-    height: 22px;
-}
-
-.adm-tips {
-    margin-top: 14px;
-}
-
-.adm-tip {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--borde-2);
-}
-
-.adm-tip:last-child {
-    border-bottom: none;
-}
-
-.adm-tip .ico {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    flex: none;
-    background: var(--glass-2);
-    border: 1px solid var(--borde-2);
-}
-
-.adm-tip .ico .ic {
+.con-pref > .pref .ic {
     width: 18px;
     height: 18px;
 }
 
-.adm-tip b {
-    display: block;
+.con-pref > input,
+.con-pref > select {
+    padding-left: 42px;
+}
+
+.pe {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+}
+
+.pe-DISPONIBLE { color: var(--ok); }
+.pe-MANTENIMIENTO { color: var(--warn); }
+.pe-FUERA_DE_SERVICIO { color: var(--bad); }
+
+/* Zona para arrastrar la foto */
+.dz {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 118px;
+    border: 1.5px dashed rgba(255, 255, 255, .38);
+    border-radius: var(--r);
+    background: rgba(255, 255, 255, .04);
+    cursor: pointer;
+    overflow: hidden;
+    transition: background .2s, border-color .2s;
+}
+
+.dz:hover,
+.dz.sobre {
+    background: rgba(255, 255, 255, .1);
+    border-color: rgba(255, 255, 255, .7);
+}
+
+.dz:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.dz-txt {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    padding: 14px;
+    text-align: center;
+}
+
+.dz-txt .ic {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 6px;
+    color: var(--txt-2);
+}
+
+.dz-txt b {
     font-size: 13px;
     font-weight: 600;
 }
 
-.adm-tip small {
-    display: block;
+.dz-txt span,
+.dz-txt small {
     color: var(--txt-3);
     font-size: 12px;
-    margin-top: 1px;
 }
 
-/* Cabecera de la lista (título + buscador + filtro) */
-.adm-lh {
-    flex-wrap: wrap;
-    margin-bottom: 18px;
+.dz-prev {
+    position: absolute;
+    inset: 0;
 }
 
-.adm-filtros {
-    margin: 0;
-    flex-wrap: nowrap;
+.dz-prev img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
-.adm-filtros .buscar {
-    flex: none;
-    width: 260px;
-}
-
-.adm-filtros select {
-    min-width: 160px;
-}
-
-/* Tabla */
-.adm-tabla th {
-    padding-top: 10px;
-}
-
-.adm-nom {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.adm-nom b {
-    font-weight: 600;
-}
-
-/* Etiquetas de rol */
-.rol-tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    border: 1px solid transparent;
-}
-
-.rol-admin {
-    color: var(--morado);
-    background: rgba(185, 164, 255, .16);
-    border-color: rgba(185, 164, 255, .4);
-}
-
-.rol-fact {
-    color: var(--info);
-    background: rgba(165, 200, 255, .14);
-    border-color: rgba(165, 200, 255, .4);
-}
-
-.rol-oper {
-    color: var(--ok);
-    background: rgba(110, 231, 160, .13);
-    border-color: rgba(110, 231, 160, .4);
-}
-
-.rol-sop {
-    color: var(--warn);
-    background: rgba(252, 210, 122, .13);
-    border-color: rgba(252, 210, 122, .4);
-}
-
-/* Botones de acción de la tabla */
-.adm-acc {
-    display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-}
-
-.ab {
-    width: 36px;
-    height: 30px;
-    border-radius: 9px;
-    display: inline-grid;
-    place-items: center;
-    border: 1px solid transparent;
-    transition: background .2s, transform .15s;
-}
-
-.ab .ic {
-    width: 16px;
-    height: 16px;
-}
-
-.ab:hover:not(:disabled) {
-    transform: translateY(-1px);
-}
-
-.ab:disabled {
-    opacity: .3;
-    cursor: not-allowed;
-}
-
-.ab-ver {
-    color: #fff;
-    background: var(--glass-3);
-    border-color: var(--borde-2);
-}
-
-.ab-edit {
-    color: #bcd0ff;
-    background: var(--azul-bg);
-    border-color: var(--azul-bd);
-}
-
-.ab-clave {
-    color: var(--naranja);
-    background: rgba(255, 176, 102, .16);
-    border-color: rgba(255, 176, 102, .45);
-}
-
-.ab-del {
-    color: #ff9c9c;
-    background: rgba(255, 112, 112, .16);
-    border-color: rgba(255, 112, 112, .45);
-}
-
-/* Modal de contraseña temporal */
-.clave-caja {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 16px 0 8px;
-    padding: 12px 14px;
-    border-radius: var(--r);
-    background: rgba(0, 0, 0, .22);
-    border: 1px solid var(--borde-2);
-}
-
-.clave-caja code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 17px;
-    letter-spacing: .06em;
-}
-
-.clave-correo {
-    color: var(--txt-3);
-}
-
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media (max-width: 1180px) {
-
-    .adm-top,
-    .perfil-grid {
-        grid-template-columns: 1fr;
-    }
-
-}
-
-@media (max-width: 860px) {
-
-    .adm-form {
-        grid-template-columns: 1fr;
-    }
-
-    .adm-filtros {
-        flex-wrap: wrap;
-        width: 100%;
-    }
-
-    .adm-filtros .buscar {
-        width: 100%;
-        flex: 1 1 100%;
-    }
-
-    .vh-grid .c2,
-    .vh-grid .c3 {
-        grid-column: span 6;
-    }
-
-    .wallet-acc {
-        grid-template-columns: 1fr;
-    }
-
-}
-
-
-/* =========================================================
-   BOTONES DE TEMA Y AYUDAS DEL INDEX.HTML
-========================================================= */
-
-/* Engranaje original: se mantiene en el DOM pero oculto */
-.gear-oculto {
-    display: none !important;
-}
-
-/* Mientras se usa el menú original en segundo plano, que no parpadee */
-body.menu-oculto .menu-usuario {
+.dz.tiene .dz-txt {
+    position: absolute;
+    inset: 0;
+    align-content: center;
+    background: rgba(10, 14, 38, .55);
     opacity: 0;
+    transition: opacity .2s;
+}
+
+.dz.tiene:hover .dz-txt,
+.dz.tiene:focus-visible .dz-txt,
+.dz.tiene.sobre .dz-txt {
+    opacity: 1;
+}
+
+/* Observaciones con contador */
+.vh-obs {
+    position: relative;
+    height: 118px;
+}
+
+.vh-obs textarea {
+    height: 100%;
+    min-height: 0;
+    resize: none;
+    padding-bottom: 26px;
+}
+
+.vh-cont {
+    position: absolute;
+    right: 12px;
+    bottom: 8px;
+    color: var(--txt-3);
+    font-size: 11.5px;
     pointer-events: none;
 }
 
-/* Botón de modo noche en la pantalla de acceso (arriba a la derecha) */
-.tema-login {
-    position: fixed;
-    top: 22px;
-    right: 22px;
-    z-index: 20;
-}
-
-/* Acciones bajo "Mi perfil": Cambiar contraseña · Modo noche · Cerrar sesión */
-.nav a.nav-extra.primero {
-    margin-top: 14px;
-}
-
-.nav a.nav-extra.primero::after {
-    content: '';
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    top: -8px;
-    height: 1px;
-    background: var(--borde-2);
-}
-
-.nav a.nav-extra.salir:hover {
+#errFoto {
     color: var(--bad);
+    font-size: 12px;
 }
 
-/* Botón verde "Ver catálogo" del login y registro */
-.auth-promo {
-    margin-top: 18px;
+#errFoto:empty {
+    display: none;
 }
 
-.auth-promo a {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 44px;
-    padding: 0 22px;
-    border-radius: 999px;
-    background: var(--ok);
-    color: #0f2a1b;
-    font-weight: 700;
-    text-decoration: none;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, .25);
-    transition: transform .15s, filter .2s;
+.vh-acc {
+    margin-top: 8px;
+    padding-top: 18px;
+    border-top: 1px solid var(--borde-2);
 }
 
-.auth-promo a:hover {
-    filter: brightness(1.06);
-    transform: translateY(-1px);
+.vh-acc .btn {
+    min-width: 130px;
 }
 
-/* "Rentar un vehículo" movido a la fila de tarjetas del Inicio */
-/* "Rentar un vehículo" movido a la fila de tarjetas del Inicio */
-.kpis > .kpi-accion {
-    align-self: stretch;
-    justify-self: stretch;
-    min-height: 84px;
-    border-radius: var(--r-lg);
-    background: var(--ok);
-    color: #0f2a1b;
-    border-color: transparent;
-    font-weight: 700;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, .25);
-}
-
-.kpis > .kpi-accion:hover {
-    background: var(--ok);
-    filter: brightness(1.06);
-}
-
-.kpis > .kpi-accion * {
-    color: #0f2a1b;
-}
-
-/* =========================================================
-   MODO NOCHE
-   (el JS pone styeles="noche" en <html>; sin atributo = modo día)
-========================================================= */
-
-.fondo::before {
-    transition: filter .35s ease;
-}
-
-:root[data-tema="noche"] {
-    --txt-2: rgba(255, 255, 255, .78);
-    --txt-3: rgba(255, 255, 255, .55);
-
-    --glass: rgba(8, 11, 30, .46);
-    --glass-2: rgba(255, 255, 255, .07);
-    --glass-3: rgba(255, 255, 255, .12);
-    --glass-osc: rgba(2, 4, 14, .5);
-
-    --borde: rgba(255, 255, 255, .14);
-    --borde-2: rgba(255, 255, 255, .08);
-
-    --sombra: 0 30px 70px rgba(0, 0, 0, .6);
-    --brillo: inset 0 1px 0 rgba(255, 255, 255, .1);
-}
-
-:root[data-tema="noche"] body {
-    background: #05070f;
-}
-
-:root[data-tema="noche"] .fondo {
-    background: #05070f;
-}
-
-:root[data-tema="noche"] .fondo::before {
-    filter: blur(30px) saturate(1.1) brightness(.26);
-}
-
-:root[data-tema="noche"] .fondo::after {
-    background:
-        radial-gradient(38% 34% at 8% 88%, rgba(255, 128, 60, .22), transparent 70%),
-        radial-gradient(30% 28% at 92% 82%, rgba(255, 90, 150, .2), transparent 70%),
-        radial-gradient(46% 40% at 72% 4%, rgba(120, 90, 255, .3), transparent 70%),
-        radial-gradient(30% 30% at 30% 20%, rgba(70, 130, 255, .18), transparent 70%),
-        linear-gradient(180deg, rgba(6, 8, 24, .6), rgba(2, 3, 10, .82));
-}
-
-/* Superficies con color fijo */
-:root[data-tema="noche"] .modal-bg {
-    background: rgba(2, 3, 10, .62);
-}
-
-:root[data-tema="noche"] .modal {
-    background: rgba(10, 14, 38, .78);
-}
-
-:root[data-tema="noche"] .menu-usuario {
-    background: rgba(10, 14, 38, .88);
-}
-
-:root[data-tema="noche"] .aviso {
-    background: rgba(8, 10, 28, .88);
-}
-
-:root[data-tema="noche"] .tip {
-    background: rgba(4, 6, 20, .92);
-}
-
-:root[data-tema="noche"] .auth-foto {
-    background:
-        linear-gradient(180deg, rgba(4, 6, 20, .72) 0%, rgba(4, 6, 20, .25) 45%, rgba(4, 6, 20, .78) 100%),
-        var(--foto) center 65% / cover no-repeat;
-}
-
-/* Campos de formulario */
-:root[data-tema="noche"] input,
-:root[data-tema="noche"] select,
-:root[data-tema="noche"] textarea {
-    background-color: rgba(255, 255, 255, .06);
-}
-
-:root[data-tema="noche"] input:hover,
-:root[data-tema="noche"] select:hover,
-:root[data-tema="noche"] textarea:hover {
-    background-color: rgba(255, 255, 255, .1);
-}
-
-:root[data-tema="noche"] input:focus,
-:root[data-tema="noche"] select:focus,
-:root[data-tema="noche"] textarea:focus {
-    background-color: rgba(255, 255, 255, .12);
-}
-
-:root[data-tema="noche"] .dz {
-    background: rgba(255, 255, 255, .04);
-}
-
-/* Tarjetas de vehículo */
-:root[data-tema="noche"] .veh-card:hover {
-    background: rgba(255, 255, 255, .11);
-}
-
-:root[data-tema="noche"] .veh-card.sel {
-    background: rgba(255, 255, 255, .16);
-}
-
-:root[data-tema="noche"] .tabla tbody tr:hover {
-    background: rgba(255, 255, 255, .04);
-}
-
-@media (max-width: 860px) {
-
-    :root[data-tema="noche"] .side {
-        background: rgba(4, 6, 20, .82);
+@media (max-width: 640px) {
+    .vh-grid > .c2,
+    .vh-grid > .c3 {
+        grid-column: 1 / -1;
     }
-
-    .nav a.nav-extra.primero::after {
-        display: none;
-    }
-
-    .nav a.nav-extra.primero {
-        margin-top: 0;
-    }
-
-    .tema-login {
-        top: 14px;
-        right: 14px;
-    }
-
 }
 
-@media (prefers-reduced-transparency: reduce) {
-
-    :root[data-tema="noche"] .app,
-    :root[data-tema="noche"] .card,
-    :root[data-tema="noche"] .auth-panel,
-    :root[data-tema="noche"] .modal,
-    :root[data-tema="noche"] .menu-usuario,
-    :root[data-tema="noche"] .aviso,
-    :root[data-tema="noche"] .side {
-        background: #0b0f26 !important;
-    }
-
+/* Botón principal azul, como en el diseño */
+.vh-acc .btn:not(.ghost) {
+    background: linear-gradient(135deg, #8aa4ff, #a9c2ff);
+    border-color: rgba(255, 255, 255, .45);
+    color: #0e1747;
 }
 
-@media print {
-
-    :root[data-tema="noche"] body {
-        background: #fff;
-    }
-
+.vh-acc .btn:not(.ghost):hover {
+    background: linear-gradient(135deg, #9bb2ff, #bcd0ff);
 }
+
+/* Flechas de los campos numéricos siempre visibles */
+.vh input[type=number]::-webkit-inner-spin-button,
+.vh input[type=number]::-webkit-outer-spin-button {
+    opacity: 1;
+    height: 26px;
+    cursor: pointer;
+}
+/* Panel administrativo · mejora aislada, octubre 2026 */
+.panel-admin { --ok:#34d399; --warn:#fbbf24; --bad:#fb7185; --info:#60a5fa; }
+.panel-admin .nav-extra[data-accion="tema"] { display:none; }
+.panel-admin .panel-resumen { gap:20px; }
+.panel-intro { display:flex; justify-content:space-between; gap:12px; color:#c4cce5; font-size:12px; }
+.panel-eyebrow { letter-spacing:.16em; font-weight:700; }
+.panel-demo { border:1px solid #849bd340; border-radius:20px; padding:3px 10px; }
+.panel-admin .dash { display:grid; grid-template-columns:1fr 1fr 1fr; grid-template-areas:"actividad grafico grafico" "flota pendientes atajos"; gap:18px; }
+.panel-admin .a-act { grid-area:actividad; }
+.panel-admin .a-graf { grid-area:grafico; }
+.panel-admin .a-flota { grid-area:flota; }
+.panel-admin .a-pend { grid-area:pendientes; }
+.panel-admin .a-atajos { grid-area:atajos; }
+.panel-admin .card { background:linear-gradient(135deg,rgba(61,77,129,.76),rgba(31,40,78,.88)); border:1px solid #8a9ed03d; box-shadow:0 8px 24px #060d2426,inset 0 1px #ffffff10; }
+.panel-admin .panel-kpi { display:flex; flex-direction:column; gap:7px; text-decoration:none; min-height:175px; padding:18px; position:relative; background:linear-gradient(130deg,color-mix(in srgb,var(--acento) 22%,#222e56),#202a50); border-color:color-mix(in srgb,var(--acento) 36%,transparent); transition:transform .18s,border-color .18s,box-shadow .18s; }
+.panel-kpi:hover { transform:translateY(-3px); box-shadow:0 12px 28px #030a333b; border-color:var(--acento); }
+.panel-kpi:focus-visible,.panel-atajos a:focus-visible,.panel-link:focus-visible { outline:3px solid #bfdbfe; outline-offset:4px; }
+.panel-admin .panel-kpi .valor { font-size:clamp(21px,2vw,30px); letter-spacing:-.04em; line-height:1.2; white-space:normal; overflow-wrap:anywhere; }
+.panel-kpi .valor small { font-size:15px; color:#c4cce5; }
+.panel-admin .panel-kpi .etq { color:#e1e8ff; font-size:12px; }
+.panel-admin .panel-kpi .nota { color:#c4cce5; font-size:11px; margin-top:auto; }
+.panel-kpi-top { display:flex; justify-content:space-between; align-items:center; color:var(--acento); }
+.panel-icon { display:grid; place-items:center; width:40px; height:40px; border-radius:13px; background:color-mix(in srgb,var(--acento) 18%,transparent); }
+.tono-blue { --acento:#60a5fa; }.tono-green { --acento:#34d399; }.tono-purple { --acento:#a78bfa; }.tono-coral { --acento:#fb7185; }
+.panel-admin .kpis { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; }
+.panel-admin .card-h { align-items:center; gap:10px; flex-wrap:wrap; }
+.panel-admin .card-h h3 { font-size:16px; }
+.panel-link { font-size:12px; color:#bfdbfe; text-decoration:none; }
+.panel-link:hover { text-decoration:underline; }
+.panel-admin .leyenda small { display:inline-block; color:#c4cce5; min-width:42px; text-align:right; font-weight:400; }
+.panel-mantenimiento { background:#a78bfa; }
+.panel-por-devolver { display:flex; align-items:center; gap:12px; border-top:1px solid #ffffff20; padding-top:15px; margin-top:16px; color:#fbbf24; }
+.panel-por-devolver small { display:block; color:#c4cce5; font-size:11px; margin-top:4px; }
+.panel-atajos { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.panel-atajos a { border-radius:14px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:15px; text-decoration:none; border:1px solid color-mix(in srgb,var(--acento) 40%,transparent); background:color-mix(in srgb,var(--acento) 14%,transparent); }
+.panel-atajos a>.ic:first-child { color:var(--acento); width:26px; height:26px; }
+.panel-atajos a>.ic:last-child { width:14px; margin-left:auto; }
+.panel-atajos a span { width:100%; font-size:12px; font-weight:600; }
+.panel-atajos a:hover { background:color-mix(in srgb,var(--acento) 26%,transparent); }
+.panel-proximos { margin-top:18px; font-size:12px; color:#c4cce5; line-height:1.6; }
+.panel-admin .a-pend .item { flex-wrap:wrap; gap:10px; }
+.panel-admin .a-pend .foto-mini { width:64px; height:45px; flex:0 0 64px; border-radius:10px; overflow:hidden; background:#ffffff12; }
+.panel-admin .a-pend .foto-mini img { width:100%; height:100%; object-fit:cover; }
+.panel-admin .a-pend .item>div:not(.foto-mini) { flex:1; min-width:100px; }
+.panel-admin .a-pend .btn { background:#3b82f6; border-color:#60a5fa; color:white; }
+.panel-fecha { color:#c4cce5; font-size:12px; }
+.panel-admin #accVista { display:flex; align-items:center; gap:12px; }
+.panel-admin #panelTema { font-size:25px; }
+html[data-tema="noche"] .panel-admin .card { background:linear-gradient(135deg,#18223ee8,#10182de8); }
+html[data-tema="noche"] .panel-admin .panel-kpi { background:linear-gradient(135deg,color-mix(in srgb,var(--acento) 15%,#11192e),#10182d); }
+@media(max-width:1150px) { .panel-admin .dash { grid-template-columns:1fr 1fr; grid-template-areas:"grafico grafico" "actividad pendientes" "flota atajos"; }.panel-admin .kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:650px) { .panel-admin .dash { grid-template-columns:minmax(0,1fr); grid-template-areas:"grafico" "pendientes" "actividad" "flota" "atajos"; }.panel-admin .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }.panel-admin .panel-kpi { padding:14px; min-height:165px; }.panel-intro { flex-wrap:wrap; }.panel-fecha { display:none; }.panel-admin .panel-kpi .valor { font-size:23px; }.panel-admin .panel-kpi:first-child { grid-column:1/-1; }.panel-admin .panel-kpi:first-child .valor { font-size:30px; } }
+@media(prefers-reduced-motion:reduce) { .panel-kpi { transition:none!important; }.panel-kpi:hover { transform:none; } }
+.panel-admin .app { background:rgba(15,24,57,.68); }
+.panel-admin .fondo::after { background:radial-gradient(55% 45% at 75% 0%,#7055da55,transparent 75%),radial-gradient(50% 60% at 0% 30%,#2677d544,transparent 75%),linear-gradient(180deg,#101b44aa,#10172be8); }
+.panel-admin .panel-kpi:first-child .valor { font-size:clamp(18px,1.55vw,25px); white-space:nowrap; overflow-wrap:normal; }
+.panel-admin .grafico .linea { stroke:#60a5fa; }
+.panel-admin .grafico .marca-punto { fill:#dbeafe; stroke:#3b82f6; }
+.panel-admin .grafico #gArea stop { stop-color:#3b82f6; }
+.panel-admin .grafico .eje { fill:#c4cce5; }
+.panel-admin .a-act .item small { color:#c4cce5; }
+@media(max-width:650px) { .panel-admin .panel-kpi:first-child .valor { font-size:30px; }.panel-admin .top-acc { justify-content:flex-end; gap:12px; }.panel-admin #accVista { margin-left:auto; } }
+
+/* Navegación organizada */
+.nav-grupo summary,.nav-pendiente { display:flex; align-items:center; gap:14px; width:100%; min-height:48px; padding:10px 14px; border-radius:14px; color:var(--txt-2); cursor:pointer; text-align:left; list-style:none; }
+.nav-grupo summary::-webkit-details-marker { display:none; }
+.nav-grupo summary .ic,.nav-pendiente .ic { flex:none; width:22px; height:22px; }
+.nav-grupo summary span,.nav-pendiente span,.pie-accion span { display:none; }
+.expandida .nav-grupo summary span,.expandida .nav-pendiente span,.expandida .pie-accion span { display:block; }
+.nav-chevron { margin-left:auto; display:none; }.expandida .nav-chevron { display:block; }.nav-grupo[open] .nav-chevron { transform:rotate(180deg); }
+.nav-sub { display:none; padding-left:20px; border-left:1px solid #8a9ed04d; margin:4px 0 8px 24px; }.expandida .nav-sub { display:block; }
+.nav-sub a { height:40px; padding:0 8px; font-size:12px; }.nav-sub a.act::before { display:none; }
+.nav-pendiente small { display:block; font-size:10px; opacity:.75; }
+.nav-grupo summary:hover,.nav-pendiente:hover { background:var(--glass-2); }
+.pie-accion { display:flex; align-items:center; gap:12px; min-height:40px; width:100%; padding:8px; font-size:12px; text-decoration:none; color:var(--txt-2); border-radius:10px; }
+.pie-accion:hover { background:var(--glass-2); }.side-pie .yo { text-decoration:none; margin-bottom:8px; }
+.menu-movil { display:none; }[data-tema-global] { font-size:24px; }
+@media(max-width:860px) {
+ .admin-shell .side { top:0; bottom:0; left:0; right:auto; width:min(285px,85vw); border-radius:0 20px 20px 0; flex-direction:column; align-items:stretch; padding:20px 16px; overflow-y:auto; overflow-x:hidden; background:#111a35; transform:translateX(-110%); visibility:hidden; transition:transform .2s; z-index:60; }
+ .admin-shell.menu-abierto .side { transform:translateX(0); visibility:visible; }
+ .admin-shell .side-top,.admin-shell .side-pie { display:block; }.admin-shell .side-top { display:flex; margin-bottom:14px; }.admin-shell .side-top #bMenu { display:none; }.admin-shell .side-logo { display:block; }
+ .admin-shell .nav { flex-direction:column; justify-content:flex-start; gap:4px; }
+ .admin-shell .nav a { flex-direction:row; justify-content:flex-start; height:44px; font-size:13px; gap:12px; padding:0 12px; }
+ .admin-shell .nav a span { max-width:none; }.admin-shell .nav-grupo summary span,.admin-shell .nav-pendiente span,.admin-shell .pie-accion span { display:block; }.admin-shell .nav-sub { display:block; }.admin-shell .nav-chevron { display:block; }.admin-shell .yo div { display:block; }
+ .admin-shell .menu-movil { display:flex; position:fixed; top:14px; right:14px; z-index:65; background:#1d2b50; color:white; }
+ .admin-shell { padding-bottom:0; }.admin-shell .topbar { padding-right:50px; }
+}
+/* Modo día del panel: superficies claras, textos oscuros y acentos definidos. */
+html:not([data-tema="noche"]) .panel-admin { --txt:#172747; --txt-2:#475b7a; --txt-3:#60718b; --glass:rgba(255,255,255,.8); --glass-2:#e8effa; --glass-3:#dce8fb; --borde:#cdd9ec; --borde-2:#dce4f1; --glass-osc:#eaf0fa; }
+html:not([data-tema="noche"]) .panel-admin .fondo { background:#edf2fb; }
+html:not([data-tema="noche"]) .panel-admin .fondo::before { display:none; }
+html:not([data-tema="noche"]) .panel-admin .fondo::after { background:radial-gradient(ellipse at 75% 0%,#dfd8fb88,transparent 65%),linear-gradient(120deg,#eff5ff,#e9eff9); }
+html:not([data-tema="noche"]) .panel-admin .app { background:#f4f7fce8; box-shadow:0 20px 60px #23345614; }
+html:not([data-tema="noche"]) .panel-admin .card { background:#ffffffed; border-color:#d8e2f0; box-shadow:0 6px 22px #23345608; }
+html:not([data-tema="noche"]) .panel-admin .panel-kpi { background:linear-gradient(135deg,color-mix(in srgb,var(--acento) 14%,white),#fff); border-color:color-mix(in srgb,var(--acento) 35%,#dce4ee); }
+html:not([data-tema="noche"]) .panel-admin .tono-blue { --acento:#2563eb; }html:not([data-tema="noche"]) .panel-admin .tono-green { --acento:#087d5d; }html:not([data-tema="noche"]) .panel-admin .tono-purple { --acento:#7545bf; }html:not([data-tema="noche"]) .panel-admin .tono-coral { --acento:#c93153; }
+html:not([data-tema="noche"]) .panel-admin .panel-kpi .etq,html:not([data-tema="noche"]) .panel-admin .panel-kpi .nota,html:not([data-tema="noche"]) .panel-admin .panel-intro,html:not([data-tema="noche"]) .panel-admin .panel-fecha,html:not([data-tema="noche"]) .panel-admin .panel-proximos,html:not([data-tema="noche"]) .panel-admin .a-act .item small,html:not([data-tema="noche"]) .panel-admin .leyenda small,html:not([data-tema="noche"]) .panel-admin .panel-por-devolver small,html:not([data-tema="noche"]) .panel-admin .valor small { color:#4c607d; }
+html:not([data-tema="noche"]) .panel-admin .panel-link { color:#255fc2; }
+html:not([data-tema="noche"]) .panel-admin .grafico .eje { fill:#52657e; }html:not([data-tema="noche"]) .panel-admin .grafico .rejilla { stroke:#dce4f1; }
+html:not([data-tema="noche"]) .panel-admin .panel-por-devolver { color:#925c00; border-color:#dce4f1; }
+html:not([data-tema="noche"]) .panel-admin .btn.ghost { background:#edf3ff; color:#264a87; border-color:#c4d5f1; }
+html:not([data-tema="noche"]) .panel-admin .avatar { background:#e5edfc; color:#31538b; border-color:#c9d7eb; }
+html:not([data-tema="noche"]) .panel-admin .nav a:hover,html:not([data-tema="noche"]) .panel-admin .nav a.act { color:#1e55b6; background:#dce8fc; }
+html:not([data-tema="noche"]) .panel-admin .nav a.act::before { background:#2563eb; }
+html:not([data-tema="noche"]) .panel-admin .side-logo img,html:not([data-tema="noche"]) .panel-admin .marca img { filter:brightness(0) saturate(100%) invert(14%) sepia(30%) saturate(1500%) hue-rotate(180deg); }
+html:not([data-tema="noche"]) .panel-admin .pastilla { background:#edf2fb; color:#415a80; border-color:#d4dfef; }
+html:not([data-tema="noche"]) .panel-admin .tip { background:#fff; color:#172747; }
+html:not([data-tema="noche"]) .panel-admin .side { background:#eaf0fa; }
+html:not([data-tema="noche"]) .panel-admin .icon-btn { color:#365583; }
+html:not([data-tema="noche"]) .panel-admin .topbar h1 { text-shadow:none; }
+html:not([data-tema="noche"]) .panel-admin .menu-movil { color:white; }
+
+/* Menú de la cuenta: un único acceso desde el usuario conectado. */
+.menu-usuario { z-index:90; }
+html:not([data-tema="noche"]) .panel-admin .menu-usuario { background:#fff; color:#172747; border-color:#d8e2f0; }
+html:not([data-tema="noche"]) .panel-admin .menu-usuario a:hover { background:#eaf1fd; color:#255fc2; }

@@ -1,0 +1,401 @@
+/* =========================================================
+   AUTOGO - VISTA ADMIN CON EL DISEÑO DEL PDF
+   Se carga después de styles.css. Solo afecta al administrador:
+   js/admin-pdf.js agrega la clase .admin-pdf a .app y .vista-admin al body.
+========================================================= */
+
+
+/* ---------- Fondo: resplandor morado arriba, naranja/rosa abajo ---------- */
+
+html:not([data-tema="noche"]) body.vista-admin .fondo::after {
+    background:
+        radial-gradient(52% 44% at 70% 0%, rgba(122, 92, 255, .55), transparent 70%),
+        radial-gradient(40% 34% at 6% 96%, rgba(255, 140, 70, .36), transparent 70%),
+        radial-gradient(34% 30% at 96% 90%, rgba(214, 92, 170, .32), transparent 70%),
+        radial-gradient(30% 30% at 28% 18%, rgba(70, 120, 255, .22), transparent 70%),
+        linear-gradient(180deg, rgba(14, 20, 64, .6), rgba(8, 11, 36, .78));
+}
+
+
+/* ---------- Paleta azul marino (solo modo día; el modo noche no cambia) ---------- */
+
+html:not([data-tema="noche"]) .app.admin-pdf {
+    --glass: rgba(24, 30, 84, .34);
+    --glass-2: rgba(38, 48, 120, .34);
+    --glass-3: rgba(76, 92, 180, .32);
+    --glass-osc: rgba(12, 16, 52, .42);
+    --borde: rgba(150, 165, 255, .22);
+    --borde-2: rgba(150, 165, 255, .12);
+}
+
+html:not([data-tema="noche"]) body.vista-admin .modal,
+html:not([data-tema="noche"]) body.vista-admin .menu-usuario {
+    background: rgba(20, 26, 82, .7);
+}
+
+
+/* ---------- Menú lateral ---------- */
+
+.app.admin-pdf .nav a.act {
+    background: rgba(120, 140, 255, .2);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+
+/* Submenú de Alquileres */
+
+.app.admin-pdf .nav-sub {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    margin: -2px 0 6px;
+}
+
+.app.admin-pdf.expandida .nav-sub.abierto {
+    display: flex;
+}
+
+.app.admin-pdf .nav-sub a {
+    height: 42px;
+    padding: 0 14px 0 26px;
+    font-size: 13.5px;
+}
+
+.app.admin-pdf .nav-sub a .ic {
+    width: 19px;
+    height: 19px;
+}
+
+/* En el menú expandido, "Nuevo alquiler" vive dentro de Alquileres */
+.app.admin-pdf.expandida .nav a.nav-top-oculto {
+    display: none;
+}
+
+.app.admin-pdf .nav a.tiene-sub::after {
+    content: '';
+    margin-left: auto;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: transform .2s, opacity .2s;
+}
+
+.app.admin-pdf.expandida .nav a.tiene-sub::after {
+    opacity: .7;
+}
+
+.app.admin-pdf.expandida .nav a.tiene-sub.abierto::after {
+    transform: rotate(-135deg);
+}
+
+.app.admin-pdf .nav a.tiene-sub.abierto {
+    color: #fff;
+}
+
+
+/* ---------- Tarjetas de resumen: ícono en círculo de color ---------- */
+
+.app.admin-pdf .kpis {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.app.admin-pdf .kpis .kpi {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 14px;
+    row-gap: 2px;
+    align-items: center;
+    padding: 16px 18px;
+    background:
+        linear-gradient(135deg, rgba(var(--t), .18), rgba(var(--t), .04)),
+        var(--glass-2);
+    border-color: rgba(var(--t), .38);
+}
+
+.app.admin-pdf .kpis .kpi:nth-child(1) { --t: 110, 231, 160; }
+.app.admin-pdf .kpis .kpi:nth-child(2) { --t: 120, 170, 255; }
+.app.admin-pdf .kpis .kpi:nth-child(3) { --t: 255, 170, 90; }
+.app.admin-pdf .kpis .kpi:nth-child(4) { --t: 160, 140, 255; }
+.app.admin-pdf .kpis .kpi:nth-child(5) { --t: 190, 150, 255; }
+
+/* La etiqueta se "disuelve" para que el ícono ocupe la columna izquierda */
+.app.admin-pdf .kpis .kpi .etq {
+    display: contents;
+}
+
+.app.admin-pdf .kpis .kpi .etq .ic {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    width: 46px;
+    height: 46px;
+    padding: 12px;
+    border-radius: 50%;
+    color: rgb(var(--t));
+    background: rgba(var(--t), .2);
+    border: 1px solid rgba(var(--t), .35);
+}
+
+.app.admin-pdf .kpis .kpi .valor {
+    grid-column: 2;
+    font-size: clamp(17px, 1.5vw, 24px);
+    white-space: nowrap;
+}
+
+.app.admin-pdf .kpis .kpi .nota {
+    grid-column: 2;
+    font-size: 11.5px;
+}
+
+@media (max-width: 1280px) {
+    .app.admin-pdf .kpis {
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+}
+
+
+/* ---------- Panel: distribución del PDF ---------- */
+
+.app.admin-pdf .dash {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+        "act graf graf"
+        "flota pend acc";
+}
+
+.app.admin-pdf .a-acc {
+    grid-area: acc;
+}
+
+@media (max-width: 1180px) {
+    .app.admin-pdf .dash {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas:
+            "graf graf"
+            "act act"
+            "flota pend"
+            "acc acc";
+    }
+}
+
+@media (max-width: 860px) {
+    .app.admin-pdf .dash {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "graf"
+            "act"
+            "flota"
+            "pend"
+            "acc";
+    }
+}
+
+/* Título de cada tarjeta con su ícono */
+.app.admin-pdf .card-h h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.app.admin-pdf .card-h h3 .ic {
+    width: 22px;
+    height: 22px;
+    color: #8fb8ff;
+}
+
+/* Estado de la flota: cantidad y porcentaje */
+.app.admin-pdf .leyenda .pct {
+    min-width: 46px;
+    text-align: right;
+    font-style: normal;
+    color: var(--txt-3);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Accesos rápidos */
+.accesos-pdf {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+    gap: 12px;
+}
+
+.accesos-pdf a {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(var(--t), .42);
+    background: linear-gradient(135deg, rgba(var(--t), .24), rgba(var(--t), .07));
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform .15s, filter .15s;
+}
+
+.accesos-pdf a:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.15);
+}
+
+.accesos-pdf a .ic {
+    width: 24px;
+    height: 24px;
+    color: rgb(var(--t));
+}
+
+.accesos-pdf a span {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.accesos-pdf a span::after {
+    content: '→';
+    opacity: .8;
+}
+
+
+/* ---------- Barras de herramientas dentro de una tarjeta ---------- */
+
+.app.admin-pdf .herramientas {
+    padding: 14px 16px;
+    border-radius: var(--r-lg);
+    background: var(--glass-2);
+    border: 1px solid var(--borde);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+}
+
+
+/* ---------- Tablas ---------- */
+
+.app.admin-pdf .tabla th {
+    letter-spacing: .08em;
+    padding-bottom: 14px;
+}
+
+.app.admin-pdf .tabla tbody tr:hover {
+    background: rgba(120, 140, 255, .1);
+}
+
+.app.admin-pdf .badge {
+    padding: 4px 12px 4px 10px;
+}
+
+.app.admin-pdf .badge.info {
+    background: rgba(96, 150, 255, .22);
+    border-color: rgba(120, 170, 255, .45);
+}
+
+.app.admin-pdf .badge.ok {
+    background: rgba(70, 200, 130, .2);
+    border-color: rgba(110, 231, 160, .45);
+}
+
+.app.admin-pdf .badge.warn {
+    background: rgba(250, 190, 80, .2);
+    border-color: rgba(252, 210, 122, .5);
+}
+
+.app.admin-pdf .badge.bad {
+    background: rgba(240, 100, 110, .22);
+    border-color: rgba(252, 165, 165, .5);
+}
+
+
+/* ---------- Botones de acción de colores (Alquileres y Facturas) ---------- */
+
+.app.admin-pdf .acciones .icon-btn[data-acc="ver"],
+.app.admin-pdf .acciones a.icon-btn[href^="#/factura"],
+.app.admin-pdf .acciones .icon-btn[data-acc="modificar"],
+.app.admin-pdf .acciones .icon-btn[data-acc="devolver"],
+.app.admin-pdf .acciones .icon-btn[data-acc="cancelar"] {
+    border-radius: 10px;
+    border: 1px solid transparent;
+}
+
+.app.admin-pdf .acciones .icon-btn[data-acc="ver"],
+.app.admin-pdf .acciones a.icon-btn[href^="#/factura"] {
+    color: #a5c8ff;
+    background: rgba(96, 150, 255, .18);
+    border-color: rgba(120, 170, 255, .38);
+}
+
+.app.admin-pdf .acciones .icon-btn[data-acc="modificar"] {
+    color: #e6eaff;
+    background: rgba(255, 255, 255, .08);
+    border-color: rgba(255, 255, 255, .2);
+}
+
+.app.admin-pdf .acciones .icon-btn[data-acc="devolver"] {
+    color: #8cf0b6;
+    background: rgba(70, 200, 130, .16);
+    border-color: rgba(110, 231, 160, .38);
+}
+
+.app.admin-pdf .acciones .icon-btn[data-acc="cancelar"] {
+    color: #ff9aa6;
+    background: rgba(240, 100, 110, .16);
+    border-color: rgba(252, 165, 165, .4);
+}
+
+.app.admin-pdf .acciones .icon-btn[data-acc]:hover:not(:disabled),
+.app.admin-pdf .acciones a.icon-btn[href^="#/factura"]:hover {
+    filter: brightness(1.3);
+}
+
+.app.admin-pdf .acciones .icon-btn:disabled {
+    opacity: .35;
+}
+
+
+/* ---------- Factura ---------- */
+
+.app.admin-pdf .factura {
+    background: var(--glass-2);
+}
+
+.app.admin-pdf .fac-cols section {
+    background: var(--glass);
+}
+
+
+/* ---------- Administradores: formulario en dos columnas ---------- */
+
+.app.admin-pdf #fa {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+}
+
+.app.admin-pdf #fa .campo[data-campo="passwordTemporal"],
+.app.admin-pdf #fa .form-err,
+.app.admin-pdf #fa > div:last-child {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 860px) {
+    .app.admin-pdf #fa {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ---------- Móvil: el submenú no aplica en la barra inferior ---------- */
+
+@media (max-width: 860px) {
+    .app.admin-pdf .nav-sub {
+        display: none !important;
+    }
+
+    .app.admin-pdf.expandida .nav a.nav-top-oculto {
+        display: flex;
+    }
+
+    .app.admin-pdf .nav a.tiene-sub::after {
+        display: none;
+    }
+}

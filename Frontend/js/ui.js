@@ -1,3 +1,6 @@
+/* =========================================================
+   UTILIDADES DE INTERFAZ
+========================================================= */
 
 const UI = (() => {
   const $ = (s, r = document) => r.querySelector(s);
@@ -387,4 +390,4 @@ const UI = (() => {
     toast, modal, confirmar, campo, datos, errorCampo, errorForm, limpiarErrores, ocupado,
     passwordValida, correoValido, cargando, vacio, avatar
   };
-})();s
+})();
