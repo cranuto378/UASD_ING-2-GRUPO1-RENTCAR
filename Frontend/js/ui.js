@@ -223,7 +223,7 @@ const UI = (() => {
     const primero = $('input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea', bg);
     setTimeout(() => (primero || $('[data-cerrar]', bg)).focus(), 30);
 
-    return { el: $('.modal', bg), cerrar };
+    return { el: $('.modal', bg), cuerpo: $('.modal-c', bg), cerrar };
   }
 
   function confirmar(titulo, texto, { boton = 'Confirmar', peligro = false, motivo = false } = {}) {

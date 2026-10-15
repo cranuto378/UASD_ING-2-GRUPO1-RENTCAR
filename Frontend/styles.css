@@ -5789,3 +5789,9 @@ html[data-tema="noche"] .cliente-mini.activa{box-shadow:0 0 0 2px color-mix(in s
 .flota-mini.tono-gray.act{border-color:color-mix(in srgb,var(--txt-2) 46%,var(--borde));box-shadow:0 0 0 2px color-mix(in srgb,var(--txt-2) 8%,transparent),0 14px 30px rgba(25,40,70,.08);}
 @media(max-width:1250px){.flota-resumen{grid-template-columns:repeat(3,minmax(0,1fr));}}
 @media(max-width:760px){.flota-resumen{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+/* Clientes: cierre operativo */
+.cliente-licencia{font-size:12px;font-weight:650;color:var(--txt-2);white-space:nowrap;}
+.cliente-resumen-modal-6{grid-template-columns:repeat(6,minmax(0,1fr));}
+@media(max-width:900px){.cliente-resumen-modal-6{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:560px){.cliente-resumen-modal-6{grid-template-columns:repeat(2,minmax(0,1fr));}}

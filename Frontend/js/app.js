@@ -3909,6 +3909,8 @@ async function detalleCliente(x) {
     const lista = [...(alq.nodes || [])].sort((a,b) => String(b.fechaCreacion || b.fechaInicio).localeCompare(String(a.fechaCreacion || a.fechaInicio)));
     const activos = lista.filter(a => estadoOperativoAlquiler(a).clave === 'activo').length;
     const reservas = lista.filter(a => estadoOperativoAlquiler(a).clave === 'reserva').length;
+    const porDevolver = lista.filter(a => estadoOperativoAlquiler(a).clave === 'por-devolver').length;
+    const vencidos = lista.filter(a => estadoOperativoAlquiler(a).clave === 'vencido').length;
     const completados = lista.filter(a => a.estado === 'COMPLETADO').length;
 
     m.cuerpo.innerHTML = `
@@ -3932,10 +3934,12 @@ async function detalleCliente(x) {
         <div><small>Tipo de cliente</small><b>${cl.tieneCuenta ? 'Portal' : 'Mostrador'}</b></div>
       </div>
 
-      <div class="cliente-resumen-modal">
+      <div class="cliente-resumen-modal cliente-resumen-modal-6">
         <div><small>Alquileres</small><b>${lista.length}</b></div>
         <div><small>Activos</small><b>${activos}</b></div>
         <div><small>Reservas</small><b>${reservas}</b></div>
+        <div><small>Por devolver</small><b>${porDevolver}</b></div>
+        <div><small>Vencidos</small><b>${vencidos}</b></div>
         <div><small>Completados</small><b>${completados}</b></div>
       </div>
 
@@ -4005,13 +4009,14 @@ async function vClientes(c, ctx) {
     pintar: r => (r.nodes.length ? `
       <div class="tabla-wrap">
         <table class="tabla tabla-clientes">
-          <thead><tr><th>Cliente</th><th>Cédula</th><th>Teléfono</th><th>Cuenta</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th>Cliente</th><th>Cédula</th><th>Teléfono</th><th>Licencia</th><th>Cuenta</th><th>Estado</th><th></th></tr></thead>
           <tbody>${r.nodes.map(x => `
             <tr class="${x.activo !== false ? '' : 'inactivo fila-cliente-inactivo'}">
               <td><div class="cliente-celda">${UI.avatar(x.nombre, 'sm')}
                 <div class="principal"><b>${esc(x.nombre)}</b><small>${esc(x.correo || 'Sin correo')}</small></div></div></td>
               <td class="nowrap">${esc(x.cedula)}</td>
               <td class="nowrap">${esc(x.telefono || '—')}</td>
+              <td>${x.licenciaConducir ? `<span class="cliente-licencia">${esc(x.licenciaConducir)}</span>` : badge(null, 'Pendiente', 'warn')}</td>
               <td>${x.tieneCuenta ? badge(null, 'Portal', 'info') : badge(null, 'Mostrador', 'neutro')}</td>
               <td>${x.activo !== false ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'neutro')}</td>
               <td><div class="acciones">
