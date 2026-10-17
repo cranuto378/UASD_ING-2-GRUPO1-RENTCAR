@@ -9,9 +9,6 @@ const Api = (() => {
   const BASE = (cfg.API_URL || '').replace(/\/+$/, '');
   const CLAVE = 'autogo.sesion';
 
-  const params = new URLSearchParams(location.search);
-  const DEMO = !!cfg.DEMO || params.get('demo') === '1';
-
 
   class ApiError extends Error {
     constructor(code, message) {
@@ -79,14 +76,6 @@ const Api = (() => {
   /* Petición */
 
   async function pedir(op, query, variables = {}, archivo) {
-    if (DEMO) {
-      const vars = archivo ? { ...variables, [archivo.campo]: archivo.file } : variables;
-      try {
-        return await Demo.ejecutar(op, vars, actual && actual.token);
-      } catch (e) {
-        throw new ApiError(e.code || 'ERROR_INTERNO', e.message || 'Ocurrió un error inesperado.');
-      }
-    }
 
     const headers = {};
     let body;
@@ -150,10 +139,10 @@ const Api = (() => {
   const AUTH = `token expiraEnUtc usuario { ${USUARIO} }`;
   const CATEGORIA = 'id nombre activo';
   // Campos ampliados de vehículos requeridos por la interfaz final.
-  const VEHICULO_EXTRA = DEMO || cfg.VEHICULO_EXTRA === true;
+  const VEHICULO_EXTRA = cfg.VEHICULO_EXTRA === true;
 
   // Gestión completa de administradores y roles requerida por la interfaz final.
-  const ADMIN_EXTRA = DEMO || cfg.ADMIN_EXTRA === true;
+  const ADMIN_EXTRA = cfg.ADMIN_EXTRA === true;
   const ADMIN = 'id nombre correo rol perfil activo debeCambiarPassword ultimoAcceso fechaCreacion';
   const VEHICULO = 'id placa categoriaId categoria marca modelo anio precioDia estadoOperativo estadoActual mantenimientoHasta fotoUrl activo' +
     (VEHICULO_EXTRA ? ' color transmision capacidad observaciones' : '');
@@ -188,7 +177,6 @@ const Api = (() => {
 
 
   return {
-    DEMO,
     VEHICULO_EXTRA,
     ADMIN_EXTRA,
     ApiError,

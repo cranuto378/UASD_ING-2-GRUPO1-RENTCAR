@@ -1,0 +1,564 @@
+/* Tema visual compartido */
+:root {
+  --ag-accent: #3189ee;
+  --ag-accent-strong: #1767c8;
+  --ag-accent-night: #2f7edb;
+  --ag-accent-night-strong: #1556aa;
+  --ag-success: #31d07a;
+  --ag-success-strong: #16a34a;
+  --ag-focus: #81b8ff;
+}
+
+/* Transiciones del tema */
+.auth,
+.auth-stage,
+.auth-panel,
+.auth-panel .contenido,
+body:not(.entorno-admin):not(.entorno-cliente) .app,
+body:not(.entorno-admin):not(.entorno-cliente) .side,
+body:not(.entorno-admin):not(.entorno-cliente) .card,
+body:not(.entorno-admin):not(.entorno-cliente) input,
+body:not(.entorno-admin):not(.entorno-cliente) select,
+body:not(.entorno-admin):not(.entorno-cliente) textarea {
+  transition: background .35s ease, background-color .35s ease,
+    border-color .35s ease, box-shadow .35s ease, color .35s ease;
+}
+
+body.entorno-cliente,
+body.entorno-cliente .fondo::before,
+body.entorno-cliente .fondo::after,
+body.entorno-cliente .app,
+body.entorno-cliente .side,
+body.entorno-cliente .card,
+body.entorno-cliente .main.hero-on::before,
+body.entorno-cliente .icon-btn.cuadro {
+  transition: background .38s ease, background-color .38s ease,
+    border-color .38s ease, box-shadow .38s ease, color .38s ease,
+    filter .38s ease, opacity .38s ease;
+}
+
+/* Vistas públicas - modo día */
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) {
+  --txt: #f8fbff;
+  --txt-2: rgba(239, 245, 255, .80);
+  --txt-3: rgba(223, 233, 248, .62);
+  --glass: rgba(117, 143, 196, .18);
+  --glass-2: rgba(146, 169, 214, .20);
+  --glass-3: rgba(175, 194, 230, .24);
+  --glass-osc: rgba(37, 53, 91, .38);
+  --borde: rgba(225, 236, 255, .30);
+  --borde-2: rgba(223, 234, 255, .17);
+  --sombra: 0 28px 68px rgba(19, 31, 61, .26);
+  --brillo: inset 0 1px 0 rgba(255, 255, 255, .30);
+  background: #26375d;
+  color: var(--txt);
+  color-scheme: dark;
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .fondo {
+  background: #26375d;
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .fondo::before {
+  display: block !important;
+  inset: -72px;
+  background: var(--foto) center 68% / cover no-repeat;
+  filter: blur(32px) saturate(1.02) brightness(.78) contrast(.92);
+  opacity: .92;
+  transform: scale(1.10);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .fondo::after {
+  background:
+    radial-gradient(42% 38% at 12% 10%, rgba(115, 174, 255, .25), transparent 72%),
+    radial-gradient(38% 34% at 88% 7%, rgba(142, 128, 238, .20), transparent 72%),
+    radial-gradient(44% 38% at 76% 92%, rgba(71, 142, 225, .18), transparent 72%),
+    linear-gradient(180deg, rgba(39, 57, 100, .42), rgba(24, 36, 69, .58));
+}
+
+html:not([data-tema="noche"]) .auth-stage {
+  background:
+    linear-gradient(135deg, rgba(127, 157, 218, .20), rgba(84, 105, 166, .16)),
+    rgba(41, 57, 96, .18);
+  border: 1px solid rgba(224, 235, 255, .28);
+  box-shadow: 0 30px 78px rgba(15, 27, 58, .28), inset 0 1px 0 rgba(255, 255, 255, .30);
+  -webkit-backdrop-filter: blur(30px) saturate(138%);
+  backdrop-filter: blur(30px) saturate(138%);
+}
+
+html:not([data-tema="noche"]) .auth-stage .auth-panel {
+  background: linear-gradient(145deg, rgba(126, 151, 207, .13), rgba(66, 83, 131, .10));
+  border-color: transparent;
+}
+
+html:not([data-tema="noche"]) .auth-stage .auth-panel .contenido {
+  background: linear-gradient(145deg, rgba(171, 191, 230, .20), rgba(94, 117, 174, .16)), rgba(40, 55, 91, .18);
+  border: 1px solid rgba(225, 236, 255, .26);
+  box-shadow: 0 18px 42px rgba(17, 29, 61, .20), inset 0 1px 0 rgba(255, 255, 255, .26);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  backdrop-filter: blur(24px) saturate(145%);
+}
+
+html:not([data-tema="noche"]) .auth-foto {
+  background:
+    linear-gradient(180deg, rgba(21, 37, 70, .48) 0%, rgba(25, 43, 79, .30) 34%, rgba(26, 44, 78, .08) 58%, rgba(18, 31, 59, .40) 100%),
+    var(--foto) center 66% / cover no-repeat;
+  border-color: rgba(231, 240, 255, .27);
+  box-shadow: 0 18px 42px rgba(14, 27, 56, .22), inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+
+html:not([data-tema="noche"]) .auth-foto .chip {
+  background: rgba(48, 68, 109, .30);
+  border-color: rgba(231, 240, 255, .28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+html:not([data-tema="noche"]) .auth-panel input,
+html:not([data-tema="noche"]) .auth-panel select,
+html:not([data-tema="noche"]) .auth-panel textarea {
+  background: rgba(239, 245, 255, .10);
+  border-color: rgba(225, 236, 255, .22);
+  color: #f9fbff;
+}
+
+html:not([data-tema="noche"]) .auth-panel input::placeholder,
+html:not([data-tema="noche"]) .auth-panel textarea::placeholder {
+  color: rgba(224, 234, 250, .53);
+}
+
+html:not([data-tema="noche"]) .auth-panel input:hover,
+html:not([data-tema="noche"]) .auth-panel select:hover,
+html:not([data-tema="noche"]) .auth-panel textarea:hover {
+  background: rgba(245, 249, 255, .14);
+}
+
+html:not([data-tema="noche"]) .auth-panel input:focus,
+html:not([data-tema="noche"]) .auth-panel select:focus,
+html:not([data-tema="noche"]) .auth-panel textarea:focus {
+  background: rgba(250, 252, 255, .17);
+  border-color: var(--ag-focus);
+  box-shadow: 0 0 0 4px rgba(72, 133, 218, .15);
+}
+
+html:not([data-tema="noche"]) .auth-panel .btn.block,
+html:not([data-tema="noche"]) .auth-promo a {
+  background: linear-gradient(135deg, var(--ag-accent), var(--ag-accent-strong));
+  border-color: rgba(187, 219, 255, .52);
+  box-shadow: 0 10px 25px rgba(24, 76, 151, .28), inset 0 1px 0 rgba(255,255,255,.25);
+}
+
+html:not([data-tema="noche"]) .tema-login {
+  background: rgba(127, 153, 205, .20);
+  border-color: rgba(229, 238, 255, .27);
+  box-shadow: 0 10px 28px rgba(18, 31, 62, .18), inset 0 1px 0 rgba(255,255,255,.22);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .app {
+  background: linear-gradient(145deg, rgba(118, 145, 200, .16), rgba(63, 80, 128, .13)), rgba(31, 46, 81, .20) !important;
+  border-color: rgba(226, 237, 255, .27);
+  box-shadow: 0 28px 72px rgba(15, 28, 59, .27), inset 0 1px 0 rgba(255,255,255,.28);
+  -webkit-backdrop-filter: blur(28px) saturate(138%);
+  backdrop-filter: blur(28px) saturate(138%);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .side {
+  background: linear-gradient(180deg, rgba(67, 90, 143, .34), rgba(38, 53, 90, .31)) !important;
+  border-right-color: rgba(222, 234, 255, .18);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,.07);
+  -webkit-backdrop-filter: blur(30px) saturate(135%);
+  backdrop-filter: blur(30px) saturate(135%);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .card {
+  background: linear-gradient(145deg, rgba(158, 181, 224, .16), rgba(83, 106, 160, .13)) !important;
+  border-color: rgba(226, 237, 255, .23) !important;
+  box-shadow: 0 12px 30px rgba(18, 31, 61, .15), inset 0 1px 0 rgba(255,255,255,.20) !important;
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .nav a {
+  color: rgba(239, 245, 255, .76);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .nav a:hover {
+  color: #fff;
+  background: rgba(176, 198, 238, .13);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .nav a.act {
+  color: #fff;
+  background: rgba(184, 205, 243, .18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .nav a.act::before {
+  background: #79aff7;
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) input,
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) select,
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) textarea {
+  background-color: rgba(233, 241, 255, .10);
+  color: #f8fbff;
+  border-color: rgba(222, 234, 255, .20);
+  color-scheme: dark;
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) input:hover,
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) select:hover,
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) textarea:hover {
+  background-color: rgba(240, 246, 255, .14);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) input:focus,
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) select:focus,
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) textarea:focus {
+  background-color: rgba(247, 250, 255, .17);
+  border-color: rgba(124, 176, 247, .62);
+  box-shadow: 0 0 0 4px rgba(77, 138, 222, .14);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) option {
+  color: #eef5ff;
+  background: #26375d;
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .btn.ghost {
+  color: #f3f7ff;
+  background: rgba(191, 210, 245, .10);
+  border-color: rgba(224, 235, 255, .22);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .btn.ghost:hover {
+  background: rgba(204, 220, 250, .17);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .side-logo img,
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .topbar .marca img {
+  filter: brightness(0) invert(1);
+}
+
+/* Vistas públicas - modo noche */
+html[data-tema="noche"] .auth-stage,
+html[data-tema="noche"] body:not(.entorno-admin):not(.entorno-cliente) .app {
+  background: linear-gradient(145deg, rgba(44, 63, 112, .16), rgba(23, 33, 66, .14)), rgba(7, 12, 27, .24);
+}
+
+html[data-tema="noche"] .auth-stage .auth-panel .contenido {
+  background: linear-gradient(145deg, rgba(61, 79, 133, .16), rgba(23, 31, 62, .20)), rgba(8, 12, 28, .30);
+}
+
+/* Espaciado del catálogo público */
+body:not(.entorno-admin):not(.entorno-cliente) .main {
+  padding-right: 46px;
+}
+
+body:not(.entorno-admin):not(.entorno-cliente) .topbar {
+  padding-right: 6px;
+}
+
+body:not(.entorno-admin):not(.entorno-cliente) .top-acc {
+  justify-content: flex-end;
+  gap: 12px;
+  margin-right: 2px;
+}
+
+body:not(.entorno-admin):not(.entorno-cliente) .acc-fijas {
+  gap: 8px;
+}
+
+body:not(.entorno-admin):not(.entorno-cliente) .top-acc .btn.sm {
+  min-height: 40px;
+  padding-inline: 18px;
+  border-radius: 999px;
+}
+
+body:not(.entorno-admin):not(.entorno-cliente) .top-acc .icon-btn.cuadro {
+  border-radius: 14px;
+}
+
+/* Accesos del modo local */
+.demo-login {
+  margin-top: 18px;
+}
+
+.demo-login-sep {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--txt-3);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+
+.demo-login-sep::before,
+.demo-login-sep::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: var(--borde-2);
+}
+
+.demo-login-botones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.demo-btn {
+  min-width: 0;
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  border-radius: 15px;
+  border: 1px solid var(--borde);
+  background: rgba(255,255,255,.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  transition: transform .16s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.demo-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.13);
+  border-color: rgba(201,222,255,.42);
+  box-shadow: 0 8px 20px rgba(17,31,65,.14), inset 0 1px 0 rgba(255,255,255,.19);
+}
+
+.demo-ico {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  background: linear-gradient(145deg, var(--ag-accent), var(--ag-accent-strong));
+  border: 1px solid rgba(204,226,255,.38);
+}
+
+.demo-cliente .demo-ico {
+  background: linear-gradient(145deg, #5bbca0, #2f806e);
+  border-color: rgba(203,246,232,.34);
+}
+
+.demo-btn > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.demo-btn b {
+  color: var(--txt);
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.demo-btn small {
+  color: var(--txt-3);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+/* Portal cliente - modo día */
+html:not([data-tema="noche"]) body.entorno-cliente {
+  --glass: rgba(245, 249, 255, .30);
+  --glass-2: rgba(248, 251, 255, .38);
+  --glass-3: rgba(255, 255, 255, .48);
+  --glass-osc: rgba(225, 236, 251, .36);
+  --borde: rgba(255, 255, 255, .66);
+  --borde-2: rgba(96, 126, 166, .14);
+  --sombra: 0 28px 70px rgba(48, 69, 99, .13);
+  --brillo: inset 0 1px 0 rgba(255,255,255,.80);
+  background: #edf3fa;
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .fondo {
+  background: #edf3fa;
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .fondo::before {
+  display: block !important;
+  inset: -76px;
+  background: var(--foto) center 68% / cover no-repeat;
+  filter: blur(34px) saturate(.88) brightness(1.32) contrast(.82);
+  opacity: .80;
+  transform: scale(1.11);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .fondo::after {
+  background:
+    radial-gradient(46% 40% at 10% 8%, rgba(255,255,255,.76), transparent 72%),
+    radial-gradient(42% 38% at 90% 4%, rgba(226,238,255,.60), transparent 72%),
+    radial-gradient(42% 36% at 76% 92%, rgba(216,232,250,.38), transparent 72%),
+    linear-gradient(180deg, rgba(248,251,255,.50), rgba(231,240,250,.58));
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .app {
+  background: linear-gradient(145deg, rgba(255,255,255,.34), rgba(225,236,251,.23)), rgba(242,247,253,.26) !important;
+  border-color: rgba(255,255,255,.80);
+  box-shadow: 0 28px 68px rgba(45,65,94,.13), inset 0 1px 0 rgba(255,255,255,.88);
+  -webkit-backdrop-filter: blur(30px) saturate(130%);
+  backdrop-filter: blur(30px) saturate(130%);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .side {
+  background: linear-gradient(180deg, rgba(242,247,254,.42), rgba(224,235,250,.30)) !important;
+  border-right-color: rgba(82,111,151,.12);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,.48);
+  -webkit-backdrop-filter: blur(32px) saturate(132%);
+  backdrop-filter: blur(32px) saturate(132%);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .card {
+  background: linear-gradient(145deg, rgba(255,255,255,.46), rgba(235,243,253,.31)) !important;
+  border-color: rgba(255,255,255,.70) !important;
+  box-shadow: 0 12px 30px rgba(45,65,94,.075), inset 0 1px 0 rgba(255,255,255,.76) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(128%);
+  backdrop-filter: blur(22px) saturate(128%);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .icon-btn.cuadro {
+  background: rgba(255,255,255,.40);
+  border-color: rgba(255,255,255,.68);
+  box-shadow: 0 8px 22px rgba(43,64,95,.08), inset 0 1px 0 rgba(255,255,255,.76);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .nav a:hover {
+  background: rgba(255,255,255,.40);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .nav a.act {
+  background: rgba(255,255,255,.52) !important;
+  border: 1px solid rgba(255,255,255,.52);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 8px 20px rgba(44,69,105,.05);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .main.hero-on::before {
+  background-image:
+    linear-gradient(90deg, rgba(244,248,254,.78) 0%, rgba(240,246,253,.60) 33%, rgba(229,238,249,.22) 62%, rgba(220,231,245,.08) 100%),
+    var(--banner) !important;
+  border: 1px solid rgba(255,255,255,.72);
+  box-shadow: 0 18px 42px rgba(42,62,91,.10), inset 0 1px 0 rgba(255,255,255,.72);
+  filter: saturate(.96) brightness(1.05);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .main.hero-on .topbar h1 {
+  color: #183158;
+  text-shadow: 0 1px 12px rgba(255,255,255,.48);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .main.hero-on .kpi:not(.kpi-accion) {
+  background: linear-gradient(145deg, rgba(255,255,255,.52), rgba(232,241,252,.34)) !important;
+  border-color: rgba(255,255,255,.72) !important;
+  box-shadow: 0 10px 28px rgba(33,56,91,.08), inset 0 1px 0 rgba(255,255,255,.80) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(128%);
+  backdrop-filter: blur(22px) saturate(128%);
+}
+
+html:not([data-tema="noche"]) body.entorno-cliente .main.hero-on .kpi-accion {
+  background: linear-gradient(135deg, var(--ag-success), var(--ag-success-strong)) !important;
+  border-color: rgba(205,255,226,.54) !important;
+  box-shadow: 0 12px 28px rgba(23,145,72,.19), inset 0 1px 0 rgba(255,255,255,.30) !important;
+}
+
+/* Portal cliente - modo noche */
+html[data-tema="noche"] body.entorno-cliente {
+  --glass: rgba(9, 17, 34, .38);
+  --glass-2: rgba(16, 28, 50, .42);
+  --glass-3: rgba(24, 39, 66, .50);
+  --glass-osc: rgba(5, 12, 27, .50);
+}
+
+html[data-tema="noche"] body.entorno-cliente .app {
+  background: linear-gradient(145deg, rgba(27,43,73,.18), rgba(7,14,29,.20)), rgba(5,12,26,.48) !important;
+  border-color: rgba(255,255,255,.12);
+  -webkit-backdrop-filter: blur(30px) saturate(126%);
+  backdrop-filter: blur(30px) saturate(126%);
+}
+
+html[data-tema="noche"] body.entorno-cliente .side {
+  background: rgba(5,12,27,.48) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(126%);
+  backdrop-filter: blur(32px) saturate(126%);
+}
+
+html[data-tema="noche"] body.entorno-cliente .card {
+  background: linear-gradient(145deg, rgba(27,42,69,.46), rgba(10,19,36,.42)) !important;
+  border-color: rgba(255,255,255,.105) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.09) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(120%);
+  backdrop-filter: blur(22px) saturate(120%);
+}
+
+html[data-tema="noche"] body.entorno-cliente .main.hero-on::before {
+  background-image:
+    linear-gradient(90deg, rgba(3,7,18,.88) 0%, rgba(4,9,22,.68) 36%, rgba(4,9,22,.38) 66%, rgba(3,7,18,.22) 100%),
+    var(--banner) !important;
+  border-color: rgba(255,255,255,.12);
+  box-shadow: 0 20px 46px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.10);
+  filter: saturate(.82) brightness(.76);
+}
+
+html[data-tema="noche"] body.entorno-cliente .main.hero-on .kpi:not(.kpi-accion) {
+  background: linear-gradient(145deg, rgba(34,51,82,.50), rgba(11,21,40,.48)) !important;
+  border-color: rgba(255,255,255,.12) !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+html[data-tema="noche"] body.entorno-cliente .main.hero-on .kpi-accion {
+  background: linear-gradient(135deg, rgba(45,199,113,.92), rgba(21,145,69,.92)) !important;
+  border-color: rgba(178,255,211,.24) !important;
+}
+
+@media (max-width: 860px) {
+  html:not([data-tema="noche"]) .auth-stage .auth-panel {
+    background: rgba(55, 75, 121, .24);
+    border: 1px solid rgba(226, 237, 255, .18);
+    border-radius: 24px;
+  }
+
+  html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .side {
+    background: rgba(39, 55, 94, .82) !important;
+  }
+
+  body:not(.entorno-admin):not(.entorno-cliente) .main {
+    padding-right: 18px;
+  }
+
+  body:not(.entorno-admin):not(.entorno-cliente) .topbar {
+    padding-right: 0;
+  }
+
+  body:not(.entorno-admin):not(.entorno-cliente) .top-acc {
+    margin-right: 0;
+  }
+
+  html:not([data-tema="noche"]) body.entorno-cliente .side {
+    background: rgba(238,245,253,.76) !important;
+  }
+
+  html[data-tema="noche"] body.entorno-cliente .side {
+    background: rgba(6,13,29,.80) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .demo-login-botones {
+    grid-template-columns: 1fr;
+  }
+}

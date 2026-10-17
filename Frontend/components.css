@@ -1,0 +1,458 @@
+/* Tarjetas de vehículos */
+.catalogo-unificado .veh-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.catalogo-unificado .veh-card .veh-cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.catalogo-unificado .veh-card .veh-titulo-linea {
+  margin-bottom: 10px;
+}
+
+.catalogo-unificado .veh-datos-rapidos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+.catalogo-unificado .veh-datos-rapidos > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 25px;
+  padding: 3px 9px;
+  border: 1px solid rgba(126, 154, 198, .24);
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.catalogo-unificado .veh-datos-rapidos .ic {
+  width: 13px;
+  height: 13px;
+}
+
+.catalogo-unificado .veh-card .veh-pie {
+  margin-top: auto;
+}
+
+.catalogo-unificado .veh-card .precio {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  justify-content: start;
+  column-gap: 4px;
+}
+
+.catalogo-unificado .veh-card .precio small {
+  grid-column: 1 / -1;
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  opacity: .68;
+}
+
+.catalogo-unificado .veh-foto-etiquetas {
+  width: calc(100% - 20px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+html:not([data-tema="noche"]) .catalogo-unificado .veh-datos-rapidos > span {
+  color: #4f6688;
+  background: rgba(248, 251, 255, .72);
+  border-color: rgba(102, 139, 192, .20);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente).catalogo-unificado .veh-datos-rapidos > span {
+  color: rgba(245, 249, 255, .88);
+  background: rgba(218, 231, 255, .10);
+  border-color: rgba(226, 237, 255, .18);
+}
+
+html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente).catalogo-unificado .veh-card .precio small {
+  color: rgba(231, 240, 255, .72);
+}
+
+html[data-tema="noche"] .catalogo-unificado .veh-datos-rapidos > span {
+  color: rgba(232, 240, 255, .82);
+  background: rgba(93, 122, 174, .13);
+  border-color: rgba(176, 204, 244, .15);
+}
+
+@media (min-width: 1181px) {
+  body.catalogo-unificado:not(.entorno-admin):not(.entorno-cliente) .veh-grid,
+  body.catalogo-unificado.entorno-cliente .veh-grid {
+    grid-template-columns: repeat(3, minmax(250px, 1fr)) !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  .catalogo-unificado .veh-grid {
+    grid-template-columns: repeat(2, minmax(240px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .catalogo-unificado .veh-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .catalogo-unificado .veh-card .veh-pie {
+    align-items: end;
+    gap: 10px;
+  }
+}
+
+/* Desglose financiero y modificación de alquiler */
+.factura-pago-desglose,
+.detalle-pago-real {
+  border: 1px solid var(--borde, rgba(91,120,164,.22));
+  background: rgba(255,255,255,.46);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.58);
+}
+
+.factura-pago-desglose {
+  margin: 20px 0 8px;
+  padding: 18px 20px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.factura-pago-titulo,
+.detalle-pago-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 14px;
+}
+
+.factura-pago-titulo > span,
+.detalle-pago-title > span {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--ag-accent-strong);
+  background: rgba(66,139,230,.13);
+  border: 1px solid rgba(66,139,230,.18);
+}
+
+.factura-pago-titulo .ic,
+.detalle-pago-title .ic {
+  width: 17px;
+  height: 17px;
+}
+
+.factura-pago-titulo div,
+.detalle-pago-title div {
+  display: grid;
+  gap: 3px;
+}
+
+.factura-pago-titulo b,
+.detalle-pago-title b {
+  color: var(--txt, #142748);
+  font-size: 14px;
+}
+
+.factura-pago-titulo small,
+.detalle-pago-title small {
+  color: var(--txt-2, #587093);
+  line-height: 1.45;
+}
+
+.factura-pago-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 0 24px;
+}
+
+.factura-pago-grid > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  min-height: 40px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(91,120,164,.14);
+}
+
+.factura-pago-grid span {
+  color: var(--txt-2, #587093);
+}
+
+.factura-pago-grid b {
+  color: var(--txt, #142748);
+  text-align: right;
+}
+
+.factura-pago-grid .wallet-line b {
+  color: #0d8b72;
+}
+
+.factura-pago-grid .income-line b {
+  color: var(--ag-accent-strong);
+}
+
+.factura-pago-grid-cliente {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.factura-pago-grid-cliente > div {
+  min-height: 42px;
+}
+
+.factura-pago-grid-cliente .factura-cliente-cubierto {
+  grid-column: 1 / -1;
+  padding-top: 12px;
+  border-top: 1px solid var(--borde-2, rgba(80,110,160,.18));
+}
+
+.factura-pago-grid-cliente .factura-cliente-cubierto b {
+  font-size: 1.08rem;
+}
+
+.factura-pago-cliente small {
+  opacity: .78;
+}
+
+.detalle-pago-real {
+  margin: 18px 0;
+  padding: 16px;
+}
+
+.detalle-pago-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 10px;
+}
+
+.detalle-pago-grid > div {
+  min-width: 0;
+  padding: 12px 13px;
+  border-radius: 13px;
+  background: rgba(255,255,255,.35);
+  border: 1px solid rgba(91,120,164,.13);
+  display: grid;
+  gap: 4px;
+}
+
+.detalle-pago-grid small {
+  color: var(--txt-2, #587093);
+}
+
+.detalle-pago-grid b {
+  color: var(--txt, #142748);
+  font-size: 15px;
+}
+
+.detalle-pago-grid span {
+  color: var(--txt-3, #7084a2);
+  font-size: 12px;
+}
+
+.modificar-alquiler-form .modificar-importes {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(91,120,164,.16);
+  border-radius: 15px;
+  background: rgba(255,255,255,.28);
+}
+
+.modificar-alquiler-form .mod-diff.aumento {
+  color: #a75500;
+}
+
+.modificar-alquiler-form .mod-diff.credito {
+  color: #087d68;
+}
+
+.modificar-alquiler-form .mod-diff.igual {
+  color: var(--txt, #142748);
+}
+
+.modificar-alquiler-form .campo-ayuda,
+.modificar-alquiler-form small,
+.modificar-resumen {
+  color: #536a8d !important;
+}
+
+.modificar-alquiler-form .form-err {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: #9e2440 !important;
+  background: rgba(224,63,90,.09) !important;
+  border: 1px solid rgba(224,63,90,.30) !important;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.rep-ingreso-real {
+  outline: 1px solid rgba(33,126,216,.12);
+}
+
+html[data-tema="noche"] .factura-pago-desglose,
+html[data-tema="noche"] .detalle-pago-real {
+  background: rgba(23,39,70,.50);
+  border-color: rgba(178,204,244,.17);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+html[data-tema="noche"] .detalle-pago-grid > div,
+html[data-tema="noche"] .modificar-alquiler-form .modificar-importes {
+  background: rgba(255,255,255,.04);
+  border-color: rgba(188,210,245,.12);
+}
+
+html[data-tema="noche"] .modificar-alquiler-form .campo-ayuda,
+html[data-tema="noche"] .modificar-alquiler-form small,
+html[data-tema="noche"] .modificar-resumen {
+  color: rgba(218,229,247,.72) !important;
+}
+
+html[data-tema="noche"] .modificar-alquiler-form .form-err {
+  color: #ffabb9 !important;
+  background: rgba(202,55,83,.14) !important;
+  border-color: rgba(255,123,147,.32) !important;
+}
+
+@media (max-width: 720px) {
+  .factura-pago-grid,
+  .detalle-pago-grid,
+  .factura-pago-grid-cliente {
+    grid-template-columns: 1fr;
+  }
+
+  .factura-pago-grid-cliente .factura-cliente-cubierto {
+    grid-column: auto;
+  }
+
+  .factura-pago-desglose {
+    padding: 15px;
+  }
+}
+
+/* Reportes */
+.reportes-v2 {
+  display: grid;
+  gap: 14px;
+}
+
+.rpt-resumen {
+  grid-template-columns: repeat(4,minmax(0,1fr));
+}
+
+.rpt-card-filter {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  border: 1px solid transparent;
+}
+
+.rpt-card-filter.rep-filtro-activo {
+  border-color: rgba(38,132,255,.55);
+  box-shadow: 0 12px 28px rgba(42,103,181,.12), inset 0 0 0 1px rgba(255,255,255,.32);
+}
+
+.rpt-card-filter:focus-visible {
+  outline: 2px solid var(--ag-accent);
+  outline-offset: 2px;
+}
+
+.rpt-grid-dos {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  margin-bottom: 14px;
+}
+
+.rpt-kv {
+  display: grid;
+  gap: 0;
+}
+
+.rpt-kv > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--borde,#d9e2ef);
+}
+
+.rpt-kv > div:last-child {
+  border-bottom: 0;
+}
+
+.rpt-kv span {
+  color: var(--muted,#60708a);
+}
+
+.rpt-kv b {
+  font-size: 1.05rem;
+}
+
+.reportes-v2 .rep-card {
+  margin-bottom: 14px;
+}
+
+.reportes-v2 .rep-card.rep-ancha {
+  width: 100%;
+}
+
+.reportes-v2 .tabla td,
+.reportes-v2 .tabla th {
+  white-space: nowrap;
+}
+
+.reportes-v2 .tabla td:nth-child(2),
+.reportes-v2 .tabla td:nth-child(3),
+.reportes-v2 .tabla td:nth-child(4),
+.reportes-v2 .tabla td:nth-child(5) {
+  white-space: normal;
+}
+
+.reportes-v2 .negativo {
+  color: #c83c58;
+  font-weight: 700;
+}
+
+@media (max-width: 1180px) {
+  .rpt-resumen {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+
+  .rpt-grid-dos {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .rpt-resumen,
+  .reportes-v2 .rep-filtros {
+    grid-template-columns: 1fr;
+  }
+
+  .rpt-kv > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+}

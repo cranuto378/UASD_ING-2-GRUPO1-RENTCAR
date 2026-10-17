@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#151b38">
     <title>AutoGo Rent a Car</title>
 
-    <!-- Tema automático por hora local + cambio manual hasta el próximo período -->
+    <!-- Tema automático con preferencia manual por período -->
     <script>
         (function () {
             function periodoActual() {
@@ -41,16 +41,21 @@
         })();
     </script>
 
-    <link rel="icon" href="logo.png">
+    <link rel="icon" type="image/png" href="icono-autogo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=panel-4">
+
+    <link rel="stylesheet" href="styles.css?v=20261017">
+    <link rel="stylesheet" href="theme.css?v=20261017">
+    <link rel="stylesheet" href="responsive.css?v=20261017">
+    <link rel="stylesheet" href="auth.css?v=20261017">
+    <link rel="stylesheet" href="components.css?v=20261017">
+    <link rel="stylesheet" href="print.css?v=20261017" media="print">
 </head>
 
 <body>
 
-    <!-- ICONO DEL VEHÍCULO -->
     <svg width="0" height="0" style="position:absolute;" aria-hidden="true">
         <defs>
             <symbol id="auto" viewBox="0 0 64 36">
@@ -59,23 +64,51 @@
         </defs>
     </svg>
 
-    <!-- FONDO -->
     <div class="fondo" aria-hidden="true"></div>
-
-    <!-- APLICACIÓN -->
     <div id="raiz"></div>
 
     <noscript>
         <p class="sin-js">AutoGo necesita JavaScript activado para funcionar.</p>
     </noscript>
 
-    <script src="js/config.js?v=3"></script>
-    <script src="js/ui.js?v=3"></script>
-    <script src="js/demo.js?v=final-demo"></script>
-    <script src="js/api.js?v=3"></script>
-    <script src="js/app.js?v=panel-4"></script>
+    <!-- Configuración y datos locales de desarrollo -->
+    <script src="js/config.js?v=20261017"></script>
+    <script src="js/local-db.js?v=20261017"></script>
+    <script src="js/local-db-fixes.js?v=20261017"></script>
+    <script src="js/local-finance-rules.js?v=20261017"></script>
+    <script src="js/local-finance-v3.js?v=20261017"></script>
 
-    <!-- Banner de la pantalla de Inicio: ajusta su alto al saludo + tarjetas -->
+    <!-- Aplicación -->
+    <script src="js/ui.js?v=20261017"></script>
+    <script src="js/api.js?v=20261017"></script>
+    <script src="js/app.js?v=20261017"></script>
+    <script src="js/reports.js?v=20261017"></script>
+    <script src="js/demo-login.js?v=20261017"></script>
+    <script src="js/mobile-menu.js?v=20261017"></script>
+    <script src="js/catalog-consistency.js?v=20261017"></script>
+    <script src="js/financial-ui.js?v=20261017"></script>
+
+    <!-- Recupera la ruta si la vista inicial no llegó a renderizarse -->
+    <script>
+        (function () {
+            function recuperar() {
+                var raiz = document.getElementById('raiz');
+                if (!raiz || raiz.children.length) return;
+                try {
+                    if (!location.hash) history.replaceState(null, '', '#/login');
+                    if (typeof render === 'function') render();
+                } catch (e) {
+                    console.error('AutoGo no pudo iniciar:', e);
+                }
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', recuperar, { once: true });
+            else recuperar();
+            setTimeout(recuperar, 120);
+            setTimeout(recuperar, 500);
+        })();
+    </script>
+
+    <!-- Ajusta el banner de inicio al contenido del cliente -->
     <script>
         (function () {
             var raiz = document.getElementById('raiz');
@@ -94,7 +127,6 @@
                 }
                 main.classList.add('hero-on');
 
-                // Mueve "Rentar un vehículo" a la fila de tarjetas
                 var btn = Array.prototype.slice.call(top.querySelectorAll('a, button'))
                     .filter(function (el) { return /rentar/i.test(el.textContent); })[0];
                 if (btn) {
@@ -111,10 +143,8 @@
                 requestAnimationFrame(ajustarBanner);
             }
 
-            // Ruta del catálogo: se toma del enlace "Ver vehículos disponibles" cuando aparece
             var rutaCatalogo = '#/catalogo';
 
-            // Mensaje para invitar al cliente a ver el catálogo (login y registro)
             function mensajeCatalogo() {
                 var enlace = Array.prototype.slice.call(
                     document.querySelectorAll('a[href*="catalogo"], a[href*="vehiculos"], a[href*="disponibles"]')
@@ -124,7 +154,6 @@
                 var foto = document.querySelector('.auth-foto');
                 if (!foto) return;
 
-                // El logo ya no lleva al catálogo: se quita el enlace
                 var marca = foto.querySelector('.marca');
                 if (marca) {
                     Array.prototype.forEach.call(marca.querySelectorAll('a'), function (a) {
@@ -140,7 +169,6 @@
                 var p = foto.querySelector('p');
                 if (!p) return;
 
-                // Solo el botón verde (sin título ni texto)
                 var caja = document.createElement('div');
                 caja.className = 'auth-promo';
                 caja.innerHTML = '<a href="' + rutaCatalogo + '">Ver catálogo &rarr;</a>';
@@ -148,7 +176,6 @@
             }
 
             new MutationObserver(function () { mensajeCatalogo(); programar(); }).observe(raiz, { childList: true, subtree: true });
-            // Respaldo: cualquier clic en el logo de la pantalla de acceso se ignora
             document.addEventListener('click', function (e) {
                 if (e.target.closest && e.target.closest('.auth-foto .marca')) {
                     e.preventDefault();
@@ -159,8 +186,6 @@
             window.addEventListener('hashchange', function () { mensajeCatalogo(); programar(); });
             window.addEventListener('resize', programar);
             window.addEventListener('load', mensajeCatalogo);
-
-            // Al cargar: la pantalla puede estar ya dibujada, así que se coloca el botón de inmediato
             mensajeCatalogo();
             setTimeout(mensajeCatalogo, 150);
             setTimeout(mensajeCatalogo, 600);
@@ -168,7 +193,7 @@
         })();
     </script>
 
-    <!-- Modo noche en la pantalla de acceso (botón arriba a la derecha) -->
+    <!-- Control de tema en las pantallas de acceso -->
     <script>
         (function () {
             var raiz = document.getElementById('raiz');

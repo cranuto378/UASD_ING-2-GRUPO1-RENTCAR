@@ -904,7 +904,7 @@ input[type=file]::file-selector-button {
     min-height: 100vh;
     margin: 0 auto;
     padding: 28px;
-    align-items: stretch;
+    align-items: center;
 }
 
 .auth-foto {
@@ -972,15 +972,19 @@ input[type=file]::file-selector-button {
 
 .auth-panel {
     border-radius: var(--r-xl);
-    padding: 44px;
+    padding: 38px 42px;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-self: center;
+    min-height: 0;
+    width: 100%;
+    max-width: 470px;
 }
 
 .auth-panel .contenido {
     width: 100%;
-    max-width: 380px;
+    max-width: 340px;
     margin: 0 auto;
 }
 
@@ -6061,7 +6065,13 @@ html[data-tema="noche"] body.entorno-cliente .side-cerrar-sesion:hover{backgroun
 .rep-mini.tono-orange .rep-mini-ico{color:#b97719;background:rgba(224,157,56,.11);border-color:rgba(224,157,56,.23)}
 .rep-mini.tono-purple .rep-mini-ico{color:#7652c7;background:rgba(118,82,199,.10);border-color:rgba(118,82,199,.23)}
 .rep-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.rep-card{padding:18px;min-width:0}.rep-card.rep-ancha{grid-column:1/-1}.rep-card-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:15px}.rep-card-h h3{font-size:16px;margin-bottom:3px}.rep-card-h p{font-size:11px;color:var(--txt-3)}
-.rep-barras{display:grid;gap:14px}.rep-bar-label{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:6px;font-size:12px}.rep-bar-label span{color:var(--txt-2)}.rep-bar-label b{font-size:12px}.rep-barras i{display:block;height:8px;border-radius:999px;background:color-mix(in srgb,var(--txt) 7%,transparent);overflow:hidden}.rep-barras i span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,color-mix(in srgb,var(--info) 76%,#fff),var(--info))}.rep-barras-estados .rep-estado-activo i span{background:linear-gradient(90deg,#5f8fdf,#2f70cf)}.rep-barras-estados .rep-estado-reserva i span{background:linear-gradient(90deg,#a78bfa,#7652c7)}.rep-barras-estados .rep-estado-por-devolver i span{background:linear-gradient(90deg,#f0bd58,#d99423)}.rep-barras-estados .rep-estado-vencido i span{background:linear-gradient(90deg,#f18484,#d84a4a)}.rep-barras-estados .rep-estado-completado i span{background:linear-gradient(90deg,#62d2a1,#24976e)}.rep-barras-estados .rep-estado-cancelado i span{background:linear-gradient(90deg,#a9b3c1,#78879b)}.rep-barras-estados .rep-estado-neutro i span{background:linear-gradient(90deg,#9eabc0,#71819a)}
+.rep-barras{display:grid;gap:14px}.rep-bar-label{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:6px;font-size:12px}.rep-bar-label span{color:var(--txt-2)}.rep-bar-label b{font-size:12px}.rep-barras i{display:block;height:8px;border-radius:999px;background:color-mix(in srgb,var(--txt) 7%,transparent);overflow:hidden}.rep-barras i span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,color-mix(in srgb,var(--info) 76%,#fff),var(--info))}.rep-barras-estados .rep-estado-activo i span{background:linear-gradient(90deg,#5f8fdf,#2f70cf)}
+.rep-barras-estados .rep-estado-reserva i span{background:linear-gradient(90deg,#a78bfa,#7652c7)}
+.rep-barras-estados .rep-estado-por-devolver i span{background:linear-gradient(90deg,#f0bd58,#d99423)}
+.rep-barras-estados .rep-estado-vencido i span{background:linear-gradient(90deg,#f18484,#d84a4a)}
+.rep-barras-estados .rep-estado-completado i span{background:linear-gradient(90deg,#62d2a1,#24976e)}
+.rep-barras-estados .rep-estado-cancelado i span{background:linear-gradient(90deg,#a9b3c1,#78879b)}
+.rep-barras-estados .rep-estado-neutro i span{background:linear-gradient(90deg,#9eabc0,#71819a)}
 .config-historial{display:grid;gap:0;border-top:1px solid var(--borde-2);margin-top:8px}.config-hist-item{display:grid;grid-template-columns:180px minmax(0,1fr);gap:16px;padding:13px 2px;border-bottom:1px solid var(--borde-2)}.config-hist-item>div:first-child b,.config-hist-item>div:first-child small{display:block}.config-hist-item>div:first-child b{font-size:11px}.config-hist-item>div:first-child small{font-size:10px;color:var(--txt-3);margin-top:3px}.config-hist-cambios{display:flex;gap:7px;flex-wrap:wrap}.config-hist-cambios span{font-size:10.5px;padding:5px 8px;border:1px solid var(--borde-2);border-radius:999px;background:var(--glass-3);color:var(--txt-2)}.config-hist-cambios s{color:var(--txt-3)}.vacio-mini{padding:18px 2px;color:var(--txt-3);font-size:11px}
 html[data-tema="noche"] .rep-mini.tono-purple .rep-mini-ico{color:#c6b6ff;background:rgba(167,139,250,.12)}
 @media(max-width:1100px){.rep-resumen{grid-template-columns:repeat(2,minmax(0,1fr))}.rep-filtros{grid-template-columns:1fr 1fr}.rep-filtros .btn{width:100%}.config-hist-item{grid-template-columns:1fr}}
@@ -6159,13 +6169,16 @@ html[data-tema="noche"] .rep-mini.tono-purple .rep-mini-ico{color:#c6b6ff;backgr
     }
 
     .auth-panel {
-        min-height: calc(100vh - 2.9vw);
-        padding: 2.29vw;
+        min-height: 0;
+        padding: 2.1vw 2.2vw;
         border-radius: 1.45vw;
+        align-self: center;
+        width: 100%;
+        max-width: 23.5vw;
     }
 
     .auth-panel .contenido {
-        max-width: 19.8vw;
+        max-width: 16.5vw;
     }
 
     .auth-panel h2 {
@@ -6439,229 +6452,461 @@ html[data-tema="noche"] .rep-mini.tono-purple .rep-mini-ico{color:#c6b6ff;backgr
 }
 
 /* =========================================================
-   OCT 2026 · PORTAL CLIENTE · INICIO / BANNER / SIMPLIFICACIÓN
+   ACCESO · BOTÓN PRIMARIO MÁS COMPACTO
+   Evita la franja blanca demasiado ancha en Inicio de sesión.
 ========================================================= */
-
-body.entorno-cliente .main.hero-on {
-  --banner-extra: 18px;
-  --banner-y: 58%;
+.auth-panel .btn.block {
+    background: linear-gradient(135deg, rgba(59,132,229,.96) 0%, rgba(35,98,190,.96) 100%);
+    color: #fff;
+    border-color: rgba(178,214,255,.55);
+    box-shadow: 0 10px 24px rgba(31,91,177,.26), inset 0 1px 0 rgba(255,255,255,.28);
+    border-radius: 15px;
 }
 
-body.entorno-cliente .main.hero-on::before {
-  top: 16px;
-  left: 20px;
-  right: 20px;
-  height: calc(var(--hero-h, 220px) + var(--banner-extra));
-  border-radius: 26px;
-  background-image:
-    linear-gradient(90deg, rgba(13,27,53,.82) 0%, rgba(16,38,70,.58) 38%, rgba(16,38,70,.20) 66%, rgba(16,38,70,.02) 100%),
-    var(--banner);
-  background-size: 100% 100%, cover;
-  background-position: 0 0, center var(--banner-y);
-  box-shadow: 0 18px 42px rgba(38,61,94,.16), inset 0 1px 0 rgba(255,255,255,.36);
+.auth-panel .btn.block:hover {
+    background: linear-gradient(135deg, rgba(70,145,239,.98) 0%, rgba(41,109,205,.98) 100%);
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(31,91,177,.31), inset 0 1px 0 rgba(255,255,255,.32);
 }
 
-body.entorno-cliente .main.hero-on .topbar {
-  padding-top: 28px;
-  padding-left: 34px;
-  padding-right: 34px;
+.auth-panel .btn.block.cargando::after {
+    border-color: #fff transparent #fff transparent;
 }
 
-body.entorno-cliente .main.hero-on .topbar h1 {
-  color: #fff !important;
-  font-size: clamp(27px, 2.15vw, 38px);
-  line-height: 1.05;
-  letter-spacing: -.025em;
-  text-shadow: 0 2px 16px rgba(9,24,49,.38);
+@media (min-width: 861px) {
+    .auth-panel .btn.block {
+        width: min(78%, 310px);
+        min-width: 238px;
+        margin-left: auto;
+        margin-right: auto;
+    }
 }
 
-body.entorno-cliente .main.hero-on .topbar .sub {
-  color: rgba(255,255,255,.80) !important;
-  text-shadow: 0 1px 10px rgba(9,24,49,.3);
+@media (max-width: 860px) {
+    .auth-panel .btn.block {
+        width: 100%;
+    }
 }
 
-body.entorno-cliente .main.hero-on .kpis {
-  width: min(76%, 1060px);
-  min-width: 0;
-  gap: 12px;
-  margin-left: 14px;
-  margin-bottom: calc(18px + var(--banner-extra));
-}
 
-body.entorno-cliente .main.hero-on .cliente-kpi,
-body.entorno-cliente .main.hero-on .kpi-accion {
-  min-height: 102px;
-  border-radius: 18px;
-}
-
-body.entorno-cliente .main.hero-on .cliente-kpi {
-  background: rgba(244,248,253,.60) !important;
-  border: 1px solid rgba(255,255,255,.64) !important;
-  box-shadow: 0 10px 26px rgba(24,51,88,.10), inset 0 1px 0 rgba(255,255,255,.58) !important;
-  backdrop-filter: blur(18px) saturate(135%);
-  -webkit-backdrop-filter: blur(18px) saturate(135%);
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-}
-
-body.entorno-cliente .main.hero-on .cliente-kpi:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 34px rgba(24,51,88,.15), inset 0 1px 0 rgba(255,255,255,.7) !important;
-  border-color: color-mix(in srgb,var(--acento) 36%,rgba(255,255,255,.64)) !important;
-}
-
-body.entorno-cliente .main.hero-on .kpi-accion {
-  background: linear-gradient(135deg,#3c83e6 0%,#2369c7 100%) !important;
-  border-color: rgba(255,255,255,.52) !important;
-  box-shadow: 0 12px 28px rgba(35,105,199,.28), inset 0 1px 0 rgba(255,255,255,.38) !important;
-}
-
-body.entorno-cliente .main.hero-on .kpi-accion:hover {
-  background: linear-gradient(135deg,#4b8ceb 0%,#2f74d2 100%) !important;
-}
-
-body.entorno-cliente .cliente-kpi-link {
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
-}
-
-body.entorno-cliente .cliente-recientes {
-  margin-top: 0;
-}
-
-body.entorno-cliente .cliente-alquiler-reciente {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-}
-
-body.entorno-cliente .cliente-alquiler-reciente:hover {
-  background: color-mix(in srgb,var(--azul) 6%,transparent);
-}
-
-body.entorno-cliente .cliente-reciente-info {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-body.entorno-cliente .cliente-reciente-info b,
-body.entorno-cliente .cliente-reciente-info small {
-  display: block;
-}
-
-body.entorno-cliente .cliente-reciente-ir {
-  color: var(--txt-3);
-  display: inline-grid;
-  place-items: center;
-}
-
-body.entorno-cliente .cliente-reciente-ir .ic {
-  width: 17px;
-  height: 17px;
-}
-
-body.entorno-cliente .cliente-alq-herramientas {
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-body.entorno-cliente .cliente-alq-segmentos {
-  width: max-content;
-  min-width: 100%;
-}
-
-body.entorno-cliente .wallet-resumen-cliente {
-  grid-template-columns: repeat(3,minmax(0,1fr));
-}
-
-body.entorno-cliente .wallet-todos.act {
-  border-color: color-mix(in srgb,var(--azul) 45%,var(--borde));
-  color: var(--azul);
-}
-
-html[data-tema="noche"] body.entorno-cliente .main.hero-on::before {
-  background-image:
-    linear-gradient(90deg, rgba(3,8,20,.90) 0%, rgba(5,14,31,.72) 40%, rgba(5,14,31,.36) 68%, rgba(5,14,31,.10) 100%),
-    var(--banner);
-  box-shadow: 0 20px 50px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.12);
-}
-
-html[data-tema="noche"] body.entorno-cliente .main.hero-on .cliente-kpi {
-  background: rgba(12,24,45,.55) !important;
-  border-color: rgba(255,255,255,.13) !important;
-  box-shadow: 0 12px 28px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.06) !important;
-}
-
-@media (max-width: 1180px) {
-  body.entorno-cliente .main.hero-on .kpis {
-    width: calc(100% - 28px);
-    grid-template-columns: repeat(2,minmax(0,1fr));
-  }
-  body.entorno-cliente .main.hero-on .kpis .kpi-accion {
-    grid-column: 1/-1;
-  }
-  body.entorno-cliente .wallet-resumen-cliente {
-    grid-template-columns: repeat(2,minmax(0,1fr));
+/* Login compacto en escritorio: evita el rectángulo demasiado alto. */
+@media (min-width: 861px) {
+  .auth-panel {
+    box-sizing: border-box;
   }
 }
 
-@media (max-width: 760px) {
-  body.entorno-cliente .main.hero-on::before {
-    left: 8px;
-    right: 8px;
-    top: 8px;
-    background-position: 72% center;
+@media (max-width: 860px) {
+  .auth {
+    align-items: stretch;
   }
-  body.entorno-cliente .main.hero-on .topbar {
-    padding: 22px 18px 12px;
+
+  .auth-panel {
+    max-width: none;
+    width: auto;
+    align-self: stretch;
+    padding: 34px 26px;
   }
-  body.entorno-cliente .main.hero-on .kpis {
-    width: calc(100% - 12px);
-    margin-left: 6px;
-    grid-template-columns: 1fr 1fr;
+
+  .auth-panel .contenido {
+    max-width: 380px;
   }
-  body.entorno-cliente .main.hero-on .cliente-kpi,
-  body.entorno-cliente .main.hero-on .kpi-accion {
-    min-height: 92px;
+}
+
+
+/* =========================================================
+   ACCESO · LOGIN Y CREAR CUENTA COMPACTOS
+   El login conserva un panel corto; registro usa el espacio
+   necesario sin estirarse a toda la altura de la pantalla.
+========================================================= */
+@media (min-width: 861px) {
+  .auth {
+    align-items: center !important;
   }
-  body.entorno-cliente .wallet-resumen-cliente {
+
+  .auth .auth-panel {
+    min-height: 0 !important;
+    height: auto !important;
+    align-self: center !important;
+  }
+
+  .auth.auth-compacto .auth-panel {
+    width: 100%;
+    max-width: 455px;
+    padding: 34px 40px;
+  }
+
+  .auth.auth-compacto .auth-panel .contenido {
+    max-width: 340px;
+    transform: none !important;
+  }
+
+  .auth.auth-compacto .auth-panel .sub {
+    margin-bottom: 20px;
+  }
+
+  .auth.auth-registro {
+    max-width: 1160px;
+  }
+
+  .auth.auth-registro .auth-foto {
+    min-height: 680px !important;
+    height: 680px;
+  }
+
+  .auth.auth-registro .auth-panel {
+    width: 100%;
+    max-width: 455px;
+    padding: 28px 38px;
+  }
+
+  .auth.auth-registro .auth-panel .contenido {
+    max-width: 390px;
+    transform: none !important;
+  }
+
+  .auth.auth-registro .auth-panel h2 {
+    font-size: 28px;
+  }
+
+  .auth.auth-registro .auth-panel .sub {
+    margin: 5px 0 18px;
+    line-height: 1.4;
+  }
+
+  .auth.auth-registro .form {
+    gap: 10px;
+  }
+
+  .auth.auth-registro .grid2 {
+    gap: 10px 12px;
+  }
+
+  .auth.auth-registro .campo {
+    gap: 4px;
+    margin-bottom: 0 !important;
+  }
+
+  .auth.auth-registro .campo label {
+    font-size: 12px;
+  }
+
+  .auth.auth-registro input:not([type="checkbox"]),
+  .auth.auth-registro select,
+  .auth.auth-registro textarea {
+    min-height: 40px !important;
+    padding: 8px 12px;
+    border-radius: 12px;
+  }
+
+  .auth.auth-registro .campo .ayuda {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .auth.auth-registro .check {
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .auth.auth-registro input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+  }
+
+  .auth.auth-registro .btn.block {
+    min-height: 40px !important;
+    margin-top: 0;
+  }
+
+  .auth.auth-registro .pie {
+    margin-top: 11px;
+  }
+}
+
+@media (min-width: 2200px) {
+  .auth.auth-compacto .auth-panel,
+  .auth.auth-registro .auth-panel {
+    min-height: 0 !important;
+    height: auto !important;
+    max-width: 23vw;
+  }
+
+  .auth.auth-registro .auth-foto {
+    min-height: min(78vh, 1340px) !important;
+    height: min(78vh, 1340px);
+  }
+
+  .auth.auth-registro .auth-panel .contenido {
+    max-width: 18vw;
+  }
+}
+
+@media (max-width: 860px) {
+  .auth.auth-compacto .auth-panel,
+  .auth.auth-registro .auth-panel {
+    max-width: none;
+    width: auto;
+    min-height: 0;
+    height: auto;
+  }
+
+  .auth.auth-registro .auth-panel {
+    padding: 28px 24px;
+  }
+
+  .auth.auth-registro .grid2 {
+    gap: 12px;
+  }
+}
+
+/* =========================================================
+   ACCESO · COMPOSICIÓN EQUILIBRADA TIPO "CARD DENTRO DE CARD"
+   Mantiene la identidad AutoGo + Glass. El bloque exterior une
+   visualmente foto y formulario; el formulario sigue compacto.
+========================================================= */
+@media (min-width: 861px) {
+  .auth {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center;
+    width: 100%;
+    max-width: none !important;
+    min-height: 100vh;
+    padding: 26px 34px !important;
+  }
+
+  .auth-stage {
+    --auth-stage-h: min(700px, calc(100vh - 52px));
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(410px, .92fr);
+    width: min(1160px, calc(100vw - 68px));
+    height: var(--auth-stage-h);
+    min-height: 620px;
+    gap: 0;
+    padding: 14px;
+    overflow: hidden;
+    border-radius: 34px;
+    background:
+      linear-gradient(135deg, rgba(90,126,210,.16) 0%, rgba(72,73,157,.12) 52%, rgba(45,40,102,.16) 100%),
+      rgba(255,255,255,.045);
+    border: 1px solid rgba(255,255,255,.20);
+    box-shadow: 0 32px 80px rgba(6,9,28,.34), inset 0 1px 0 rgba(255,255,255,.22);
+    -webkit-backdrop-filter: blur(28px) saturate(145%);
+    backdrop-filter: blur(28px) saturate(145%);
+  }
+
+  .auth-stage .auth-foto,
+  .auth-stage .auth-panel {
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  .auth-stage .auth-foto {
+    border-radius: 25px;
+    padding: 34px 36px 30px;
+    box-shadow: 0 18px 44px rgba(4,8,24,.24), inset 0 1px 0 rgba(255,255,255,.16);
+  }
+
+  .auth-stage .auth-panel {
+    width: 100% !important;
+    max-width: none !important;
+    align-self: stretch !important;
+    justify-content: center;
+    padding: 34px 40px !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .auth-stage .auth-panel .contenido {
+    width: 100%;
+    max-width: 390px !important;
+    margin: auto;
+    padding: 34px 36px;
+    transform: none !important;
+    border-radius: 26px;
+    background:
+      linear-gradient(145deg, rgba(119,127,214,.24) 0%, rgba(70,86,153,.20) 58%, rgba(45,48,94,.24) 100%),
+      rgba(255,255,255,.075);
+    border: 1px solid rgba(212,222,255,.26);
+    box-shadow: 0 20px 46px rgba(5,9,28,.28), inset 0 1px 0 rgba(255,255,255,.24);
+    -webkit-backdrop-filter: blur(26px) saturate(155%);
+    backdrop-filter: blur(26px) saturate(155%);
+  }
+
+  .auth.auth-compacto .auth-panel .contenido {
+    max-width: 390px !important;
+    padding: 34px 36px;
+  }
+
+  .auth.auth-registro .auth-foto {
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  .auth.auth-registro .auth-panel {
+    max-width: none !important;
+    padding: 24px 34px !important;
+  }
+
+  .auth.auth-registro .auth-panel .contenido {
+    max-width: 430px !important;
+    padding: 25px 30px 24px;
+  }
+
+  .auth.auth-registro .auth-panel h2 {
+    font-size: 27px;
+  }
+
+  .auth.auth-registro .auth-panel .sub {
+    margin: 4px 0 15px;
+  }
+
+  .auth.auth-registro .form {
+    gap: 8px;
+  }
+
+  .auth.auth-registro .grid2 {
+    gap: 8px 10px;
+  }
+
+  .auth.auth-registro input:not([type="checkbox"]),
+  .auth.auth-registro select,
+  .auth.auth-registro textarea {
+    min-height: 38px !important;
+    padding: 7px 11px;
+  }
+
+  .auth.auth-registro .campo label {
+    font-size: 11.5px;
+  }
+
+  .auth.auth-registro .campo .ayuda {
+    font-size: 10.5px;
+  }
+
+  .auth.auth-registro .check {
+    font-size: 11.5px;
+  }
+
+  .auth.auth-registro .btn.block {
+    min-height: 39px !important;
+  }
+
+  .auth.auth-registro .pie {
+    margin-top: 9px;
+  }
+}
+
+/* Tema nocturno: el marco se vuelve más profundo sin perder el efecto Glass. */
+@media (min-width: 861px) {
+  html[data-tema="noche"] .auth-stage {
+    background:
+      linear-gradient(135deg, rgba(64,82,160,.16) 0%, rgba(48,45,113,.14) 55%, rgba(30,27,72,.18) 100%),
+      rgba(7,10,28,.20);
+    border-color: rgba(255,255,255,.15);
+  }
+
+  html[data-tema="noche"] .auth-stage .auth-panel .contenido {
+    background:
+      linear-gradient(145deg, rgba(83,93,173,.20) 0%, rgba(47,57,111,.18) 58%, rgba(26,29,65,.28) 100%),
+      rgba(8,11,30,.34);
+    border-color: rgba(202,213,255,.20);
+  }
+}
+
+/* En móvil se conserva el flujo apilado y no se fuerza el marco horizontal. */
+@media (max-width: 860px) {
+  .auth {
+    display: block !important;
+    padding: 16px !important;
+  }
+
+  .auth-stage {
+    display: grid;
     grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .auth-stage .auth-foto {
+    min-height: 270px;
+  }
+
+  .auth-stage .auth-panel {
+    max-width: none !important;
+    width: 100% !important;
+    padding: 24px 18px !important;
+  }
+
+  .auth-stage .auth-panel .contenido {
+    max-width: 430px;
+    margin: 0 auto;
   }
 }
 
-/* Ajuste del banner de Inicio del cliente en modo claro:
-   menos oscuro y con mejor legibilidad del saludo */
-html:not([data-tema="noche"]) body.entorno-cliente .main.hero-on::before {
-  background-image:
-    linear-gradient(90deg,
-      rgba(246,250,255,.86) 0%,
-      rgba(239,246,253,.64) 30%,
-      rgba(227,237,249,.30) 56%,
-      rgba(255,255,255,.06) 100%),
-    var(--banner);
-  box-shadow: 0 14px 34px rgba(38,61,94,.12), inset 0 1px 0 rgba(255,255,255,.52);
-}
+/* Ajuste de acceso unificado:
+   elimina la tarjeta compacta interna del login/registro
+   para que el formulario forme parte del mismo bloque Glass. */
+@media (min-width: 861px) {
+  .auth-stage {
+    grid-template-columns: minmax(0, 1.08fr) minmax(390px, .92fr);
+    padding: 14px;
+  }
 
-html:not([data-tema="noche"]) body.entorno-cliente .main.hero-on .topbar h1 {
-  color: #18365f !important;
-  text-shadow: 0 1px 0 rgba(255,255,255,.45), 0 6px 18px rgba(255,255,255,.12);
-}
+  .auth-stage .auth-panel {
+    position: relative;
+    padding: 42px 46px !important;
+  }
 
-html:not([data-tema="noche"]) body.entorno-cliente .main.hero-on .topbar .sub {
-  color: #45607f !important;
-  text-shadow: none;
-}
+  .auth-stage .auth-panel::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 38px;
+    bottom: 38px;
+    width: 1px;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,.18) 0%,
+      rgba(255,255,255,.07) 20%,
+      rgba(255,255,255,.07) 80%,
+      rgba(255,255,255,.18) 100%);
+    pointer-events: none;
+  }
 
-html:not([data-tema="noche"]) body.entorno-cliente .main.hero-on .cliente-kpi {
-  background: rgba(255,255,255,.76) !important;
-  border-color: rgba(255,255,255,.74) !important;
-  box-shadow: 0 8px 20px rgba(24,51,88,.08), inset 0 1px 0 rgba(255,255,255,.72) !important;
-}
+  .auth-stage .auth-panel .contenido,
+  .auth.auth-compacto .auth-panel .contenido,
+  .auth.auth-registro .auth-panel .contenido {
+    max-width: 392px !important;
+    margin: 0 auto;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
 
-html:not([data-tema="noche"]) body.entorno-cliente .main.hero-on .kpi-accion {
-  box-shadow: 0 10px 24px rgba(35,105,199,.22), inset 0 1px 0 rgba(255,255,255,.36) !important;
+  .auth.auth-registro .auth-panel .contenido {
+    max-width: 430px !important;
+  }
+
+  .auth-stage .auth-panel h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+  }
+
+  .auth-stage .auth-panel .sub {
+    margin-bottom: 18px;
+  }
+
+  html[data-tema="noche"] .auth-stage .auth-panel .contenido {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
 }

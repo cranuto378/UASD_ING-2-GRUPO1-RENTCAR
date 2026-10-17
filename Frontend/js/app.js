@@ -254,24 +254,27 @@ async function render() {
 
 function montarAuth(def) {
   const [titulo, texto] = def.lema || LEMA;
+  const claseAuth = def.titulo === 'Crear cuenta' ? 'auth-registro' : 'auth-compacto';
 
   raiz.innerHTML = `
-    <main class="auth">
-      <section class="auth-foto">
-        <div>
-          <a href="#/catalogo" class="marca"><img src="logo.png" alt="AutoGo Rent a Car"></a>
-          <h1>${esc(titulo)}</h1>
-          <p>${esc(texto)}</p>
-        </div>
-        <div class="chips">
-          <span class="chip">${icon('calendar')}Reserva en línea</span>
-          <span class="chip">${icon('receipt')}Factura inmediata</span>
-          <span class="chip">${icon('shield')}Vehículos revisados</span>
-        </div>
-      </section>
-      <section class="auth-panel">
-        <div class="contenido" id="vista"></div>
-      </section>
+    <main class="auth ${claseAuth}">
+      <div class="auth-stage">
+        <section class="auth-foto">
+          <div>
+            <a href="#/catalogo" class="marca"><img src="logo.png" alt="AutoGo Rent a Car"></a>
+            <h1>${esc(titulo)}</h1>
+            <p>${esc(texto)}</p>
+          </div>
+          <div class="chips">
+            <span class="chip">${icon('calendar')}Reserva en línea</span>
+            <span class="chip">${icon('receipt')}Factura inmediata</span>
+            <span class="chip">${icon('shield')}Vehículos revisados</span>
+          </div>
+        </section>
+        <section class="auth-panel">
+          <div class="contenido" id="vista"></div>
+        </section>
+      </div>
     </main>`;
 
   return $('#vista');
@@ -1373,68 +1376,65 @@ async function vInicioCliente(c, ctx) {
 
   c.innerHTML = UI.cargando(4);
 
-  const [alquileres, wallet] = await Promise.all([Api.misAlquileres(), Api.miWallet().catch(() => null)]);
+  const [alquileres, facturas, wallet] = await Promise.all([Api.misAlquileres(), Api.misFacturas(), Api.miWallet().catch(() => null)]);
   if (!ctx.vigente()) return;
 
-  const operativos = alquileres.map(a => ({ a, e: estadoOperativoAlquiler(a) }));
-  const enCurso = operativos.filter(x => x.e.clave === 'activo').map(x => x.a);
-  const reservas = operativos.filter(x => x.e.clave === 'reserva').map(x => x.a);
-  const porDevolver = operativos.filter(x => x.e.clave === 'por_devolver').map(x => x.a);
-  const vencidos = operativos.filter(x => x.e.clave === 'vencido').map(x => x.a);
-  const pendientes = [...porDevolver, ...enCurso].sort((a,b) => String(a.fechaFinPactada).localeCompare(String(b.fechaFinPactada)));
-  const proxima = pendientes[0]?.fechaFinPactada || null;
-  const filtroProxima = porDevolver.length ? 'por_devolver' : 'activos';
+  const h = hoy();
+  const activos = alquileres.filter(a => a.estado === 'ACTIVO');
+  const enCurso = activos.filter(a => a.fechaInicio <= h);
+  const reservas = activos.filter(a => a.fechaInicio > h);
+  const vencidos = activos.filter(a => a.vencido);
+  const proxima = enCurso.map(a => a.fechaFinPactada).sort()[0];
+  const facturado = facturas.reduce((t, x) => t + Number(x.total != null ? x.total : x.monto), 0);
 
   c.innerHTML = `
     <div class="seccion cliente-inicio">
       ${vencidos.length ? `
         <div class="aviso-banda">${icon('alert')}
           <span>Tienes ${vencidos.length} alquiler(es) con la entrega vencida. Devuelve el vehículo lo antes posible para evitar más cargos por mora.</span>
-          <a class="btn sm" href="#/mis-alquileres?filtro=vencidos">Ver vencidos</a>
+          <a class="btn sm" href="#/mis-alquileres">Ver</a>
         </div>` : ''}
 
       <div class="kpis cliente-kpis">
-        <a class="card kpi cliente-kpi tono-blue cliente-kpi-link" href="#/mis-alquileres?filtro=activos"><span class="etq"><span class="cliente-kpi-ico">${icon('car')}</span> En curso</span><span class="valor">${enCurso.length}</span><span class="nota">Alquileres activos</span></a>
-        <a class="card kpi cliente-kpi tono-purple cliente-kpi-link" href="#/mis-alquileres?filtro=reservas"><span class="etq"><span class="cliente-kpi-ico">${icon('calendar')}</span> Reservas</span><span class="valor">${reservas.length}</span><span class="nota">Próximas salidas</span></a>
-        <a class="card kpi cliente-kpi tono-orange cliente-kpi-link" href="#/mis-alquileres?filtro=${filtroProxima}"><span class="etq"><span class="cliente-kpi-ico">${icon('clock')}</span> Próxima entrega</span><span class="valor">${proxima ? fmt.fechaCorta(proxima) : '—'}</span><span class="nota">${proxima ? fmt.fecha(proxima) : 'Sin entregas pendientes'}</span></a>
+        <div class="card kpi cliente-kpi tono-blue"><span class="etq"><span class="cliente-kpi-ico">${icon('car')}</span> En curso</span><span class="valor">${enCurso.length}</span><span class="nota">Alquileres activos</span></div>
+        <div class="card kpi cliente-kpi tono-purple"><span class="etq"><span class="cliente-kpi-ico">${icon('calendar')}</span> Reservas</span><span class="valor">${reservas.length}</span><span class="nota">Próximas salidas</span></div>
+        <div class="card kpi cliente-kpi tono-orange"><span class="etq"><span class="cliente-kpi-ico">${icon('clock')}</span> Próxima entrega</span><span class="valor">${proxima ? fmt.fechaCorta(proxima) : '—'}</span><span class="nota">${proxima ? fmt.fecha(proxima) : 'Sin entregas pendientes'}</span></div>
         ${Number(wallet?.saldo || 0) > 0 ? `<a class="card kpi cliente-kpi tono-green cliente-kpi-link" href="#/wallet"><span class="etq"><span class="cliente-kpi-ico">${icon('wallet')}</span> Wallet GO</span><span class="valor">${fmt.dinero(wallet.saldo)}</span><span class="nota">Saldo disponible</span></a>` : ''}
       </div>
 
-      <section class="card cliente-recientes">
-        <div class="card-h"><div><h3>Alquileres recientes</h3><p>Consulta rápidamente tus últimas reservas y alquileres.</p></div><a class="link suave" href="#/mis-alquileres">Ver todos ${icon('arrowRight')}</a></div>
-        ${alquileres.length ? `<div class="lista">${alquileres.slice(0, 5).map(a => `
-          <button class="item cliente-alquiler-reciente" type="button" data-home-alq="${a.id}">
-            <span class="avatar sm">${icon('car')}</span>
-            <span class="cliente-reciente-info"><b>${esc(a.vehiculo)}</b><small>${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaFinPactada)} · ${esc(a.placa)}</small></span>
-            ${estadoAlquiler(a)}
-            <span class="cliente-reciente-ir">${icon('arrowRight')}</span>
-          </button>`).join('')}</div>`
-          : UI.vacio('Aún no tienes alquileres. Elige tus fechas en el catálogo y reserva en minutos.', 'car', '<a class="btn sm" href="#/catalogo">Ir al catálogo</a>')}
-      </section>
-    </div>`;
+      <div class="dos-col">
+        <section class="card">
+          <div class="card-h"><h3>Alquileres recientes</h3><a class="link suave" href="#/mis-alquileres">Ver todos ${icon('arrowRight')}</a></div>
+          ${alquileres.length ? `<div class="lista">${alquileres.slice(0, 5).map(a => `
+            <div class="item">
+              <span class="avatar sm">${icon('car')}</span>
+              <div><b>${esc(a.vehiculo)}</b><small>${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaFinPactada)} · ${esc(a.placa)}</small></div>
+              ${estadoAlquiler(a)}
+            </div>`).join('')}</div>`
+            : UI.vacio('Aún no tienes alquileres. Elige tus fechas en el catálogo y reserva en minutos.', 'car', '<a class="btn sm" href="#/catalogo">Ir al catálogo</a>')}
+        </section>
 
-  c.addEventListener('click', e => {
-    const b = e.target.closest('[data-home-alq]');
-    if (!b) return;
-    const a = alquileres.find(x => x.id === +b.dataset.homeAlq);
-    if (a) detalleAlquiler(a);
-  });
+        <section class="card">
+          <div class="card-h"><h3>Accesos rápidos</h3></div>
+          <div class="accesos">
+            <a class="acceso" href="#/catalogo">${icon('search')}<b>Catálogo</b><small>Vehículos libres por fechas</small></a>
+            <a class="acceso" href="#/mis-facturas">${icon('receipt')}<b>Facturas</b><small>Consulta e imprime</small></a>
+          </div>
+        </section>
+      </div>
+    </div>`;
 }
 
 async function vMisAlquileres(c, ctx) {
-  const filtrosValidos = new Set(['activos','reservas','por_devolver','vencidos','historial','todos']);
-  let filtro = filtrosValidos.has(ctx.q.get('filtro')) ? ctx.q.get('filtro') : 'activos';
+  let filtro = ctx.q.get('filtro') || 'activos';
   let todos = [];
 
   ctx.acciones(`<a class="btn" href="#/catalogo">${icon('plus')} Nuevo alquiler</a>`);
 
   c.innerHTML = `
-    <div class="herramientas cliente-alq-herramientas">
-      <div class="segmentos cliente-alq-segmentos" role="tablist" aria-label="Filtrar mis alquileres">
-        <button type="button" data-f="activos">Activos</button>
-        <button type="button" data-f="reservas">Reservas</button>
-        <button type="button" data-f="por_devolver">Por devolver</button>
-        <button type="button" data-f="vencidos">Vencidos</button>
+    <div class="herramientas">
+      <div class="segmentos" role="tablist">
+        <button type="button" data-f="activos">Activos y reservas</button>
         <button type="button" data-f="historial">Historial</button>
         <button type="button" data-f="todos">Todos</button>
       </div>
@@ -1442,21 +1442,6 @@ async function vMisAlquileres(c, ctx) {
     <div class="card" id="lista">${UI.cargando(4)}</div>`;
 
   const caja = $('#lista', c);
-  const coincide = a => {
-    const e = estadoOperativoAlquiler(a).clave;
-    if (filtro === 'todos') return true;
-    if (filtro === 'historial') return e === 'completado' || e === 'cancelado';
-    return e === filtro || (filtro === 'activos' && e === 'activo');
-  };
-
-  const textoVacio = () => ({
-    activos:'No tienes alquileres activos.',
-    reservas:'No tienes reservas próximas.',
-    por_devolver:'No tienes vehículos para devolver hoy.',
-    vencidos:'No tienes alquileres vencidos.',
-    historial:'Todavía no tienes alquileres completados o cancelados.',
-    todos:'Aún no tienes alquileres.'
-  }[filtro] || 'No hay alquileres.');
 
   const pintar = () => {
     $$('[data-f]', c).forEach(b => {
@@ -1464,13 +1449,15 @@ async function vMisAlquileres(c, ctx) {
       b.setAttribute('aria-selected', b.dataset.f === filtro);
     });
 
-    const lista = todos.filter(coincide);
+    const lista = todos.filter(a =>
+      filtro === 'todos' || (filtro === 'activos' ? a.estado === 'ACTIVO' : a.estado !== 'ACTIVO'));
+
     caja.innerHTML = lista.length ? `
       <div class="tabla-wrap">
-        <table class="tabla tabla-mis-alquileres">
+        <table class="tabla">
           <thead><tr><th>#</th><th>Vehículo</th><th>Salida</th><th>Entrega</th><th class="num">Días</th><th class="num">Monto</th><th>Estado</th><th></th></tr></thead>
           <tbody>${lista.map(a => `
-            <tr class="${claseFilaAlquiler(a)}">
+            <tr>
               <td class="nowrap">#${a.id}</td>
               <td class="principal"><b>${esc(a.vehiculo)}</b><small>${esc(a.placa)}</small></td>
               <td class="nowrap">${fmt.fecha(a.fechaInicio)}</td>
@@ -1480,13 +1467,14 @@ async function vMisAlquileres(c, ctx) {
               <td>${estadoAlquiler(a)}</td>
               <td><div class="acciones">
                 <button class="icon-btn" type="button" data-ver="${a.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
-                ${puedeCancelar(a) ? `<button class="icon-btn" type="button" data-cancelar="${a.id}" title="Cancelar reserva" aria-label="Cancelar reserva">${icon('ban')}</button>` : ''}
+                <button class="icon-btn" type="button" data-cancelar="${a.id}" title="Cancelar" aria-label="Cancelar"${puedeCancelar(a) ? '' : ' disabled'}>${icon('ban')}</button>
               </div></td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>`
-      : UI.vacio(textoVacio(), 'calendar', !['historial','vencidos','por_devolver'].includes(filtro) ? '<a class="btn sm" href="#/catalogo">Buscar vehículos</a>' : '');
+      : UI.vacio(filtro === 'historial' ? 'Todavía no tienes alquileres completados o cancelados.' : 'No tienes alquileres activos ni reservas.', 'calendar',
+        filtro !== 'historial' ? '<a class="btn sm" href="#/catalogo">Buscar vehículos</a>' : '');
   };
 
   async function cargar() {
@@ -1531,7 +1519,7 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
         <div class="detalle-alq-identidad">
           <span class="detalle-alq-eyebrow">VEHÍCULO DEL ALQUILER</span>
           <b>${esc(a.vehiculo)}</b>
-          <span>Placa ${esc(a.placa)}${admin ? ` · ${etq(a.canal)}` : ''}</span>
+          <span>Placa ${esc(a.placa)} · ${etq(a.canal)}</span>
           <div class="detalle-alq-meta" data-detalle-veh-meta><span>${fmt.dinero(a.precioDia)} / día</span></div>
         </div>
         <div class="detalle-alq-estado">${estadoAlquiler(a)}</div>
@@ -1546,7 +1534,6 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
         <dt>Precio por día</dt><dd>${fmt.dinero(a.precioDia)}</dd>
         <dt>Monto base</dt><dd>${fmt.dinero(a.montoBase)}</dd>
         ${a.diasMora ? `<dt>Mora (${a.diasMora} día(s))</dt><dd>${fmt.dinero(a.montoMora)}</dd>` : ''}
-        ${!admin && Number(a.creditoWallet || 0) > 0 ? `<dt>Crédito Wallet GO</dt><dd>${fmt.dinero(a.creditoWallet)}</dd>` : ''}
         <dt>Total facturado</dt><dd>${fmt.dinero(a.totalFacturado)}</dd>
         ${a.observaciones ? `<dt>Observaciones</dt><dd>${esc(a.observaciones)}</dd>` : ''}
         <dt>Registrado</dt><dd>${fmt.fechaHora(a.fechaCreacion)}</dd>
@@ -1845,14 +1832,15 @@ async function vWalletGo(c, ctx) {
         </div>
       </section>
 
-      <div class="wallet-resumen wallet-resumen-cliente">
+      <div class="wallet-resumen">
+        <button class="card wallet-mini tono-green act" type="button" data-wallet-f="todos"><span class="wallet-mini-ico">${icon('wallet')}</span><span><small>Saldo actual</small><b>${fmt.dinero(Number(w.saldo)||0)}</b><em>${movimientos.length} movimiento(s)</em></span></button>
         <button class="card wallet-mini tono-blue" type="button" data-wallet-f="ABONO"><span class="wallet-mini-ico">${icon('plus')}</span><span><small>Créditos</small><b>${fmt.dinero(totAbonos)}</b><em>Abonos recibidos</em></span></button>
         <button class="card wallet-mini tono-purple" type="button" data-wallet-f="USO"><span class="wallet-mini-ico">${icon('car')}</span><span><small>Usado</small><b>${fmt.dinero(totUsos)}</b><em>Aplicado a alquileres</em></span></button>
         <button class="card wallet-mini tono-orange" type="button" data-wallet-f="RETIRO"><span class="wallet-mini-ico">${icon('logout')}</span><span><small>Retiros</small><b>${fmt.dinero(totRetiros)}</b><em>Solicitudes realizadas</em></span></button>
       </div>
 
       <section class="card wallet-historial">
-        <div class="card-h"><div><h3>Movimientos de Wallet GO</h3><p>Créditos, usos en alquileres y retiros.</p></div><button class="btn ghost sm wallet-todos act" type="button" data-wallet-f="todos">Todos</button></div>
+        <div class="card-h"><div><h3>Movimientos de Wallet GO</h3><p>Créditos, usos en alquileres y retiros.</p></div></div>
         <div id="walletMovs"></div>
       </section>
     </div>`;
