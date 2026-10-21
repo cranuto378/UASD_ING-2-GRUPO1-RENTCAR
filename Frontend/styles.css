@@ -968,6 +968,20 @@ input[type=file]::file-selector-button {
     transition: opacity 1.2s ease-in-out;
 }
 
+.auth-slides::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+        rgba(14, 18, 44, .62) 0%,
+        rgba(14, 18, 44, .22) 45%,
+        rgba(14, 18, 44, .62) 100%);
+}
+
+
+
 /* =========================================================
    FIX: contenido del panel izquierdo SIEMPRE sobre el carrusel
 ========================================================= */
