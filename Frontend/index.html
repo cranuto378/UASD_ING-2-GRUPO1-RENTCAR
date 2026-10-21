@@ -307,7 +307,111 @@
     </script>
 
     
+<!-- =========================================================
+         CARRUSEL del panel izquierdo (login / registro)
+         Solo reemplaza la foto de fondo de .auth-foto
+    ========================================================== -->
+    <script>
+        (function () {
+
+            
+            // Las que no existan se ignoran automáticamente.
+            var FOTOS = [
+                'carro1.png',
+                'carro2.png',
+                'carro3.png',
+                'carro4.png',
+                'carro5.jpeg',
+                'carro6.jpeg'
+                
+                
+            ];
+
+            var INTERVALO = 5050; // milisegundos entre fotos
+
+            var raiz = document.getElementById('raiz');
+            var validas = null;
+            var cargando = false;
+            var idx = 0;
+
+            // Comprueba qué fotos existen realmente
+            function cargar() {
+                if (validas || cargando) return;
+                cargando = true;
+                var ok = [];
+                var pend = FOTOS.length;
+
+                function fin() {
+                    if (--pend === 0) {
+                        validas = ok.filter(Boolean);
+                        cargando = false;
+                        montar();
+                    }
+                }
+
+                FOTOS.forEach(function (url, i) {
+                    var im = new Image();
+                    im.onload = function () { ok[i] = url; fin(); };
+                    im.onerror = fin;
+                    im.src = url;
+                });
+            }
+
+            // Inserta la capa de fotos dentro del panel izquierdo
+            function montar() {
+                var foto = document.querySelector('.auth-foto');
+                if (!foto || !validas || !validas.length) return;
+                if (foto.querySelector('.auth-slides')) return;
+
+                var cont = document.createElement('div');
+                cont.className = 'auth-slides';
+                cont.setAttribute('aria-hidden', 'true');
+
+                validas.forEach(function (url) {
+                    var s = document.createElement('div');
+                    s.className = 'slide';
+                    s.style.backgroundImage = 'url("' + url + '")';
+                    cont.appendChild(s);
+                });
+
+                foto.insertBefore(cont, foto.firstChild);
+                idx = 0;
+                cont.firstChild.classList.add('activa');
+            }
+
+            // Pasa a la siguiente foto (en bucle infinito)
+            function siguiente() {
+                if (document.hidden) return;
+                var cont = document.querySelector('.auth-slides');
+                if (!cont || cont.children.length < 2) return;
+
+                var s = cont.children;
+                var actual = s[idx];
+                idx = (idx + 1) % s.length; // al llegar a la última vuelve a la primera
+                var nueva = s[idx];
+
+                Array.prototype.forEach.call(s, function (x) { x.classList.remove('previa'); });
+                actual.classList.remove('activa');
+                actual.classList.add('previa');
+                nueva.classList.add('activa');
+
+                setTimeout(function () { actual.classList.remove('previa'); }, 1400);
+            }
+
+            // La pantalla de acceso la dibuja app.js, así que se vigila el DOM
+            function revisar() {
+                if (!document.querySelector('.auth-foto')) return;
+                if (!validas) cargar(); else montar();
+            }
+
+            if (raiz) new MutationObserver(revisar).observe(raiz, { childList: true, subtree: true });
+            revisar();
+            setInterval(siguiente, INTERVALO);
+
+        })();
+    </script>
 
 </body>
 
 </html>
+    
