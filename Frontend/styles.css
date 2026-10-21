@@ -926,6 +926,11 @@ input[type=file]::file-selector-button {
 
 .auth-foto .marca img {
     height: 60px;
+    filter:
+    drop-shadow(0 0 3px rgba(255, 255, 255, .95))
+        drop-shadow(0 0 12px rgba(255, 255, 255, .55))
+        drop-shadow(0 4px 14px rgba(0, 0, 0, .35));
+
 }
 
 .auth-foto h1 {
@@ -940,10 +945,74 @@ input[type=file]::file-selector-button {
 
 .auth-foto p {
     max-width: 360px;
-    color: rgba(255, 255, 255, .88);
+    color: #fff;
     margin-top: 12px;
     font-size: 15px;
+    font-weight: 500;
+    text-shadow:
+        0 1px 3px rgba(0, 0, 0, .6),
+        0 2px 14px rgba(0, 0, 0, .45);
+
+/* =========================================================
+   CARRUSEL DEL PANEL IZQUIERDO
+========================================================= */
+
+.auth-foto > .auth-slides {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
 }
+
+.auth-slides .slide {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center 65%;
+    background-repeat: no-repeat;
+    opacity: 0;
+    z-index: 0;
+    transition: opacity 1.2s ease-in-out;
+}
+
+/* foto anterior: sigue visible mientras entra la nueva (sin parpadeo) */
+.auth-slides .slide.previa {
+    opacity: 1;
+    z-index: 1;
+}
+
+.auth-slides .slide.activa {
+    opacity: 1;
+    z-index: 1;
+
+}
+
+
+
+
+
+/* degradado sobre las fotos para que el texto se lea bien */
+.auth-slides::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+        rgba(14, 18, 44, .55) 0%,
+        rgba(14, 18, 44, 0) 45%,
+        rgba(14, 18, 44, .55) 100%);
+}
+
+:root[data-tema="noche"] .auth-slides::after {
+    background: linear-gradient(180deg,
+        rgba(4, 6, 20, .72) 0%,
+        rgba(4, 6, 20, .25) 45%,
+        rgba(4, 6, 20, .78) 100%);
+}
+
+
+
 
 .chips {
     display: flex;
