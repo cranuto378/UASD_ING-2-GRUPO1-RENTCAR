@@ -924,14 +924,7 @@ input[type=file]::file-selector-button {
     box-shadow: var(--sombra);
 }
 
-.auth-foto .marca img {
-    height: 60px;
-    filter:
-    drop-shadow(0 0 3px rgba(255, 255, 255, .95))
-        drop-shadow(0 0 12px rgba(255, 255, 255, .55))
-        drop-shadow(0 4px 14px rgba(0, 0, 0, .35));
 
-}
 
 .auth-foto h1 {
     font-size: 40px;
@@ -943,27 +936,12 @@ input[type=file]::file-selector-button {
     text-shadow: 0 4px 24px rgba(0, 0, 0, .35);
 }
 
-.auth-foto p {
-    max-width: 360px;
-    color: #fff;
-    margin-top: 12px;
-    font-size: 15px;
-    font-weight: 500;
-    text-shadow:
-        0 1px 3px rgba(0, 0, 0, .6),
-        0 2px 14px rgba(0, 0, 0, .45); 
-    }
 
 /* =========================================================
    CARRUSEL DEL PANEL IZQUIERDO
 ========================================================= */
 
-/* =========================================================
-   FIX: contenido del panel izquierdo SIEMPRE sobre el carrusel
-========================================================= */
-.auth-foto > .auth-slides {
-    z-index: 0;
-}
+
 
 .auth-foto > div:not(.auth-slides),
 .auth-foto > .chips {
@@ -988,6 +966,13 @@ input[type=file]::file-selector-button {
     opacity: 0;
     z-index: 0;
     transition: opacity 1.2s ease-in-out;
+}
+
+/* =========================================================
+   FIX: contenido del panel izquierdo SIEMPRE sobre el carrusel
+========================================================= */
+.auth-foto > .auth-slides {
+    z-index: 0;
 }
 
 /* foto anterior: sigue visible mientras entra la nueva (sin parpadeo) */
