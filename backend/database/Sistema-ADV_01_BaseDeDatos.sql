@@ -1,27 +1,23 @@
 ﻿/* ============================================================================
-   AutoGo - Rent a Car
-   BASE DE DATOS:  AutoGo        (SQL Server 2019+ / Express)
-   ARCHIVO:        AutoGo_01_BaseDeDatos.sql
+   Esta es para que ustedes la pongan en local chicos, en caso de prueba.
+   BASE DE DATOS:  Sistema-ADV
+   
+   Crea la base Sistema-ADV (si no existe) con: 7 tablas + 1 funcion +
+   36 stored procedures + el administrador inicial.
 
-   Crea la base AutoGo con: tablas + funcion + 36 stored procedures.
-   Ejecutar en SSMS (conectado a localhost\SQLEXPRESS) o con:
-     sqlcmd -S localhost\SQLEXPRESS -E -b -i AutoGo_01_BaseDeDatos.sql
-   Despues (opcional): AutoGo_02_DatosMigrados.sql
 
    PROTECCIONES:
-     1) Si la base AutoGo ya tiene datos (Usuarios o Vehiculos con filas) el
-        script se detiene y NO borra nada. Para reconstruir, elimine la base
-        a mano: DROP DATABASE AutoGo;
-     2) Si la base tiene las tablas del esquema viejo (usuarios.id_usuario)
-        tambien se detiene.
-   Cadena de conexion del API: Database=AutoGo
+     1) Eliminen la vieja y vuelvan a correr este script si quieren reconstruirla.
+     2) El usuario de administrador se crea solo y la contraseña y correo estan abajo.
+
+   Para Azure SQL Database use la version Azure (no lleva CREATE ni USE).
    ============================================================================ */
 USE master;
 GO
-IF DB_ID(N'AutoGo') IS NULL
-    CREATE DATABASE AutoGo;
+IF DB_ID(N'Sistema-ADV') IS NULL
+    CREATE DATABASE [Sistema-ADV];
 GO
-USE AutoGo;
+USE [Sistema-ADV];
 GO
 SET NOEXEC OFF;
 GO
@@ -31,16 +27,15 @@ BEGIN
     SET NOEXEC ON;
 END
 GO
-IF OBJECT_ID(N'dbo.Usuarios', N'U') IS NOT NULL OR OBJECT_ID(N'dbo.Vehiculos', N'U') IS NOT NULL
+DECLARE @n INT = 0;
+IF OBJECT_ID(N'dbo.Usuarios',   N'U') IS NOT NULL EXEC sp_executesql N'SELECT @n = @n + COUNT(*) FROM dbo.Usuarios',   N'@n INT OUTPUT', @n OUTPUT;
+IF OBJECT_ID(N'dbo.Vehiculos',  N'U') IS NOT NULL EXEC sp_executesql N'SELECT @n = @n + COUNT(*) FROM dbo.Vehiculos',  N'@n INT OUTPUT', @n OUTPUT;
+IF OBJECT_ID(N'dbo.Clientes',   N'U') IS NOT NULL EXEC sp_executesql N'SELECT @n = @n + COUNT(*) FROM dbo.Clientes',   N'@n INT OUTPUT', @n OUTPUT;
+IF OBJECT_ID(N'dbo.Alquileres', N'U') IS NOT NULL EXEC sp_executesql N'SELECT @n = @n + COUNT(*) FROM dbo.Alquileres', N'@n INT OUTPUT', @n OUTPUT;
+IF @n > 0
 BEGIN
-    DECLARE @n INT = 0;
-    IF OBJECT_ID(N'dbo.Usuarios', N'U') IS NOT NULL EXEC sp_executesql N'SELECT @n = @n + COUNT(*) FROM dbo.Usuarios', N'@n INT OUTPUT', @n OUTPUT;
-    IF OBJECT_ID(N'dbo.Vehiculos', N'U') IS NOT NULL EXEC sp_executesql N'SELECT @n = @n + COUNT(*) FROM dbo.Vehiculos', N'@n INT OUTPUT', @n OUTPUT;
-    IF @n > 0
-    BEGIN
-        RAISERROR(N'ABORTADO: la base AutoGo ya tiene datos. Para reconstruirla ejecute DROP DATABASE AutoGo; y vuelva a correr este script.', 16, 1);
-        SET NOEXEC ON;
-    END
+    RAISERROR(N'ABORTADO: la base Sistema-ADV ya tiene datos. Para reconstruirla ejecute DROP DATABASE [Sistema-ADV]; y vuelva a correr este script.', 16, 1);
+    SET NOEXEC ON;
 END
 GO
 
@@ -49,16 +44,14 @@ SET QUOTED_IDENTIFIER ON;
 GO
 /* ============================================================================
    AutoGo - Sistema de Renta de Vehículos
-   Script 01: Tablas (SQL Server 2019+ / Azure SQL Database)
-   Se ejecuta DENTRO de la base destino (sqlcmd -d <base>); no crea ni cambia de base.
+   Parte 1: Tablas
 
    Responsabilidad de la BD:
      - Persistir datos e integridad (PK, FK, UNIQUE, CHECK).
-     - Operaciones atómicas vía stored procedures (script 02).
+     - Operaciones atómicas vía stored procedures (parte 2).
    La BD NO calcula montos, NO decide estados de negocio y NO usa triggers:
    todas las reglas viven en la API (AutoGo.Domain / AutoGo.Application).
    ============================================================================ */
-
 
 /* ---------------------------------------------------------------------------
    Limpieza (orden inverso a las dependencias)
@@ -248,7 +241,7 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 /* ============================================================================
-   AutoGo - Script 02: Funciones y Stored Procedures
+   AutoGo - Parte 2: Funciones y Stored Procedures
 
    Convenciones:
      - Prefijo usp_<Entidad>_<Accion>.
@@ -1098,5 +1091,5 @@ GO
 
 SET NOEXEC OFF;
 GO
-PRINT N'Base AutoGo lista (tablas + procedimientos).';
+PRINT N'Base Sistema-ADV lista (tablas + procedimientos).';
 GO

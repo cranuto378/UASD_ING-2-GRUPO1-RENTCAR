@@ -1,0 +1,150 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\src\\AutoGo.Api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend\\src\\AutoGo.Api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\database\\Sistema-ADV_01_BaseDeDatos.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend\\database\\Sistema-ADV_01_BaseDeDatos.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\database\\Sistema-ADV_Version_Azure.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend\\database\\Sistema-ADV_Version_Azure.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\documentos proyecto\\ANALISIS_BD_SISTEMA_ADV.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:documentos proyecto\\ANALISIS_BD_SISTEMA_ADV.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\README.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend\\README.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\database\\Sistema-ADV_01_BaseDeDatos.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend\\database\\Sistema-ADV_01_BaseDeDatos.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\database\\Sistema-ADV_Version_Azure.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend\\database\\Sistema-ADV_Version_Azure.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:133:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:131:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:133:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\src\\AutoGo.Api\\appsettings.json",
+              "RelativeDocumentMoniker": "backend\\src\\AutoGo.Api\\appsettings.json",
+              "ToolTip": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\src\\AutoGo.Api\\appsettings.json",
+              "RelativeToolTip": "backend\\src\\AutoGo.Api\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-10-15T07:15:54.97Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": ".gitignore",
+              "DocumentMoniker": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\.gitignore",
+              "RelativeDocumentMoniker": "backend\\.gitignore",
+              "ToolTip": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\.gitignore",
+              "RelativeToolTip": "backend\\.gitignore",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAF8SURBVDhPjVNLTgJBEG1lwpoFB3GNK9fieA48hD8iwT/ihwgSDAIHgAGXXsEV18CNzL/LquqZdsYM6kteXqcy3fWqpmpNRBgOhyABBEgpAFVKPIMUcYzUyOU\u002BXM/b2qtU3vkSfRjjZTCAMAw1A2LwzdFoBPP5HNqdzuL27n4juibWI\u002BUshBA1DIkhEx9iEorFotgslQqGYbxxAGFEqt1MxmPWJLbLZdZ\u002Bv89q5PMFPiTR6z2zdaxR0fXA0XTBcVywkb4fwHXjRteecIDNQ7UmExVYAdPcxYaqclN46na5WenMKjtlVnTYwcXlVYaDqImW9beD5N/TeGy32QHXm6hZ03ZgiSQHp2fnWQ4oBmJqWSqwAqZpZjt4aLXAD4J0VqyZsmoubfB8H2r1eoaD6NXZ9HcHO\u002BSA3f4AjifXl8rItOETM8ckB9WTWpYD9RdeZ1PWVWAHWXPQaDb59f/w8LiqHeh1pvGkCaP6qB8yXusoxmuNZ7XmII4O9vGuEF86osuDYRkpYQAAAABJRU5ErkJggg==",
+              "WhenOpened": "2026-10-15T07:14:18.895Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ANALISIS_BD_SISTEMA_ADV.md",
+              "DocumentMoniker": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\documentos proyecto\\ANALISIS_BD_SISTEMA_ADV.md",
+              "RelativeDocumentMoniker": "documentos proyecto\\ANALISIS_BD_SISTEMA_ADV.md",
+              "ToolTip": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\documentos proyecto\\ANALISIS_BD_SISTEMA_ADV.md",
+              "RelativeToolTip": "documentos proyecto\\ANALISIS_BD_SISTEMA_ADV.md",
+              "ViewState": "AgIAACYAAAAAAAAAAAAIwDEAAABzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-10-15T07:09:36.978Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "README.md",
+              "DocumentMoniker": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\README.md",
+              "RelativeDocumentMoniker": "backend\\README.md",
+              "ToolTip": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\README.md",
+              "RelativeToolTip": "backend\\README.md",
+              "ViewState": "AgIAAFUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-10-15T07:09:27.102Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Sistema-ADV_Version_Azure.sql ",
+              "DocumentMoniker": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\database\\Sistema-ADV_Version_Azure.sql",
+              "RelativeDocumentMoniker": "backend\\database\\Sistema-ADV_Version_Azure.sql",
+              "ToolTip": "Sistema-ADV_Version_Azure.sql ",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2026-10-15T07:01:20.439Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Sistema-ADV_01_BaseDeDatos.sql ",
+              "DocumentMoniker": "C:\\Users\\Mishael Orozco\\Documents\\GitHub\\UASD_ING-2-GRUPO1-RENTCAR\\UASD_ING-2-GRUPO1-RENTCAR\\backend\\database\\Sistema-ADV_01_BaseDeDatos.sql",
+              "RelativeDocumentMoniker": "backend\\database\\Sistema-ADV_01_BaseDeDatos.sql",
+              "ToolTip": "Sistema-ADV_01_BaseDeDatos.sql ",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2026-10-15T06:45:15.266Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

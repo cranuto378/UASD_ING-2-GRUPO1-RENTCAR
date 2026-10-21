@@ -8,12 +8,10 @@ El script original de **Sistema_ADV** **no era compatible** con el backend. El b
 
 | # | Cambio | Archivo | Por qué |
 |---|--------|---------|---------|
-| 1 | Script de alineación del esquema (idempotente) | `backend/db/01_alineacion_sistema_adv.sql` | Añade las tablas/columnas que el backend necesita sin borrar las del script original |
-| 2 | Script con los 37 stored procedures | `backend/db/02_procedures_sistema_adv.sql` | El backend no ejecuta SQL inline; sin estos SPs no funciona nada |
-| 3 | Cadena de conexión → `localhost\SQLEXPRESS` / `Sistema_ADV` | `backend/src/AutoGo.Api/appsettings.json` | Apuntaba a una BD `AutoGo` inexistente en esta máquina |
-| 4 | Traductor de errores SQL reconoce la PK de `vehiculos` (placa) y `UQ_usuarios_correo` | `SqlErrorTranslator.cs` | Los mensajes de duplicado dependen del nombre del constraint; el nuevo esquema usa nombres distintos |
+| 1 | Cadena de conexión → `localhost\SQLEXPRESS` / `Sistema_ADV` | `backend/src/AutoGo.Api/appsettings.json` | Apuntaba a una BD `Sistema_ADV` inexistente en esta máquina |
+| 2 | Traductor de errores SQL reconoce la PK de `vehiculos` (placa) y `UQ_usuarios_correo` | `SqlErrorTranslator.cs` | Los mensajes de duplicado dependen del nombre del constraint; el nuevo esquema usa nombres distintos |
 
-**Orden de ejecución en SSMS:** primero `01_alineacion_sistema_adv.sql`, luego `02_procedures_sistema_adv.sql` (ambos contra `Sistema_ADV`, ambos re-ejecutables).
+
 
 ## Errores/problemas encontrados en el script original (y su solución)
 
@@ -57,9 +55,6 @@ El script original de **Sistema_ADV** **no era compatible** con el backend. El b
 ## Datos semilla mínimos (ejecutar manualmente después)
 
 ```sql
--- Categorías (si la migración de la columna vieja no creó ninguna)
-INSERT INTO dbo.categorias (nombre) VALUES ('Sedán'), ('SUV'), ('Jeepeta'), ('Camioneta');
-
 -- Primer administrador: el hash BCrypt se genera desde el backend o con cualquier
 -- herramienta BCrypt (factor 11). Ejemplo con contraseña 'Admin123*':
 -- (generar hash en https://bcrypt-generator.com/ y pegarlo abajo)
