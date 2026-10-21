@@ -958,6 +958,20 @@ input[type=file]::file-selector-button {
    CARRUSEL DEL PANEL IZQUIERDO
 ========================================================= */
 
+/* =========================================================
+   FIX: contenido del panel izquierdo SIEMPRE sobre el carrusel
+========================================================= */
+.auth-foto > .auth-slides {
+    z-index: 0;
+}
+
+.auth-foto > div:not(.auth-slides),
+.auth-foto > .chips {
+    position: relative;
+    z-index: 5;
+}
+
+
 .auth-foto > .auth-slides {
     position: absolute;
     inset: 0;

@@ -3633,4 +3633,5 @@ setInterval(() => {
   if (!leerHash().ruta) history.replaceState(null, '', '#/' + inicio());
 
   render();
+
 })();
