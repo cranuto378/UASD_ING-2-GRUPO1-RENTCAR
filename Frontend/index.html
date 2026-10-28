@@ -171,14 +171,21 @@
                 gear.classList.add('gear-oculto');
             }
 
+            function haySesion() {
+                return typeof Api !== 'undefined' && !!Api.sesion();
+            }
+
             // Crea los 3 botones debajo de "Mi perfil"
             function crearAcciones() {
                 var nav = document.querySelector('.app .nav');
                 if (!nav || nav.querySelector('.nav-extra')) return;
-                var defs = [
+                var defs = haySesion() ? [
                     { id: 'clave', cls: 'primero', html: ICONOS.clave + '<span>Cambiar contraseña</span>', title: 'Cambiar contraseña' },
                     { id: 'tema', cls: '', html: '', title: '' },
                     { id: 'salir', cls: 'salir', html: ICONOS.salir + '<span>Cerrar sesión</span>', title: 'Cerrar sesión' }
+                ] : [
+                    { id: 'tema', cls: 'primero', html: '', title: '' },
+                    { id: 'salir', cls: 'salir', html: ICONOS.salir + '<span>Salir</span>', title: 'Salir' }
                 ];
                 defs.forEach(function (d) {
                     var a = document.createElement('a');
@@ -233,7 +240,10 @@
                 var accion = el.getAttribute('data-accion');
                 if (accion === 'tema') alternarTema();
                 else if (accion === 'clave') usarMenuOriginal(/contrase|segur/i);
-                else if (accion === 'salir') usarMenuOriginal(/cerrar|salir/i);
+                else if (accion === 'salir') {
+                    if (haySesion()) usarMenuOriginal(/cerrar|salir/i);
+                    else location.hash = '#/login';
+                }
             });
 
             function acciones() {
