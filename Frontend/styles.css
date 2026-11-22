@@ -924,7 +924,9 @@ input[type=file]::file-selector-button {
     box-shadow: var(--sombra);
 }
 
-
+.auth-foto .marca img {
+    height: 60px;
+}
 
 .auth-foto h1 {
     font-size: 40px;
@@ -936,99 +938,12 @@ input[type=file]::file-selector-button {
     text-shadow: 0 4px 24px rgba(0, 0, 0, .35);
 }
 
-
-/* =========================================================
-   CARRUSEL DEL PANEL IZQUIERDO
-========================================================= */
-
-
-
-.auth-foto > div:not(.auth-slides),
-.auth-foto > .chips {
-    position: relative;
-    z-index: 5;
+.auth-foto p {
+    max-width: 360px;
+    color: rgba(255, 255, 255, .88);
+    margin-top: 12px;
+    font-size: 15px;
 }
-
-
-.auth-foto > .auth-slides {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    overflow: hidden;
-}
-
-.auth-slides .slide {
-    position: absolute;
-    inset: 0;
-    background-size: cover;
-    background-position: center 65%;
-    background-repeat: no-repeat;
-    opacity: 0;
-    z-index: 0;
-    transition: opacity 1.2s ease-in-out;
-}
-
-.auth-slides::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    pointer-events: none;
-    background: linear-gradient(180deg,
-        rgba(14, 18, 44, .62) 0%,
-        rgba(14, 18, 44, .22) 45%,
-        rgba(14, 18, 44, .62) 100%);
-}
-
-
-
-
-
-/* =========================================================
-   FIX: contenido del panel izquierdo SIEMPRE sobre el carrusel
-========================================================= */
-.auth-foto > .auth-slides {
-    z-index: 0;
-}
-
-/* foto anterior: sigue visible mientras entra la nueva (sin parpadeo) */
-.auth-slides .slide.previa {
-    opacity: 1;
-    z-index: 1;
-}
-
-.auth-slides .slide.activa {
-    opacity: 1;
-    z-index: 1;
-
-}
-
-
-
-
-
-/* degradado sobre las fotos para que el texto se lea bien */
-.auth-slides::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    pointer-events: none;
-    background: linear-gradient(180deg,
-        rgba(14, 18, 44, .55) 0%,
-        rgba(14, 18, 44, 0) 45%,
-        rgba(14, 18, 44, .55) 100%);
-}
-
-:root[data-tema="noche"] .auth-slides::after {
-    background: linear-gradient(180deg,
-        rgba(4, 6, 20, .72) 0%,
-        rgba(4, 6, 20, .25) 45%,
-        rgba(4, 6, 20, .78) 100%);
-}
-
-
-
 
 .chips {
     display: flex;
