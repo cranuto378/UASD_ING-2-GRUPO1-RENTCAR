@@ -15,7 +15,7 @@
     --borde: rgba(255, 255, 255, .22);
     --borde-2: rgba(255, 255, 255, .12);
 
-    --blur: blur(10px) saturate(130%);
+    --blur: blur(22px) saturate(160%);
     --sombra: 0 30px 70px rgba(6, 9, 28, .38);
     --brillo: inset 0 1px 0 rgba(255, 255, 255, .28);
 
@@ -137,18 +137,19 @@ img {
    EFECTO GLASS
 ========================================================= */
 
+/* Paneles que sólo se apoyan sobre el fondo fijo (.fondo ya viene pre-difuminado
+   una vez): NO llevan backdrop-filter propio. Ponerle blur en vivo a algo que ya
+   está sobre un fondo difuminado es trabajo duplicado en cada frame de scroll,
+   y era la causa real de la lentitud. El "vidrio" se logra con transparencia +
+   brillo/borde, sin recalcular ningún blur. */
 .glass,
 .app,
 .card,
 .auth-panel,
-.modal,
-.menu-usuario,
 .aviso {
     background: var(--glass);
     border: 1px solid var(--borde);
     box-shadow: var(--sombra), var(--brillo);
-    -webkit-backdrop-filter: var(--blur);
-    backdrop-filter: var(--blur);
 }
 
 .card {
@@ -157,9 +158,22 @@ img {
     border-radius: var(--r-lg);
     padding: 20px;
     box-shadow: 0 12px 30px rgba(6, 9, 28, .18), var(--brillo);
-    -webkit-backdrop-filter: blur(8px) saturate(130%);
-    backdrop-filter: blur(8px) saturate(130%);
     min-width: 0;
+}
+
+/* Modal y menú SÍ tapan contenido real de la pantalla (no sólo el fondo fijo),
+   así que ahí el backdrop-filter aporta de verdad. Se aíslan en su propia capa
+   para que el navegador lo componga una sola vez. */
+.modal,
+.menu-usuario {
+    background: var(--glass);
+    border: 1px solid var(--borde);
+    box-shadow: var(--sombra), var(--brillo);
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
+    transform: translateZ(0);
+    will-change: backdrop-filter;
+    isolation: isolate;
 }
 
 
@@ -2192,9 +2206,9 @@ input[type=file]::file-selector-button {
     width: 100%;
     max-width: 560px;
     border-radius: 26px;
-    background: rgba(40, 46, 96, .72);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
-    backdrop-filter: blur(14px) saturate(140%);
+    background: rgba(40, 46, 96, .58);
+    -webkit-backdrop-filter: blur(28px) saturate(170%);
+    backdrop-filter: blur(28px) saturate(170%);
     transform: translateY(10px) scale(.98);
     transition: transform .2s;
 }
@@ -2301,9 +2315,11 @@ input[type=file]::file-selector-button {
     width: 260px;
     padding: 8px;
     border-radius: 20px;
-    background: rgba(40, 46, 96, .82);
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
-    backdrop-filter: blur(12px) saturate(140%);
+    background: rgba(40, 46, 96, .64);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    backdrop-filter: blur(24px) saturate(170%);
+    transform: translateZ(0);
+    will-change: backdrop-filter;
 }
 
 .menu-usuario .quien {
