@@ -324,7 +324,7 @@ function abrirMenu(btn) {
       ${UI.avatar(u.nombre, 'sm')}
       <div><b>${esc(u.nombre)}</b><small>${esc(u.correo)}</small></div>
     </div>
-    ${!esAdmin() ? `<a href="#/perfil" role="menuitem">${icon('user')}Mi perfil</a>` : ''}
+    ${!esStaff() ? `<a href="#/perfil" role="menuitem">${icon('user')}Mi perfil</a>` : ''}
     <a href="#/cambiar-password" role="menuitem">${icon('lock')}Cambiar contraseña</a>
     <button type="button" role="menuitem" data-salir>${icon('logout')}Cerrar sesión</button>`;
 
@@ -935,7 +935,7 @@ async function vCatalogo(c, ctx) {
       if (autoVeh) {
         const v = lista.find(x => x.id === +autoVeh);
         autoVeh = null;
-        if (v && Api.sesion() && !esAdmin()) confirmarAlquiler(v, ini, fin, buscar);
+        if (v && Api.sesion() && !esStaff()) confirmarAlquiler(v, ini, fin, buscar);
       }
     } catch (err) {
       if (!ctx.vigente()) return;
@@ -960,7 +960,7 @@ async function vCatalogo(c, ctx) {
       return ir('login?next=' + encodeURIComponent(destino));
     }
 
-    if (esAdmin()) return ir(`nuevo-alquiler?veh=${v.id}&desde=${ini}&hasta=${fin}`);
+    if (esStaff()) return ir(`nuevo-alquiler?veh=${v.id}&desde=${ini}&hasta=${fin}`);
 
     confirmarAlquiler(v, ini, fin, buscar);
   });
@@ -1185,7 +1185,7 @@ async function vMisAlquileres(c, ctx) {
 }
 
 async function detalleAlquiler(a, { alCambiar } = {}) {
-  const admin = esAdmin();
+  const admin = esStaff();
 
   const m = UI.modal({
     titulo: `Alquiler #${a.id}`,
@@ -1236,6 +1236,10 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
     };
   });
 
+  Api.vehiculo(a.vehiculoId).then(v => {
+    $('.foto-mini', m.el).innerHTML = fotoVeh(v);
+  }).catch(() => { /* se queda el ícono genérico */ });
+
   // Vista previa de mora para el cliente si el alquiler ya salió
   if (!admin && puedeDevolver(a)) {
     Api.cotizarDevolucion(a.id).then(d => {
@@ -1280,7 +1284,7 @@ async function cancelarAlquiler(a, alCambiar) {
     if (alCambiar) alCambiar();
   } catch (e) {
     if (e.code === 'CANCELACION_NO_PERMITIDA') {
-      UI.toast(esAdmin() ? 'El alquiler ya comenzó: registra la devolución en su lugar.' : 'El alquiler ya comenzó y no puede cancelarse. Devuelve el vehículo en la sucursal.', 'warn');
+      UI.toast(esStaff() ? 'El alquiler ya comenzó: registra la devolución en su lugar.' : 'El alquiler ya comenzó y no puede cancelarse. Devuelve el vehículo en la sucursal.', 'warn');
       if (alCambiar) alCambiar();
       return;
     }
@@ -1334,7 +1338,7 @@ async function vFactura(c, ctx) {
     <button class="btn ghost" type="button" data-volver>${icon('arrowLeft')} Volver</button>
     <button class="btn" type="button" data-imprimir>${icon('printer')} Imprimir</button>`);
 
-  $('[data-volver]').onclick = () => (history.length > 1 ? history.back() : ir(esAdmin() ? 'facturas' : 'mis-facturas'));
+  $('[data-volver]').onclick = () => (history.length > 1 ? history.back() : ir(esStaff() ? 'facturas' : 'mis-facturas'));
   $('[data-imprimir]').onclick = () => window.print();
 
   c.innerHTML = `<div class="card factura">${UI.cargando(6)}</div>`;
@@ -1959,6 +1963,10 @@ function devolverAlquiler(a, alCambiar) {
         </div>
       </form>`
   });
+
+  Api.vehiculo(a.vehiculoId).then(v => {
+    $('.foto-mini', m.el).innerHTML = fotoVeh(v);
+  }).catch(() => { /* se queda el ícono genérico */ });
 
   const f = $('#fd', m.el);
   const btn = $('[type=submit]', f);
@@ -3057,20 +3065,43 @@ window.addEventListener('hashchange', render);
 /* Brillo "líquido" que sigue el cursor sobre los paneles glass (estilo iOS).
    Un solo listener delegado; sólo mueve variables CSS (sin filtros ni blur). */
 (() => {
-  const SEL = '.glass, .app, .card, .auth-panel, .aviso, .modal, .menu-usuario';
-  let objetivo = null, x = 0, y = 0, pendiente = false;
+  const SEL = '.glass, .card, .auth-panel, .aviso, .modal, .menu-usuario';
+  const CLASE = 'liquido-activo';
+  let objetivo = null, activo = null, x = 0, y = 0, pendiente = false, temporizador = null;
 
   document.addEventListener('pointermove', e => {
     objetivo = e.target.closest(SEL);
     x = e.clientX; y = e.clientY;
+
+    // Al salir de la tarjeta (objetivo cambia o desaparece) el color se quita
+    // YA, sin depender de ningún temporizador: nunca debe quedarse pegado.
+    if (activo !== objetivo) {
+      if (activo) activo.classList.remove(CLASE);
+      activo = objetivo;
+      if (activo) activo.classList.add(CLASE);
+    }
+
+    clearTimeout(temporizador);
+    if (objetivo) {
+      const el = objetivo; // copia local: inmune a que "objetivo" cambie después
+      // Al dejar de mover el mouse (sin salir), el "agua" se asienta y vuelve a blanco.
+      temporizador = setTimeout(() => {
+        el.classList.remove(CLASE);
+        if (activo === el) activo = null;
+      }, 200);
+    }
+
     if (objetivo && !pendiente) {
       pendiente = true;
       requestAnimationFrame(() => {
         pendiente = false;
         if (!objetivo) return;
         const r = objetivo.getBoundingClientRect();
-        objetivo.style.setProperty('--mx', `${((x - r.left) / r.width) * 100}%`);
-        objetivo.style.setProperty('--my', `${((y - r.top) / r.height) * 100}%`);
+        const px = ((x - r.left) / r.width) * 100;
+        const py = ((y - r.top) / r.height) * 100;
+        objetivo.style.setProperty('--mx', `${px}%`);
+        objetivo.style.setProperty('--my', `${py}%`);
+        objetivo.style.setProperty('--mxn', px);
       });
     }
   }, { passive: true });

@@ -55,16 +55,23 @@
 
 html {
     -webkit-text-size-adjust: 100%;
+    height: 100%;
 }
 
 body {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
     color: var(--txt);
     background: #151b38;
-    min-height: 100vh;
+    height: 100%;
+    /* El panel principal (.app) ya trae su propio scroll interno (.main/.side);
+       la página en sí nunca debe generar una segunda barra de scroll. */
+    overflow: hidden;
     font-size: 14px;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
+    /* Sombra sutil (no negra, un azul oscuro del propio tema) para que el texto
+       blanco se mantenga legible sobre el fondo difuminado y el brillo líquido. */
+    text-shadow: 0 1px 3px rgba(10, 13, 34, .45);
 }
 
 body.con-modal {
@@ -148,13 +155,13 @@ img {
 .auth-panel,
 .aviso {
     background: var(--glass);
-    border: 1px solid var(--borde);
+    border: 1px solid rgba(255, 255, 255, .55);
     box-shadow: var(--sombra), var(--brillo);
 }
 
 .card {
     background: var(--glass-2);
-    border-color: var(--borde);
+    border-color: rgba(255, 255, 255, .55);
     border-radius: var(--r-lg);
     padding: 20px;
     box-shadow: 0 12px 30px rgba(6, 9, 28, .18), var(--brillo);
@@ -179,7 +186,6 @@ img {
 }
 
 .glass::before,
-.app::before,
 .card::before,
 .auth-panel::before,
 .aviso::before,
@@ -199,20 +205,58 @@ img {
     will-change: opacity;
 }
 
-.glass:hover::before,
-.app:hover::before,
-.card:hover::before,
-.auth-panel:hover::before,
-.aviso:hover::before,
-.modal:hover::before,
-.menu-usuario:hover::before {
+.glass.liquido-activo::before,
+.card.liquido-activo::before,
+.auth-panel.liquido-activo::before,
+.aviso.liquido-activo::before,
+.modal.liquido-activo::before,
+.menu-usuario.liquido-activo::before {
     opacity: 1;
+}
+
+/* Borde "aceite en el agua": un anillo iridiscente fino, sólo en el borde
+   (no tapa texto), que gira con la posición del cursor. */
+.glass::after,
+.card::after,
+.auth-panel::after,
+.aviso::after,
+.modal::after,
+.menu-usuario::after {
+    content: '';
+    position: absolute;
+    /* -1px: cubre también el borde propio de 1px de la tarjeta, si no el anillo
+       queda metido hacia adentro y se ve despegado del borde real. */
+    inset: -1px;
+    z-index: 2;
+    border-radius: inherit;
+    padding: 1.5px;
+    pointer-events: none;
+    opacity: 0;
+    /* Repite la rueda de color cada ~70deg (en vez de una sola vuelta completa)
+       para que a lo largo del borde se vean varias franjas de color, como en
+       una mancha de aceite real, no un solo degradado suave. */
+    background: repeating-conic-gradient(from calc(var(--mxn, 50) * 3.6deg) at var(--mx, 50%) var(--my, 50%),
+            #ff8ad1 0deg, #ffd27a 14deg, #baff8a 28deg, #6ef0d6 42deg, #6ab8ff 56deg, #c08aff 70deg, #ff8ad1 84deg);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    filter: saturate(140%);
+    transition: opacity .15s ease-out;
+}
+
+.glass.liquido-activo::after,
+.card.liquido-activo::after,
+.auth-panel.liquido-activo::after,
+.aviso.liquido-activo::after,
+.modal.liquido-activo::after,
+.menu-usuario.liquido-activo::after {
+    opacity: .4;
+    transition: opacity .12s ease-in;
 }
 
 @media (prefers-reduced-motion: reduce) {
 
     .glass::before,
-    .app::before,
     .card::before,
     .auth-panel::before,
     .aviso::before,
@@ -2601,6 +2645,12 @@ input[type=file]::file-selector-button {
 
     .auth-panel {
         padding: 30px 22px;
+    }
+
+    html,
+    body {
+        height: auto;
+        overflow: visible;
     }
 
     .app,
