@@ -18,6 +18,7 @@ public interface IAuthService
     Task SolicitarRecuperacionAsync(string correo, CancellationToken ct = default);
     Task RestablecerPasswordAsync(string token, string passwordNueva, CancellationToken ct = default);
     Task<UsuarioDto> CrearAdministradorAsync(CrearAdministradorInput input, CancellationToken ct = default);
+    Task<IReadOnlyList<UsuarioDto>> ListarAdministradoresAsync(CancellationToken ct = default);
 }
 
 public sealed class AuthService(
@@ -36,6 +37,7 @@ public sealed class AuthService(
         if (usuario is null || !usuario.PuedeIniciarSesion || !hasher.Verificar(password ?? string.Empty, usuario.PasswordHash!))
             throw new AuthenticationException();
 
+        await usuarios.RegistrarAccesoAsync(usuario.Id, clock.AhoraUtc, ct);
         return Emitir(usuario);
     }
 
@@ -124,9 +126,18 @@ public sealed class AuthService(
         if (await usuarios.ObtenerPorCorreoAsync(correo, ct) is not null)
             throw new ConflictException("CORREO_DUPLICADO", "Ya existe una cuenta con ese correo.");
 
-        var id = await usuarios.CrearAdministradorAsync(nombre, correo, hasher.Hash(input.PasswordTemporal), ct);
+        if (input.Rol == Rol.Administrador && !actual.EsAdministrador)
+            throw new ForbiddenException("Sólo un Superadministrador puede crear otra cuenta de Superadministrador.");
+        if (input.Rol == Rol.Cliente)
+            throw new Domain.Common.DomainException(Domain.Common.CodigosError.DatoInvalido,
+                "Use RegistrarCliente para crear cuentas de cliente.");
+
+        var id = await usuarios.CrearAdministradorAsync(nombre, correo, hasher.Hash(input.PasswordTemporal), input.Rol, ct);
         return (await usuarios.ObtenerPorIdAsync(id, ct) ?? throw new NotFoundException("Usuario", id)).ToDto();
     }
+
+    public async Task<IReadOnlyList<UsuarioDto>> ListarAdministradoresAsync(CancellationToken ct = default) =>
+        (await usuarios.ListarAdministradoresAsync(ct)).Select(u => u.ToDto()).ToList();
 
     private async Task<Usuario> ObtenerActualAsync(CancellationToken ct)
     {

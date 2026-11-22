@@ -76,7 +76,7 @@ internal static class Acceso
 {
     public static void AsegurarAdminOPropietario(ICurrentUser actual, int clienteId)
     {
-        if (actual.EsAdministrador) return;
+        if (actual.EsStaff) return;
         if (actual.ClienteId is int propio && propio == clienteId) return;
         throw new ForbiddenException();
     }

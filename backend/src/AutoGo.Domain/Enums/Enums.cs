@@ -1,6 +1,6 @@
 namespace AutoGo.Domain.Enums;
 
-public enum Rol { Administrador, Cliente }
+public enum Rol { Administrador, Operador, Cliente }
 
 /// <summary>Estado que se GUARDA en BD: lo que no puede derivarse de los alquileres.</summary>
 public enum EstadoOperativo { Disponible, Mantenimiento, FueraDeServicio }

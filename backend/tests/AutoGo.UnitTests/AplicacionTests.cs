@@ -1,3 +1,4 @@
+using AutoGo.Application.Abstractions;
 using AutoGo.Application.Common;
 using AutoGo.Application.Dtos;
 using AutoGo.Application.Services;
@@ -105,8 +106,10 @@ public class AuthServiceTests
     public AuthServiceTests() =>
         _usuarios.Datos.Add(Usuario.Rehidratar(1, "Admin", "admin@autogo.com", "H:Clave123", Rol.Administrador, false, true, null));
 
-    private AuthService Servicio() => new(_usuarios, _clientes, new FakeHasher(), new FakeTokens(), _email,
-        new FakeClock(new DateOnly(2026, 9, 25)), FakeUser.Admin, new OpcionesAplicacion());
+    private AuthService Servicio() => ServicioComo(FakeUser.Admin);
+
+    private AuthService ServicioComo(ICurrentUser actual) => new(_usuarios, _clientes, new FakeHasher(), new FakeTokens(), _email,
+        new FakeClock(new DateOnly(2026, 9, 25)), actual, new OpcionesAplicacion());
 
     [Fact]
     public async Task Login_correcto_emite_token()
@@ -114,6 +117,13 @@ public class AuthServiceTests
         var r = await Servicio().LoginAsync(" ADMIN@autogo.com ", "Clave123");
         Assert.Equal("token-1", r.Token);
         Assert.Equal(Rol.Administrador, r.Usuario.Rol);
+    }
+
+    [Fact]
+    public async Task Login_correcto_registra_el_ultimo_acceso()
+    {
+        await Servicio().LoginAsync("admin@autogo.com", "Clave123");
+        Assert.Equal(new DateOnly(2026, 9, 25), DateOnly.FromDateTime(_usuarios.Datos.Single(u => u.Id == 1).UltimoAccesoUtc!.Value));
     }
 
     [Fact]
@@ -157,6 +167,41 @@ public class AuthServiceTests
     }
 
     [Fact]
+    public async Task CrearAdministrador_respeta_el_perfil_solicitado()
+    {
+        var u = await Servicio().CrearAdministradorAsync(new CrearAdministradorInput("Pat", "pat@autogo.com", "Clave2026", Rol.Operador));
+        Assert.Equal(Rol.Operador, u.Rol);
+    }
+
+    [Fact]
+    public async Task Operador_no_puede_crear_otro_superadministrador()
+    {
+        var ex = await Assert.ThrowsAsync<ForbiddenException>(() => ServicioComo(FakeUser.Operador)
+            .CrearAdministradorAsync(new CrearAdministradorInput("Pat", "pat@autogo.com", "Clave2026", Rol.Administrador)));
+        Assert.NotNull(ex);
+    }
+
+    [Fact]
+    public async Task Operador_si_puede_crear_otro_operador()
+    {
+        var u = await ServicioComo(FakeUser.Operador)
+            .CrearAdministradorAsync(new CrearAdministradorInput("Pat", "pat@autogo.com", "Clave2026", Rol.Operador));
+        Assert.Equal(Rol.Operador, u.Rol);
+    }
+
+    [Fact]
+    public async Task ListarAdministradores_incluye_operadores_y_excluye_clientes()
+    {
+        _usuarios.Datos.Add(Usuario.Rehidratar(2, "Pat", "pat@autogo.com", "H:Clave2026", Rol.Operador, false, true, null));
+        _usuarios.Datos.Add(Usuario.Rehidratar(3, "Cliente", "cliente@mail.com", "H:Clave2026", Rol.Cliente, false, true, 1));
+
+        var lista = await Servicio().ListarAdministradoresAsync();
+
+        Assert.Equal(2, lista.Count);
+        Assert.DoesNotContain(lista, u => u.Rol == Rol.Cliente);
+    }
+
+    [Fact]
     public async Task Registro_con_cedula_de_mostrador_sin_correo_registrado_se_rechaza()
     {
         _clientes.Datos.Add(Cliente.Rehidratar(11, null, "Luis", "001-4567890-1", null, null, null, true, DateTime.UtcNow));
@@ -185,5 +230,27 @@ public class AuthServiceTests
         var ex = await Assert.ThrowsAsync<ConflictException>(() => Servicio().RegistrarClienteAsync(Registro("luis@mail.com")));
 
         Assert.Equal("CEDULA_DUPLICADA", ex.Code);
+    }
+}
+
+public class ParametrosServiceTests
+{
+    private readonly FakeParametros _parametros = new();
+    private ParametrosService Servicio() => new(_parametros);
+
+    [Fact]
+    public async Task Actualizar_guarda_el_nuevo_valor()
+    {
+        var r = await Servicio().ActualizarComisionWalletGoAsync(85m);
+        Assert.Equal(85m, r.ComisionWalletGo);
+        Assert.Equal(85m, (await Servicio().ObtenerAsync()).ComisionWalletGo);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(100.01)]
+    public async Task Actualizar_rechaza_valores_fuera_de_rango(decimal valor)
+    {
+        await Assert.ThrowsAsync<DomainException>(() => Servicio().ActualizarComisionWalletGoAsync(valor));
     }
 }

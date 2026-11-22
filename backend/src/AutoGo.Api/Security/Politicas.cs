@@ -8,5 +8,7 @@ public static class Politicas
     /// <summary>Cualquier usuario con contraseña vigente.</summary>
     public const string Usuario = "Usuario";
     public const string Administrador = "Administrador";
+    /// <summary>Personal interno (Administrador u Operador): operación diaria de mostrador.</summary>
+    public const string Staff = "Staff";
     public const string Cliente = "Cliente";
 }

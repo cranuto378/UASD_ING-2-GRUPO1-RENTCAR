@@ -24,6 +24,25 @@ public sealed class CategoriaService(ICategoriaRepository categorias) : ICategor
     }
 }
 
+public interface IParametrosService
+{
+    Task<ParametrosGenerales> ObtenerAsync(CancellationToken ct = default);
+    Task<ParametrosGenerales> ActualizarComisionWalletGoAsync(decimal comisionWalletGo, CancellationToken ct = default);
+}
+
+public sealed class ParametrosService(IParametrosRepository parametros) : IParametrosService
+{
+    public Task<ParametrosGenerales> ObtenerAsync(CancellationToken ct = default) => parametros.ObtenerAsync(ct);
+
+    public async Task<ParametrosGenerales> ActualizarComisionWalletGoAsync(decimal comisionWalletGo, CancellationToken ct = default)
+    {
+        if (comisionWalletGo < 0 || comisionWalletGo > 100)
+            throw new Domain.Common.DomainException(Domain.Common.CodigosError.DatoInvalido, "La comisión Wallet GO debe estar entre 0 y 100.");
+        await parametros.ActualizarComisionWalletGoAsync(comisionWalletGo, ct);
+        return await parametros.ObtenerAsync(ct);
+    }
+}
+
 public interface IDashboardService
 {
     Task<DashboardDto> ObtenerAsync(CancellationToken ct = default);

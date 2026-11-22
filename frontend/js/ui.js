@@ -127,7 +127,7 @@ const UI = (() => {
     MOSTRADOR: 'Mostrador', PORTAL: 'Portal',
     ALQUILER: 'Alquiler', MORA: 'Mora', AJUSTE: 'Ajuste',
     EFECTIVO: 'Efectivo', TARJETA: 'Tarjeta', TRANSFERENCIA: 'Transferencia',
-    ADMINISTRADOR: 'Administrador', CLIENTE: 'Cliente'
+    ADMINISTRADOR: 'Superadministrador', OPERADOR: 'Operador', CLIENTE: 'Cliente'
   };
 
   const TONO = {

@@ -79,9 +79,10 @@ CREATE TABLE dbo.Usuarios
     DebeCambiarPassword BIT            NOT NULL CONSTRAINT DF_Usuarios_DebeCambiar DEFAULT (0),
     Activo              BIT            NOT NULL CONSTRAINT DF_Usuarios_Activo DEFAULT (1),
     FechaCreacion       DATETIME2(0)   NOT NULL CONSTRAINT DF_Usuarios_FechaCreacion DEFAULT (SYSUTCDATETIME()),
+    UltimoAccesoUtc     DATETIME2(0)   NULL,
     CONSTRAINT PK_Usuarios PRIMARY KEY (Id),
     CONSTRAINT UQ_Usuarios_Correo UNIQUE (Correo),
-    CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN (N'Administrador', N'Cliente'))
+    CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN (N'Administrador', N'Operador', N'Cliente'))
 );
 GO
 
@@ -120,6 +121,21 @@ CREATE TABLE dbo.Categorias
     CONSTRAINT PK_Categorias PRIMARY KEY (Id),
     CONSTRAINT UQ_Categorias_Nombre UNIQUE (Nombre)
 );
+GO
+
+/* ---------------------------------------------------------------------------
+   Parámetros generales editables desde Configuración. Fila única (Id = 1).
+   --------------------------------------------------------------------------- */
+CREATE TABLE dbo.ParametrosGenerales
+(
+    Id               INT           NOT NULL,
+    ComisionWalletGo DECIMAL(5,2)  NOT NULL CONSTRAINT DF_Parametros_ComisionWalletGo DEFAULT (70.00),
+    CONSTRAINT PK_ParametrosGenerales PRIMARY KEY (Id),
+    CONSTRAINT CK_ParametrosGenerales_FilaUnica CHECK (Id = 1),
+    CONSTRAINT CK_ParametrosGenerales_Comision CHECK (ComisionWalletGo BETWEEN 0 AND 100)
+);
+GO
+INSERT INTO dbo.ParametrosGenerales (Id, ComisionWalletGo) VALUES (1, 70.00);
 GO
 
 /* ---------------------------------------------------------------------------
@@ -288,7 +304,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT u.Id, u.Nombre, u.Correo, u.PasswordHash, u.Rol, u.DebeCambiarPassword, u.Activo,
-           c.Id AS ClienteId
+           u.UltimoAccesoUtc, c.Id AS ClienteId
     FROM dbo.Usuarios u
     LEFT JOIN dbo.Clientes c ON c.UsuarioId = u.Id
     WHERE u.Correo = @Correo;
@@ -301,22 +317,46 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT u.Id, u.Nombre, u.Correo, u.PasswordHash, u.Rol, u.DebeCambiarPassword, u.Activo,
-           c.Id AS ClienteId
+           u.UltimoAccesoUtc, c.Id AS ClienteId
     FROM dbo.Usuarios u
     LEFT JOIN dbo.Clientes c ON c.UsuarioId = u.Id
     WHERE u.Id = @Id;
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.usp_Usuario_RegistrarAcceso
+    @Id       INT,
+    @AhoraUtc DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Usuarios SET UltimoAccesoUtc = @AhoraUtc WHERE Id = @Id;
+END
+GO
+
+/* Personal interno (Administrador/Operador) para la pantalla Administradores. */
+CREATE OR ALTER PROCEDURE dbo.usp_Usuario_ListarAdministradores
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT u.Id, u.Nombre, u.Correo, u.PasswordHash, u.Rol, u.DebeCambiarPassword, u.Activo,
+           u.UltimoAccesoUtc, CAST(NULL AS INT) AS ClienteId
+    FROM dbo.Usuarios u
+    WHERE u.Rol IN (N'Administrador', N'Operador')
+    ORDER BY u.Nombre;
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_Usuario_CrearAdministrador
     @Nombre       NVARCHAR(100),
     @Correo       NVARCHAR(150),
-    @PasswordHash NVARCHAR(255)
+    @PasswordHash NVARCHAR(255),
+    @Rol          NVARCHAR(20) = N'Operador'
 AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO dbo.Usuarios (Nombre, Correo, PasswordHash, Rol, DebeCambiarPassword)
-    VALUES (@Nombre, @Correo, @PasswordHash, N'Administrador', 1);
+    VALUES (@Nombre, @Correo, @PasswordHash, @Rol, 1);
 
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
 END
@@ -595,6 +635,23 @@ BEGIN
     SET NOCOUNT ON;
     INSERT INTO dbo.Categorias (Nombre) VALUES (@Nombre);
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Parametros_Obtener
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP (1) ComisionWalletGo FROM dbo.ParametrosGenerales ORDER BY Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Parametros_ActualizarComisionWalletGo
+    @ComisionWalletGo DECIMAL(5,2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.ParametrosGenerales SET ComisionWalletGo = @ComisionWalletGo WHERE Id = 1;
 END
 GO
 

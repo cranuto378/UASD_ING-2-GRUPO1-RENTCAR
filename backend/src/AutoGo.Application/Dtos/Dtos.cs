@@ -3,7 +3,8 @@ using AutoGo.Domain.Enums;
 namespace AutoGo.Application.Dtos;
 
 // ---------- Salidas ----------
-public sealed record UsuarioDto(int Id, string Nombre, string Correo, Rol Rol, bool DebeCambiarPassword, int? ClienteId);
+public sealed record UsuarioDto(int Id, string Nombre, string Correo, Rol Rol, bool DebeCambiarPassword, int? ClienteId,
+    DateTime? UltimoAccesoUtc = null);
 
 public sealed record AuthResultadoDto(string Token, DateTime ExpiraEnUtc, UsuarioDto Usuario);
 
@@ -44,7 +45,7 @@ public sealed record DashboardDto(int TotalClientes, int TotalVehiculos, int Veh
 public sealed record RegistroClienteInput(string Nombre, string Correo, string Password, string Cedula,
     string? Telefono, string? LicenciaConducir);
 
-public sealed record CrearAdministradorInput(string Nombre, string Correo, string PasswordTemporal);
+public sealed record CrearAdministradorInput(string Nombre, string Correo, string PasswordTemporal, Rol Rol = Rol.Operador);
 
 public sealed record ClienteInput(string Nombre, string Cedula, string? Correo, string? Telefono, string? LicenciaConducir);
 

@@ -159,7 +159,7 @@ public sealed class AlquilerService(
     /// <summary>Administrador: registra en mostrador para el cliente indicado. Cliente: siempre para sí mismo, vía portal.</summary>
     private (int ClienteId, CanalAlquiler Canal, int? RegistradoPor) ResolverOrigen(int? clienteIdSolicitado)
     {
-        if (actual.EsAdministrador)
+        if (actual.EsStaff)
         {
             var clienteId = clienteIdSolicitado
                 ?? throw new DomainException(CodigosError.DatoInvalido, "Debe indicar el cliente.");

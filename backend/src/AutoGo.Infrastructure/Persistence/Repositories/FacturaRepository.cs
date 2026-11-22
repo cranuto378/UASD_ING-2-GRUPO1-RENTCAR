@@ -26,3 +26,16 @@ public sealed class DashboardRepository(SpExecutor db) : IDashboardRepository
             r.IngresosTotales, r.IngresosMes);
     }
 }
+
+public sealed class ParametrosRepository(SpExecutor db) : IParametrosRepository
+{
+    public async Task<ParametrosGenerales> ObtenerAsync(CancellationToken ct = default)
+    {
+        var r = await db.PrimeroAsync<ParametrosRow>("dbo.usp_Parametros_Obtener", null, ct)
+                 ?? new ParametrosRow { ComisionWalletGo = 70m };
+        return new ParametrosGenerales(r.ComisionWalletGo);
+    }
+
+    public Task ActualizarComisionWalletGoAsync(decimal comisionWalletGo, CancellationToken ct = default) =>
+        db.EjecutarAsync("dbo.usp_Parametros_ActualizarComisionWalletGo", new { ComisionWalletGo = comisionWalletGo }, ct);
+}

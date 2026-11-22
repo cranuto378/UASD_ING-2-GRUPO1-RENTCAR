@@ -156,7 +156,7 @@ const Api = (() => {
 
   /* Campos */
 
-  const USUARIO = 'id nombre correo rol debeCambiarPassword clienteId';
+  const USUARIO = 'id nombre correo rol debeCambiarPassword clienteId ultimoAccesoUtc';
   const AUTH = `token expiraEnUtc usuario { ${USUARIO} }`;
   const CATEGORIA = 'id nombre';
   const VEHICULO = 'id placa categoriaId categoria marca modelo anio precioDia estadoOperativo estadoActual mantenimientoHasta fotoUrl activo';
@@ -231,6 +231,8 @@ const Api = (() => {
         crearAdministrador(input: $input) { ${USUARIO} }
       }`, { input }),
 
+    administradores: () => pedir('administradores', `query Administradores { administradores { ${USUARIO} } }`),
+
 
     /* Catálogo y vehículos */
 
@@ -258,6 +260,13 @@ const Api = (() => {
 
     crearCategoria: nombre => pedir('crearCategoria',
       `mutation CrearCategoria($nombre: String!) { crearCategoria(nombre: $nombre) { ${CATEGORIA} } }`, { nombre }),
+
+    parametros: () => pedir('parametros', `query Parametros { parametros { comisionWalletGo } }`),
+
+    actualizarComisionWalletGo: comisionWalletGo => pedir('actualizarComisionWalletGo',
+      `mutation ActualizarComisionWalletGo($comisionWalletGo: Decimal!) {
+        actualizarComisionWalletGo(comisionWalletGo: $comisionWalletGo) { comisionWalletGo }
+      }`, { comisionWalletGo }),
 
     crearVehiculo: input => pedir('crearVehiculo',
       `mutation CrearVehiculo($input: VehiculoInput!) { crearVehiculo(input: $input) { ${VEHICULO} } }`, { input }),

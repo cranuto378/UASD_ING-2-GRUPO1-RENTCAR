@@ -29,6 +29,7 @@ public static class ApplicationServices
         services.AddScoped<IAlquilerService, AlquilerService>();
         services.AddScoped<IFacturaService, FacturaService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IParametrosService, ParametrosService>();
         return services;
     }
 }

@@ -13,6 +13,7 @@ internal sealed class UsuarioRow
     public bool DebeCambiarPassword { get; set; }
     public bool Activo { get; set; }
     public int? ClienteId { get; set; }
+    public DateTime? UltimoAccesoUtc { get; set; }
 }
 
 internal sealed class TokenRow
@@ -131,4 +132,9 @@ internal sealed class ResumenRow
     public int PendientesDevolucion { get; set; }
     public decimal IngresosTotales { get; set; }
     public decimal IngresosMes { get; set; }
+}
+
+internal sealed class ParametrosRow
+{
+    public decimal ComisionWalletGo { get; set; }
 }

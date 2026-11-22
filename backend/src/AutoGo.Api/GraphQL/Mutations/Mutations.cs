@@ -1,4 +1,5 @@
 using AutoGo.Api.Security;
+using AutoGo.Application.Abstractions;
 using AutoGo.Application.Dtos;
 using AutoGo.Application.Services;
 using AutoGo.Domain.Enums;
@@ -45,43 +46,48 @@ public sealed class CatalogoMutations
     public Task<CategoriaDto> CrearCategoria(string nombre, [Service] ICategoriaService s, CancellationToken ct) =>
         s.CrearAsync(nombre, ct);
 
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public Task<VehiculoDto> CrearVehiculo(VehiculoInput input, [Service] IVehiculoService s, CancellationToken ct) =>
         s.CrearAsync(input, ct);
 
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public Task<VehiculoDto> ActualizarVehiculo(int id, VehiculoInput input, [Service] IVehiculoService s, CancellationToken ct) =>
         s.ActualizarAsync(id, input, ct);
 
     /// <summary>Disponible / Mantenimiento (con fecha fin opcional) / FueraDeServicio.</summary>
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public Task<VehiculoDto> CambiarEstadoVehiculo(CambiarEstadoVehiculoInput input, [Service] IVehiculoService s,
         CancellationToken ct) => s.CambiarEstadoAsync(input, ct);
 
     /// <summary>Subida multipart (GraphQL multipart request spec).</summary>
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public async Task<VehiculoDto> SubirFotoVehiculo(int id, IFile foto, [Service] IVehiculoService s, CancellationToken ct)
     {
         await using var stream = foto.OpenReadStream();
         return await s.SubirFotoAsync(id, stream, foto.Name, ct);
     }
 
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public Task<bool> DesactivarVehiculo(int id, [Service] IVehiculoService s, CancellationToken ct) => s.DesactivarAsync(id, ct);
+
+    /// <summary>Comisión Wallet GO (%), editable desde Configuración. Sólo Superadministrador.</summary>
+    [Authorize(Policy = Politicas.Administrador)]
+    public Task<ParametrosGenerales> ActualizarComisionWalletGo(decimal comisionWalletGo, [Service] IParametrosService s,
+        CancellationToken ct) => s.ActualizarComisionWalletGoAsync(comisionWalletGo, ct);
 }
 
 [ExtendObjectType(OperationTypeNames.Mutation)]
 public sealed class ClienteMutations
 {
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public Task<ClienteDto> CrearCliente(ClienteInput input, [Service] IClienteService s, CancellationToken ct) =>
         s.CrearAsync(input, ct);
 
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public Task<ClienteDto> ActualizarCliente(int id, ClienteInput input, [Service] IClienteService s, CancellationToken ct) =>
         s.ActualizarAsync(id, input, ct);
 
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public Task<bool> DesactivarCliente(int id, [Service] IClienteService s, CancellationToken ct) => s.DesactivarAsync(id, ct);
 }
 
@@ -93,7 +99,7 @@ public sealed class AlquilerMutations
     public Task<OperacionAlquilerDto> CrearAlquiler(CrearAlquilerInput input, [Service] IAlquilerService s, CancellationToken ct) =>
         s.CrearAsync(input, ct);
 
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public Task<OperacionAlquilerDto> ModificarAlquiler(ModificarAlquilerInput input, [Service] IAlquilerService s,
         CancellationToken ct) => s.ModificarAsync(input, ct);
 
@@ -102,7 +108,7 @@ public sealed class AlquilerMutations
     public Task<OperacionAlquilerDto> CancelarAlquiler(int alquilerId, string? motivo, [Service] IAlquilerService s,
         CancellationToken ct) => s.CancelarAsync(alquilerId, motivo, ct);
 
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     public Task<OperacionAlquilerDto> RegistrarDevolucion(DevolucionInput input, [Service] IAlquilerService s,
         CancellationToken ct) => s.RegistrarDevolucionAsync(input, ct);
 }

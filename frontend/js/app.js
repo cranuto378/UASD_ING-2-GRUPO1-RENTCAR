@@ -13,7 +13,9 @@ let pendientes = null;
 
 const usuario = () => (Api.sesion() || {}).usuario;
 const esAdmin = () => !!usuario() && /^admin/i.test(usuario().rol);
-const inicio = () => (!Api.sesion() ? 'login' : esAdmin() ? 'dashboard' : 'inicio');
+/// Personal interno (Administrador u Operador): acceso operativo de mostrador.
+const esStaff = () => !!usuario() && /^(admin|operador)/i.test(usuario().rol);
+const inicio = () => (!Api.sesion() ? 'login' : esAdmin() ? 'dashboard' : esStaff() ? 'alquileres' : 'inicio');
 
 const opcionesMetodo = (vacio) =>
   (vacio ? [{ valor: '', texto: vacio }] : []).concat(METODOS.map(m => ({ valor: m, texto: etq(m) })));
@@ -46,15 +48,16 @@ const RUTAS = {
   'mis-alquileres': { vista: vMisAlquileres, acceso: 'cliente', titulo: 'Mis alquileres', sub: 'Consulta, revisa o cancela tus reservas.' },
   'mis-facturas': { vista: vMisFacturas, acceso: 'cliente', titulo: 'Mis facturas', sub: 'Todas las facturas y notas de crédito de tus alquileres.' },
   'perfil': { vista: vPerfil, acceso: 'cliente', titulo: 'Mi perfil' },
-  'factura': { vista: vFactura, acceso: 'sesion', titulo: 'Factura', nav: () => (esAdmin() ? 'facturas' : 'mis-facturas') },
+  'factura': { vista: vFactura, acceso: 'sesion', titulo: 'Factura', nav: () => (esStaff() ? 'facturas' : 'mis-facturas') },
 
   'dashboard': { vista: vDashboard, acceso: 'admin', titulo: 'Panel de control', sub: 'Resumen de la flota, los alquileres y los ingresos.' },
-  'nuevo-alquiler': { vista: vNuevoAlquiler, acceso: 'admin', titulo: 'Nuevo alquiler', sub: 'Registro de alquiler en mostrador.' },
-  'alquileres': { vista: vAlquileres, acceso: 'admin', titulo: 'Alquileres', sub: 'Modifica, cancela o registra devoluciones.' },
-  'flota': { vista: vFlota, acceso: 'admin', titulo: 'Flota', sub: 'Vehículos, estados, fotos y categorías.' },
-  'clientes': { vista: vClientes, acceso: 'admin', titulo: 'Clientes', sub: 'Clientes del portal y de mostrador.' },
-  'facturas': { vista: vFacturas, acceso: 'admin', titulo: 'Facturación', sub: 'Facturas emitidas. No se editan ni se eliminan.' },
-  'administradores': { vista: vAdministradores, acceso: 'admin', titulo: 'Administradores', sub: 'Alta de nuevos usuarios administradores.' }
+  'nuevo-alquiler': { vista: vNuevoAlquiler, acceso: 'staff', titulo: 'Nuevo alquiler', sub: 'Registro de alquiler en mostrador.' },
+  'alquileres': { vista: vAlquileres, acceso: 'staff', titulo: 'Alquileres', sub: 'Modifica, cancela o registra devoluciones.' },
+  'flota': { vista: vFlota, acceso: 'staff', titulo: 'Flota', sub: 'Vehículos, estados, fotos y categorías.' },
+  'clientes': { vista: vClientes, acceso: 'staff', titulo: 'Clientes', sub: 'Clientes del portal y de mostrador.' },
+  'facturas': { vista: vFacturas, acceso: 'staff', titulo: 'Facturación', sub: 'Facturas emitidas. No se editan ni se eliminan.' },
+  'administradores': { vista: vAdministradores, acceso: 'admin', titulo: 'Administradores', sub: 'Alta de nuevos usuarios administradores.' },
+  'configuracion': { vista: vConfiguracion, acceso: 'admin', titulo: 'Configuración', sub: 'Parámetros generales y categorías de vehículos.' }
 };
 
 const NAV = {
@@ -65,7 +68,15 @@ const NAV = {
     ['flota', 'Flota', 'car'],
     ['clientes', 'Clientes', 'users'],
     ['facturas', 'Facturas', 'receipt'],
-    ['administradores', 'Administradores', 'shield']
+    ['administradores', 'Administradores', 'shield'],
+    ['configuracion', 'Configuración', 'settings']
+  ],
+  staff: [
+    ['nuevo-alquiler', 'Nuevo alquiler', 'plusCircle'],
+    ['alquileres', 'Alquileres', 'calendar'],
+    ['flota', 'Flota', 'car'],
+    ['clientes', 'Clientes', 'users'],
+    ['facturas', 'Facturas', 'receipt']
   ],
   cliente: [
     ['inicio', 'Inicio', 'home'],
@@ -113,11 +124,12 @@ async function render() {
   if (!def) return ir(inicio());
   if (s && s.usuario.debeCambiarPassword && ruta !== 'cambiar-password') return ir('cambiar-password');
   if (def.acceso === 'publica' && s) return ir(inicio());
-  if (['sesion', 'cliente', 'admin'].includes(def.acceso) && !s) {
+  if (['sesion', 'cliente', 'admin', 'staff'].includes(def.acceso) && !s) {
     return ir('login?next=' + encodeURIComponent(location.hash.replace(/^#\//, '')));
   }
-  if (def.acceso === 'cliente' && esAdmin()) return ir('dashboard');
+  if (def.acceso === 'cliente' && esStaff()) return ir(inicio());
   if (def.acceso === 'admin' && !esAdmin()) return ir(inicio());
+  if (def.acceso === 'staff' && !esStaff()) return ir(inicio());
 
   const id = ++renderId;
   const forzado = !!(s && s.usuario.debeCambiarPassword);
@@ -242,7 +254,7 @@ function montarShell(ruta, def) {
 }
 
 function pintarNav(activa) {
-  const items = !Api.sesion() ? NAV.publico : esAdmin() ? NAV.admin : NAV.cliente;
+  const items = !Api.sesion() ? NAV.publico : esAdmin() ? NAV.admin : esStaff() ? NAV.staff : NAV.cliente;
 
   $('#nav').innerHTML = items.map(([r, texto, ic]) => {
     const cuenta = r === 'alquileres' && pendientes ? `<b class="contador" aria-label="${pendientes} pendientes">${pendientes}</b>` : '';
@@ -2303,7 +2315,7 @@ async function vFlota(c, ctx) {
       <div class="buscar">${icon('search')}<input type="search" id="qVeh" placeholder="Buscar por placa, marca o modelo" aria-label="Buscar vehículo"></div>
       <select id="catVeh" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select>
       <label class="check"><input type="checkbox" id="inacVeh"> Incluir inactivos</label>
-      <div class="derecha"><button class="btn ghost" type="button" data-nueva-cat>${icon('tag')} Nueva categoría</button></div>
+      ${esAdmin() ? `<div class="derecha"><a class="btn ghost" href="#/configuracion">${icon('tag')} Gestionar categorías</a></div>` : ''}
     </div>
     <div class="card" id="lista"></div>`;
 
@@ -2365,10 +2377,6 @@ async function vFlota(c, ctx) {
   };
 
   $('[data-nuevo-veh]').onclick = () => editarVehiculo(null, categorias, () => l.recargar());
-  $('[data-nueva-cat]', c).onclick = () => nuevaCategoria(cat => {
-    categorias.push(cat);
-    pintarCategorias();
-  });
 
   $('#lista', c).addEventListener('click', async e => {
     const b = e.target.closest('[data-acc]');
@@ -2832,6 +2840,10 @@ function vAdministradores(c) {
         <form class="form" id="fa" novalidate>
           ${UI.campo({ name: 'nombre', label: 'Nombre completo', requerido: true })}
           ${UI.campo({ name: 'correo', label: 'Correo electrónico', tipo: 'email', requerido: true, attrs: 'autocomplete="off"' })}
+          ${UI.campo({ name: 'rol', label: 'Perfil', tipo: 'select', requerido: true, value: 'OPERADOR', opciones: [
+            { valor: 'OPERADOR', texto: 'Operador (acceso de mostrador: alquileres, flota, clientes, facturas)' },
+            { valor: 'ADMINISTRADOR', texto: 'Superadministrador (acceso total, incluye Administradores)' }
+          ] })}
           <div class="campo" data-campo="passwordTemporal">
             <label for="pt">Contraseña temporal <i>*</i></label>
             <div style="display:flex;gap:10px">
@@ -2858,7 +2870,12 @@ function vAdministradores(c) {
           <div class="item"><span class="avatar sm">3</span><div><b>Primer inicio de sesión</b><small>El sistema le pedirá cambiarla antes de continuar.</small></div></div>
         </div>
       </section>
-    </div>`;
+    </div>
+
+    <section class="card" style="margin-top:16px">
+      <div class="card-h"><h3>Cuentas de personal</h3></div>
+      <div id="listaAdmins"></div>
+    </section>`;
 
   const f = $('#fa', c);
 
@@ -2882,7 +2899,7 @@ function vAdministradores(c) {
     UI.ocupado(btn, true);
 
     try {
-      const u = await Api.crearAdministrador({ nombre: d.nombre, correo: d.correo, passwordTemporal: d.passwordTemporal });
+      const u = await Api.crearAdministrador({ nombre: d.nombre, correo: d.correo, passwordTemporal: d.passwordTemporal, rol: d.rol });
       $('#ok', c).innerHTML = `
         <div class="form-ok">${icon('check')}
           <div><b>${esc(u.nombre)}</b> ya puede entrar con <b>${esc(u.correo)}</b>.
@@ -2890,12 +2907,119 @@ function vAdministradores(c) {
         </div>`;
       f.reset();
       f.passwordTemporal.type = 'password';
+      cargarAdmins();
     } catch (err) {
       errorEnForm(f, err, { CORREO_DUPLICADO: 'correo' });
     } finally {
       UI.ocupado(btn, false);
     }
   };
+
+  async function cargarAdmins() {
+    const cont = $('#listaAdmins', c);
+    try {
+      const admins = await Api.administradores();
+      cont.innerHTML = admins.length ? `
+        <div class="tabla-wrap">
+          <table class="tabla">
+            <thead><tr><th>Nombre</th><th>Correo</th><th>Perfil</th><th>Contraseña</th><th>Último acceso</th></tr></thead>
+            <tbody>${admins.map(u => `
+              <tr>
+                <td class="principal">${esc(u.nombre)}</td>
+                <td>${esc(u.correo)}</td>
+                <td>${badge(u.rol)}</td>
+                <td>${u.debeCambiarPassword ? badge(null, 'Temporal; debe cambiarla', 'warn') : badge(null, 'Definitiva', 'ok')}</td>
+                <td>${fmt.fechaHora(u.ultimoAccesoUtc)}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : UI.vacio('Aún no hay cuentas de personal registradas.', 'shield');
+    } catch (err) {
+      cont.innerHTML = '';
+      avisarError(err);
+    }
+  }
+
+  cargarAdmins();
+}
+
+
+/* =========================================================
+   CONFIGURACIÓN
+========================================================= */
+
+function vConfiguracion(c) {
+  let categorias = [];
+
+  c.innerHTML = `
+    <div class="dos-col">
+      <section class="card">
+        <div class="card-h"><h3>Parámetros generales</h3></div>
+        <form class="form" id="fp" novalidate>
+          ${UI.campo({ name: 'comisionWalletGo', label: 'Comisión Wallet GO (%)', tipo: 'number', requerido: true, attrs: 'min="0" max="100" step="0.01"' })}
+          ${formErr}
+          <div><button class="btn" type="submit">Guardar cambios</button></div>
+        </form>
+        <div id="okParam" style="margin-top:16px"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-h"><h3>Categorías de vehículos</h3><button class="btn ghost" type="button" data-nueva-cat>${icon('tag')} Nueva categoría</button></div>
+        <div id="listaCat"></div>
+      </section>
+    </div>`;
+
+  const fp = $('#fp', c);
+
+  fp.onsubmit = async e => {
+    e.preventDefault();
+    UI.limpiarErrores(fp);
+    $('#okParam', c).innerHTML = '';
+
+    const d = UI.datos(fp);
+    const valor = Number(d.comisionWalletGo);
+    if (!d.comisionWalletGo || Number.isNaN(valor) || valor < 0 || valor > 100)
+      return UI.errorCampo(fp, 'comisionWalletGo', 'Escribe un porcentaje entre 0 y 100.');
+
+    const btn = $('[type=submit]', fp);
+    UI.ocupado(btn, true);
+
+    try {
+      await Api.actualizarComisionWalletGo(valor);
+      $('#okParam', c).innerHTML = `<div class="form-ok">${icon('check')}<div>Parámetros actualizados correctamente.</div></div>`;
+    } catch (err) {
+      errorEnForm(fp, err);
+    } finally {
+      UI.ocupado(btn, false);
+    }
+  };
+
+  const pintarCategorias = () => {
+    const cont = $('#listaCat', c);
+    cont.innerHTML = categorias.length ? `
+      <div class="lista">${categorias.map(x => `<div class="item"><span class="avatar sm">${icon('tag')}</span><div><b>${esc(x.nombre)}</b></div></div>`).join('')}</div>
+    ` : UI.vacio('Aún no hay categorías registradas.', 'tag');
+  };
+
+  $('[data-nueva-cat]', c).onclick = () => nuevaCategoria(cat => {
+    categorias.push(cat);
+    pintarCategorias();
+  });
+
+  (async () => {
+    try {
+      const p = await Api.parametros();
+      fp.comisionWalletGo.value = p.comisionWalletGo;
+    } catch (err) {
+      avisarError(err);
+    }
+    try {
+      categorias = await Api.categorias();
+      pintarCategorias();
+    } catch (err) {
+      avisarError(err);
+    }
+  })();
 }
 
 

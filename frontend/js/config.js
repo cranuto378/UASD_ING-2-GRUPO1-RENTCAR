@@ -6,6 +6,6 @@
 ========================================================= */
 
 window.AUTOGO_CONFIG = {
-  API_URL: 'https://autogo-api-esgmbubsefe2ajeq.canadacentral-01.azurewebsites.net',
+  API_URL: 'http://localhost:5180',
   DEMO: false
 };

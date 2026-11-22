@@ -15,14 +15,17 @@ public sealed class Usuario
     public bool Activo { get; private set; }
     /// <summary>Cliente vinculado (sólo para rol Cliente).</summary>
     public int? ClienteId { get; private set; }
+    /// <summary>Instante UTC del último inicio de sesión exitoso. Null = nunca ha iniciado sesión.</summary>
+    public DateTime? UltimoAccesoUtc { get; private set; }
 
     private Usuario() { }
 
     public static Usuario Rehidratar(int id, string nombre, string correo, string? passwordHash, Rol rol,
-        bool debeCambiarPassword, bool activo, int? clienteId) => new()
+        bool debeCambiarPassword, bool activo, int? clienteId, DateTime? ultimoAccesoUtc = null) => new()
     {
         Id = id, Nombre = nombre, Correo = correo, PasswordHash = passwordHash, Rol = rol,
-        DebeCambiarPassword = debeCambiarPassword, Activo = activo, ClienteId = clienteId
+        DebeCambiarPassword = debeCambiarPassword, Activo = activo, ClienteId = clienteId,
+        UltimoAccesoUtc = ultimoAccesoUtc
     };
 
     public bool PuedeIniciarSesion => Activo && !string.IsNullOrEmpty(PasswordHash);

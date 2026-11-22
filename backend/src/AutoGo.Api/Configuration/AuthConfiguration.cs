@@ -45,6 +45,8 @@ public static class AuthConfiguration
             o.AddPolicy(Politicas.Usuario, p => p.RequireAuthenticatedUser().RequireClaim(ClaimsAutoGo.DebeCambiarPassword, "false"));
             o.AddPolicy(Politicas.Administrador, p => p.RequireAuthenticatedUser()
                 .RequireClaim(ClaimsAutoGo.DebeCambiarPassword, "false").RequireRole("Administrador"));
+            o.AddPolicy(Politicas.Staff, p => p.RequireAuthenticatedUser()
+                .RequireClaim(ClaimsAutoGo.DebeCambiarPassword, "false").RequireRole("Administrador", "Operador"));
             o.AddPolicy(Politicas.Cliente, p => p.RequireAuthenticatedUser()
                 .RequireClaim(ClaimsAutoGo.DebeCambiarPassword, "false").RequireRole("Cliente"));
         });

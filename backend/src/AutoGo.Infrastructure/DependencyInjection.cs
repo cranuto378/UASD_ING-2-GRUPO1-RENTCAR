@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IAlquilerRepository, AlquilerRepository>();
         services.AddScoped<IFacturaRepository, FacturaRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<IParametrosRepository, ParametrosRepository>();
 
         // Seguridad
         services.Configure<OpcionesJwt>(configuration.GetSection(OpcionesJwt.Seccion));

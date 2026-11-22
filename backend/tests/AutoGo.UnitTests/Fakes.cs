@@ -19,6 +19,7 @@ internal sealed class FakeUser : ICurrentUser
     public int? ClienteId { get; init; }
 
     public static FakeUser Admin => new() { UsuarioId = 1, Rol = Domain.Enums.Rol.Administrador };
+    public static FakeUser Operador => new() { UsuarioId = 2, Rol = Domain.Enums.Rol.Operador };
     public static FakeUser Cliente(int clienteId) => new() { UsuarioId = 50, Rol = Domain.Enums.Rol.Cliente, ClienteId = clienteId };
 }
 
@@ -57,7 +58,12 @@ internal sealed class FakeUsuarios : IUsuarioRepository
         Tokens.Add((usuarioId, tokenHash));
         return Task.CompletedTask;
     }
-    public Task<int> CrearAdministradorAsync(string nombre, string correo, string passwordHash, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<int> CrearAdministradorAsync(string nombre, string correo, string passwordHash, Rol rol, CancellationToken ct = default)
+    {
+        var id = Datos.Count + 1;
+        Datos.Add(Usuario.Rehidratar(id, nombre, correo, passwordHash, rol, true, true, null));
+        return Task.FromResult(id);
+    }
     public int? UltimoClienteVinculado { get; private set; }
     public Task<(int UsuarioId, int ClienteId)> RegistrarClienteAsync(int? clienteExistenteId, Cliente cliente, string correo, string passwordHash, CancellationToken ct = default)
     {
@@ -69,6 +75,32 @@ internal sealed class FakeUsuarios : IUsuarioRepository
     public Task ActualizarPasswordAsync(int usuarioId, string passwordHash, bool debeCambiar, CancellationToken ct = default) => Task.CompletedTask;
     public Task<TokenRecuperacion?> ObtenerTokenVigenteAsync(string tokenHash, DateTime ahoraUtc, CancellationToken ct = default) => throw new NotImplementedException();
     public Task ConsumirTokenAsync(int tokenId, string passwordHash, DateTime ahoraUtc, CancellationToken ct = default) => throw new NotImplementedException();
+
+    public Task RegistrarAccesoAsync(int usuarioId, DateTime ahoraUtc, CancellationToken ct = default)
+    {
+        var i = Datos.FindIndex(u => u.Id == usuarioId);
+        if (i >= 0)
+            Datos[i] = Usuario.Rehidratar(Datos[i].Id, Datos[i].Nombre, Datos[i].Correo, Datos[i].PasswordHash,
+                Datos[i].Rol, Datos[i].DebeCambiarPassword, Datos[i].Activo, Datos[i].ClienteId, ahoraUtc);
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<Usuario>> ListarAdministradoresAsync(CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<Usuario>>(Datos.Where(u => u.Rol is Rol.Administrador or Rol.Operador).ToList());
+}
+
+internal sealed class FakeParametros : IParametrosRepository
+{
+    public decimal ComisionWalletGo { get; set; } = 70m;
+
+    public Task<ParametrosGenerales> ObtenerAsync(CancellationToken ct = default) =>
+        Task.FromResult(new ParametrosGenerales(ComisionWalletGo));
+
+    public Task ActualizarComisionWalletGoAsync(decimal comisionWalletGo, CancellationToken ct = default)
+    {
+        ComisionWalletGo = comisionWalletGo;
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class FakeClientes : IClienteRepository

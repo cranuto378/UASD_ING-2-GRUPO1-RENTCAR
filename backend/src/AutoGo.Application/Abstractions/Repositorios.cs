@@ -11,13 +11,16 @@ public interface IUsuarioRepository
 {
     Task<Usuario?> ObtenerPorCorreoAsync(string correo, CancellationToken ct = default);
     Task<Usuario?> ObtenerPorIdAsync(int id, CancellationToken ct = default);
-    Task<int> CrearAdministradorAsync(string nombre, string correo, string passwordHash, CancellationToken ct = default);
+    Task<int> CrearAdministradorAsync(string nombre, string correo, string passwordHash, Rol rol, CancellationToken ct = default);
     Task<(int UsuarioId, int ClienteId)> RegistrarClienteAsync(int? clienteExistenteId, Cliente cliente, string correo,
         string passwordHash, CancellationToken ct = default);
     Task ActualizarPasswordAsync(int usuarioId, string passwordHash, bool debeCambiar, CancellationToken ct = default);
     Task CrearTokenRecuperacionAsync(int usuarioId, string tokenHash, DateTime expiraEnUtc, CancellationToken ct = default);
     Task<TokenRecuperacion?> ObtenerTokenVigenteAsync(string tokenHash, DateTime ahoraUtc, CancellationToken ct = default);
     Task ConsumirTokenAsync(int tokenId, string passwordHash, DateTime ahoraUtc, CancellationToken ct = default);
+    Task RegistrarAccesoAsync(int usuarioId, DateTime ahoraUtc, CancellationToken ct = default);
+    /// <summary>Cuentas de personal interno (Administrador y Operador), para la pantalla Administradores.</summary>
+    Task<IReadOnlyList<Usuario>> ListarAdministradoresAsync(CancellationToken ct = default);
 }
 
 public interface IClienteRepository
@@ -92,4 +95,13 @@ public interface IDashboardRepository
 {
     Task<ResumenOperativo> ObtenerResumenAsync(DateOnly hoy, DateTime inicioMesUtc, DateTime finMesUtc,
         CancellationToken ct = default);
+}
+
+/// <summary>Parámetros generales editables desde Configuración (fila única).</summary>
+public sealed record ParametrosGenerales(decimal ComisionWalletGo);
+
+public interface IParametrosRepository
+{
+    Task<ParametrosGenerales> ObtenerAsync(CancellationToken ct = default);
+    Task ActualizarComisionWalletGoAsync(decimal comisionWalletGo, CancellationToken ct = default);
 }

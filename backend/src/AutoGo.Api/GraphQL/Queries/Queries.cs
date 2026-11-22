@@ -13,6 +13,11 @@ public sealed class CuentaQueries
     /// <summary>Usuario autenticado. Disponible aunque deba cambiar la contraseña.</summary>
     [Authorize(Policy = Politicas.Sesion)]
     public Task<UsuarioDto> Me([Service] IAuthService auth, CancellationToken ct) => auth.ObtenerUsuarioActualAsync(ct);
+
+    /// <summary>Cuentas de personal interno (Administradores y Operadores). Sólo Superadministrador.</summary>
+    [Authorize(Policy = Politicas.Administrador)]
+    public Task<IReadOnlyList<UsuarioDto>> Administradores([Service] IAuthService auth, CancellationToken ct) =>
+        auth.ListarAdministradoresAsync(ct);
 }
 
 [ExtendObjectType(OperationTypeNames.Query)]
@@ -29,7 +34,7 @@ public sealed class CatalogoQueries
     public Task<CotizacionDto> CotizarAlquiler(int vehiculoId, DateOnly fechaInicio, DateOnly fechaFin,
         [Service] IAlquilerService s, CancellationToken ct) => s.CotizarAsync(vehiculoId, fechaInicio, fechaFin, ct);
 
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     [UsePaging(IncludeTotalCount = true, DefaultPageSize = 50, MaxPageSize = 200)]
     [UseFiltering]
     [UseSorting]
@@ -40,9 +45,17 @@ public sealed class CatalogoQueries
 }
 
 [ExtendObjectType(OperationTypeNames.Query)]
+public sealed class ConfiguracionQueries
+{
+    /// <summary>Parámetros generales (p. ej. comisión Wallet GO). Sólo Superadministrador.</summary>
+    [Authorize(Policy = Politicas.Administrador)]
+    public Task<ParametrosGenerales> Parametros([Service] IParametrosService s, CancellationToken ct) => s.ObtenerAsync(ct);
+}
+
+[ExtendObjectType(OperationTypeNames.Query)]
 public sealed class ClienteQueries
 {
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     [UsePaging(IncludeTotalCount = true, DefaultPageSize = 50, MaxPageSize = 200)]
     [UseFiltering]
     [UseSorting]
@@ -59,7 +72,7 @@ public sealed class ClienteQueries
 [ExtendObjectType(OperationTypeNames.Query)]
 public sealed class AlquilerQueries
 {
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     [UsePaging(IncludeTotalCount = true, DefaultPageSize = 50, MaxPageSize = 200)]
     [UseFiltering]
     [UseSorting]
@@ -83,7 +96,7 @@ public sealed class AlquilerQueries
 [ExtendObjectType(OperationTypeNames.Query)]
 public sealed class FacturaQueries
 {
-    [Authorize(Policy = Politicas.Administrador)]
+    [Authorize(Policy = Politicas.Staff)]
     [UsePaging(IncludeTotalCount = true, DefaultPageSize = 50, MaxPageSize = 200)]
     [UseFiltering]
     [UseSorting]

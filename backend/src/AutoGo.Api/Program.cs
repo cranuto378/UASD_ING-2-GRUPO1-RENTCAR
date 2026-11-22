@@ -31,6 +31,7 @@ builder.Services
     .AddTypeExtension<AlquilerQueries>()
     .AddTypeExtension<FacturaQueries>()
     .AddTypeExtension<DashboardQueries>()
+    .AddTypeExtension<ConfiguracionQueries>()
     .AddTypeExtension<CuentaMutations>()
     .AddTypeExtension<CatalogoMutations>()
     .AddTypeExtension<ClienteMutations>()
