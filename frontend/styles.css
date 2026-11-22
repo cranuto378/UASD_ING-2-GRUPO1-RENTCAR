@@ -161,6 +161,67 @@ img {
     min-width: 0;
 }
 
+/* ---------------------------------------------------------------------------
+   LÍQUIDO: brillo especular que sigue el cursor, al estilo "Liquid Glass" de
+   iOS. Es sólo un gradiente posicionado con variables CSS que mueve JS (sin
+   tocar blur/filter), así que es prácticamente gratis: nada que recalcular en
+   cada frame, sólo mover un fondo ya pintado.
+   --------------------------------------------------------------------------- */
+.glass,
+.app,
+.card,
+.auth-panel,
+.aviso,
+.modal,
+.menu-usuario {
+    position: relative;
+    isolation: isolate;
+}
+
+.glass::before,
+.app::before,
+.card::before,
+.auth-panel::before,
+.aviso::before,
+.modal::before,
+.menu-usuario::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%),
+            rgba(255, 255, 255, .4), rgba(255, 255, 255, .18) 24%, rgba(255, 255, 255, .05) 42%, transparent 60%);
+    mix-blend-mode: soft-light;
+    transition: opacity .3s ease;
+    will-change: opacity;
+}
+
+.glass:hover::before,
+.app:hover::before,
+.card:hover::before,
+.auth-panel:hover::before,
+.aviso:hover::before,
+.modal:hover::before,
+.menu-usuario:hover::before {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .glass::before,
+    .app::before,
+    .card::before,
+    .auth-panel::before,
+    .aviso::before,
+    .modal::before,
+    .menu-usuario::before {
+        display: none;
+    }
+}
+
 /* Modal y menú SÍ tapan contenido real de la pantalla (no sólo el fondo fijo),
    así que ahí el backdrop-filter aporta de verdad. Se aíslan en su propia capa
    para que el navegador lo componga una sola vez. */

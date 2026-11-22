@@ -3054,6 +3054,28 @@ document.addEventListener('error', e => {
 
 window.addEventListener('hashchange', render);
 
+/* Brillo "líquido" que sigue el cursor sobre los paneles glass (estilo iOS).
+   Un solo listener delegado; sólo mueve variables CSS (sin filtros ni blur). */
+(() => {
+  const SEL = '.glass, .app, .card, .auth-panel, .aviso, .modal, .menu-usuario';
+  let objetivo = null, x = 0, y = 0, pendiente = false;
+
+  document.addEventListener('pointermove', e => {
+    objetivo = e.target.closest(SEL);
+    x = e.clientX; y = e.clientY;
+    if (objetivo && !pendiente) {
+      pendiente = true;
+      requestAnimationFrame(() => {
+        pendiente = false;
+        if (!objetivo) return;
+        const r = objetivo.getBoundingClientRect();
+        objetivo.style.setProperty('--mx', `${((x - r.left) / r.width) * 100}%`);
+        objetivo.style.setProperty('--my', `${((y - r.top) / r.height) * 100}%`);
+      });
+    }
+  }, { passive: true });
+})();
+
 // Aviso cuando el token vence con la página abierta
 setInterval(() => {
   if (haySesion && !Api.sesion()) {
