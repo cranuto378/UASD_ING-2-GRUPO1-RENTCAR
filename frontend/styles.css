@@ -685,6 +685,20 @@ img {
     flex: none;
 }
 
+/* "Lente líquida" de verdad: distorsiona el fondo (como agua/vidrio curvo) en
+   vez de sólo difuminarlo. A propósito sólo para botones circulares chicos y
+   casi siempre fijos (campana, engranaje): el filtro SVG es caro de recalcular,
+   y en una tarjeta grande que se mueve con el scroll volveríamos a la lentitud
+   que ya arreglamos. */
+.glass-lente {
+    position: relative;
+    background: rgba(255, 255, 255, .12);
+    border: 1px solid rgba(255, 255, 255, .55);
+    box-shadow: 0 8px 20px rgba(6, 9, 28, .3), inset 0 1px 0 rgba(255, 255, 255, .4);
+    -webkit-backdrop-filter: url(#lente-liquida) saturate(160%);
+    backdrop-filter: url(#lente-liquida) saturate(160%);
+}
+
 .icon-btn:hover {
     background: var(--glass-2);
 }
@@ -1652,6 +1666,7 @@ input[type=file]::file-selector-button {
 }
 
 .foto-mini {
+    position: relative;
     width: 64px;
     height: 42px;
     border-radius: 10px;
@@ -1661,6 +1676,24 @@ input[type=file]::file-selector-button {
     place-items: center;
     color: rgba(255, 255, 255, .55);
     overflow: hidden;
+}
+
+/* Marco de "vidrio líquido" sobre el borde de la miniatura: dobla el propio
+   recorte de la foto justo en el filo, como un bisel de cristal curvo. */
+.foto-mini::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    pointer-events: none;
+    background: rgba(255, 255, 255, .01);
+    border: 1px solid rgba(255, 255, 255, .55);
+    -webkit-backdrop-filter: url(#lente-liquida);
+    backdrop-filter: url(#lente-liquida);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
 }
 
 .foto-mini img {
@@ -1859,9 +1892,10 @@ input[type=file]::file-selector-button {
     position: absolute;
     top: 10px;
     left: 10px;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    background: rgba(20, 24, 56, .45);
+    -webkit-backdrop-filter: url(#lente-liquida) saturate(160%);
+    backdrop-filter: url(#lente-liquida) saturate(160%);
+    background: rgba(20, 24, 56, .3);
+    border: 1px solid rgba(255, 255, 255, .55);
 }
 
 .veh-cuerpo {

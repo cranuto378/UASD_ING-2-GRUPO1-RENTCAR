@@ -283,10 +283,10 @@ function pintarFijas() {
 
   f.innerHTML = `
     ${esAdmin() ? `
-      <a class="icon-btn campana" href="#/alquileres?filtro=activos" title="Devoluciones pendientes" aria-label="Devoluciones pendientes${pendientes ? ': ' + pendientes : ''}">
+      <a class="icon-btn campana glass-lente" href="#/alquileres?filtro=activos" title="Devoluciones pendientes" aria-label="Devoluciones pendientes${pendientes ? ': ' + pendientes : ''}">
         ${icon('bell')}${pendientes ? `<span class="punto">${pendientes}</span>` : ''}
       </a>` : ''}
-    <button class="icon-btn" type="button" data-menu title="Cuenta" aria-label="Opciones de la cuenta">${icon('gear')}</button>`;
+    <button class="icon-btn glass-lente" type="button" data-menu title="Cuenta" aria-label="Opciones de la cuenta">${icon('gear')}</button>`;
 }
 
 async function refrescarPendientes() {
