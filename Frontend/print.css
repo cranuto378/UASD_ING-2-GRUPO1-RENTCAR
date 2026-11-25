@@ -1,0 +1,140 @@
+/* Impresión de facturas */
+@media print {
+  @page {
+    size: auto;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body {
+    color: #111 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .fondo,
+  .side,
+  .topbar,
+  .top-acc,
+  .acc-fijas,
+  .menu-usuario,
+  .panel-notificaciones,
+  .toast-wrap,
+  .modal-capa,
+  .menu-movil,
+  .tema-login,
+  [data-menu-movil],
+  [data-tema-global],
+  [data-notificaciones] {
+    display: none !important;
+  }
+
+  .app,
+  .app.expandida,
+  body.entorno-admin .app,
+  body.entorno-cliente .app {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .main,
+  body.entorno-admin .main,
+  body.entorno-cliente .main {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  #vista {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  #vista > *:not(.factura) {
+    display: none !important;
+  }
+
+  .factura,
+  .factura.card,
+  html body:is(.entorno-admin,.entorno-cliente) .factura.card {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    color: #111 !important;
+    background: #fff !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .factura .fac-h,
+  .factura .fac-meta,
+  .factura .fac-datos,
+  .factura .fac-totales,
+  .factura .fac-total-final,
+  .factura table tr,
+  .factura-pago-desglose {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .factura .no-print,
+  .factura [data-volver],
+  .factura [data-imprimir] {
+    display: none !important;
+  }
+
+  .factura-pago-desglose {
+    background: #fff !important;
+    border: 1px solid #cfd7e4 !important;
+    box-shadow: none !important;
+    color: #111 !important;
+  }
+
+  .factura-pago-titulo b,
+  .factura-pago-grid b {
+    color: #111 !important;
+  }
+
+  .factura-pago-titulo small,
+  .factura-pago-grid span {
+    color: #4d5b70 !important;
+  }
+}

@@ -1,4 +1,4 @@
-# Backend .NET
+﻿# Backend .NET
 backend/AutoGo.Backend/**/bin/
 backend/AutoGo.Backend/**/obj/
 backend/AutoGo.Backend/**/.vs/
