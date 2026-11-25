@@ -10,8 +10,12 @@
   --my: 50%;
   --mxn: 0.5;
   isolation: isolate;
+  transition: box-shadow .35s ease;
 }
 
+/* Brillo especular que sigue el cursor. Sin mix-blend-mode: un blend tipo
+   "screen" con blanco es invisible sobre fondos ya blancos/claros (botones
+   circulares del topbar, por ejemplo) — por eso antes casi no se veía. */
 .glass-obj::before {
   content: '';
   position: absolute;
@@ -19,36 +23,44 @@
   border-radius: inherit;
   pointer-events: none;
   opacity: 0;
-  transition: opacity .35s ease;
-  background: radial-gradient(90px 90px at var(--mx) var(--my),
-    rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 60%);
-  mix-blend-mode: screen;
+  transition: opacity .3s ease;
+  /* Composición normal (sin mix-blend-mode): un blanco puro con "screen" o
+     "plus-lighter" es invisible sobre botones ya blancos. Con un tinte azulado
+     y alfa normal, el brillo se ve siempre, sin importar el fondo. */
+  background:
+    radial-gradient(65px 65px at var(--mx) var(--my), rgba(170, 210, 255, .75), rgba(170, 210, 255, 0) 72%),
+    linear-gradient(135deg, rgba(255, 255, 255, .30), rgba(255, 255, 255, 0) 55%);
   z-index: 2;
 }
 
+/* Borde iridiscente "aceite en agua". */
 .glass-obj::after {
   content: '';
   position: absolute;
-  inset: -1px;
+  inset: -1.5px;
   border-radius: inherit;
   pointer-events: none;
   opacity: 0;
-  transition: opacity .35s ease;
-  padding: 1.4px;
+  transition: opacity .3s ease;
+  padding: 2px;
   background: repeating-conic-gradient(from calc(var(--mxn) * 360deg) at var(--mx) var(--my),
-    rgba(255, 110, 196, .55) 0deg,
-    rgba(255, 196, 110, .50) 45deg,
-    rgba(130, 255, 214, .50) 90deg,
-    rgba(110, 170, 255, .55) 135deg,
-    rgba(196, 110, 255, .50) 180deg,
-    rgba(255, 110, 196, .55) 225deg,
-    rgba(255, 196, 110, .50) 270deg,
-    rgba(130, 255, 214, .50) 315deg,
-    rgba(110, 170, 255, .55) 360deg);
+    rgba(255, 90, 190, .95) 0deg,
+    rgba(255, 190, 90, .90) 45deg,
+    rgba(110, 255, 200, .90) 90deg,
+    rgba(90, 160, 255, .95) 135deg,
+    rgba(190, 90, 255, .90) 180deg,
+    rgba(255, 90, 190, .95) 225deg,
+    rgba(255, 190, 90, .90) 270deg,
+    rgba(110, 255, 200, .90) 315deg,
+    rgba(90, 160, 255, .95) 360deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   z-index: 1;
+}
+
+.glass-obj.liquido-activo {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .5), 0 6px 22px rgba(80, 120, 255, .28);
 }
 
 .glass-obj.liquido-activo::before,
@@ -58,12 +70,13 @@
 
 @supports (backdrop-filter: url(#lente-liquida)) {
   .glass-obj.liquido-activo {
-    backdrop-filter: url(#lente-liquida) blur(5px) saturate(160%);
-    -webkit-backdrop-filter: blur(5px) saturate(160%);
+    backdrop-filter: url(#lente-liquida) blur(4px) saturate(170%);
+    -webkit-backdrop-filter: blur(4px) saturate(170%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .glass-obj,
   .glass-obj::before,
   .glass-obj::after {
     transition: none;
