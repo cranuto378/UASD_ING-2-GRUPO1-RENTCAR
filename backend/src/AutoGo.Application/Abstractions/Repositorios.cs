@@ -100,6 +100,18 @@ public interface IDashboardRepository
 /// <summary>Parámetros generales editables desde Configuración (fila única).</summary>
 public sealed record ParametrosGenerales(decimal ComisionWalletGo);
 
+public sealed record WalletMovimiento(int Id, string Tipo, decimal Monto, string Concepto, DateTime Fecha, int? AlquilerId);
+public sealed record WalletRetiro(int Id, string ClienteNombre, decimal Monto, DateTime Fecha);
+
+public interface IWalletRepository
+{
+    Task<decimal> ObtenerSaldoAsync(int clienteId, CancellationToken ct = default);
+    Task<IReadOnlyList<WalletMovimiento>> ListarMovimientosAsync(int clienteId, CancellationToken ct = default);
+    Task AcreditarAsync(int clienteId, decimal monto, string concepto, int? alquilerId, CancellationToken ct = default);
+    Task RetirarAsync(int clienteId, decimal monto, string concepto, CancellationToken ct = default);
+    Task<IReadOnlyList<WalletRetiro>> ListarRetirosAsync(DateOnly? desde, DateOnly? hasta, CancellationToken ct = default);
+}
+
 public interface IParametrosRepository
 {
     Task<ParametrosGenerales> ObtenerAsync(CancellationToken ct = default);

@@ -112,3 +112,10 @@ public sealed class AlquilerMutations
     public Task<OperacionAlquilerDto> RegistrarDevolucion(DevolucionInput input, [Service] IAlquilerService s,
         CancellationToken ct) => s.RegistrarDevolucionAsync(input, ct);
 }
+
+[ExtendObjectType(OperationTypeNames.Mutation)]
+public sealed class WalletMutations
+{
+    [Authorize(Policy = Politicas.Cliente)]
+    public Task<RetiroWalletDto> RetirarWallet([Service] IWalletService s, CancellationToken ct) => s.RetirarAsync(ct);
+}

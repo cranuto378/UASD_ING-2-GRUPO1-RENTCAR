@@ -87,6 +87,16 @@ public sealed record FacturaDto(int Id, int AlquilerId, TipoFactura Tipo, string
 public sealed record CotizacionDto(int VehiculoId, DateOnly FechaInicio, DateOnly FechaFin, int Dias,
     decimal PrecioDia, decimal Total);
 
+public sealed record WalletMovimientoDto(int Id, string Tipo, decimal Monto, string Concepto, DateTime Fecha,
+    int? AlquilerId, ConfigFinancieraDto ConfigFinanciera);
+
+public sealed record WalletDto(decimal Saldo, decimal PorcentajeRetiro, IReadOnlyList<WalletMovimientoDto> Movimientos);
+
+public sealed record RetiroWalletDto(decimal MontoRetirado, decimal MontoCliente, decimal MontoEmpresa, decimal Saldo,
+    decimal PorcentajeCliente, ConfigFinancieraDto ConfigFinanciera);
+
+public sealed record IngresoWalletDto(int Id, string ClienteNombre, decimal MontoRetirado, decimal Monto, DateTime Fecha);
+
 public sealed record CotizacionDevolucionDto(int AlquilerId, DateOnly FechaDevolucion, int DiasMora, decimal MontoMora,
     decimal MontoBase, decimal MontoTotal);
 

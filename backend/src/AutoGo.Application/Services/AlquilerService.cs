@@ -29,7 +29,8 @@ public sealed class AlquilerService(
     CalendarioLaboral calendario,
     ICurrentUser actual,
     IClock clock,
-    IConfigFinancieraProvider configFinanciera) : IAlquilerService
+    IConfigFinancieraProvider configFinanciera,
+    IWalletService wallet) : IAlquilerService
 {
     public async Task<IReadOnlyList<AlquilerDto>> ListarAsync(FiltroAlquileres filtro, CancellationToken ct = default)
     {
@@ -126,8 +127,12 @@ public sealed class AlquilerService(
     {
         var alquiler = await CargarConAcceso(alquilerId, ct);
         var reembolso = alquiler.Cancelar(motivo, clock.Hoy);
-        var facturaId = await alquileres.CancelarAsync(alquiler, reembolso,
-            $"Nota de crédito por cancelación del alquiler #{alquiler.Id}", null, ct);
+        // El reembolso por cancelación se acredita a Wallet GO del cliente (no en efectivo).
+        var facturaId = await alquileres.CancelarAsync(alquiler, 0,
+            $"Cancelación del alquiler #{alquiler.Id}", null, ct);
+        if (reembolso > 0)
+            await wallet.AcreditarAsync(alquiler.ClienteId, reembolso,
+                $"Reembolso por cancelación del alquiler #{alquiler.Id}", alquiler.Id, ct);
 
         return new OperacionAlquilerDto(await ObtenerDto(alquiler.Id, ct), facturaId);
     }

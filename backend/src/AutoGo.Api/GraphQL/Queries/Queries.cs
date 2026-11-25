@@ -128,3 +128,15 @@ public sealed class DashboardQueries
     [Authorize(Policy = Politicas.Administrador)]
     public Task<DashboardDto> Dashboard([Service] IDashboardService s, CancellationToken ct) => s.ObtenerAsync(ct);
 }
+
+[ExtendObjectType(OperationTypeNames.Query)]
+public sealed class WalletQueries
+{
+    [Authorize(Policy = Politicas.Cliente)]
+    public Task<WalletDto> MiWallet([Service] IWalletService s, CancellationToken ct) => s.ObtenerMiWalletAsync(ct);
+
+    /// <summary>Retiros de Wallet GO (comisión que gana la empresa). Sólo Superadministrador.</summary>
+    [Authorize(Policy = Politicas.Administrador)]
+    public Task<IReadOnlyList<IngresoWalletDto>> IngresosWallet(DateOnly? desde, DateOnly? hasta,
+        [Service] IWalletService s, CancellationToken ct) => s.IngresosAsync(desde, hasta, ct);
+}

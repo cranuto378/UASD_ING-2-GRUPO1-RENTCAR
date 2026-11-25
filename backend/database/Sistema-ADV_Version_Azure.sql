@@ -236,6 +236,29 @@ CREATE TABLE dbo.TokensRecuperacion
 );
 GO
 
+/* ---------------------------------------------------------------------------
+   Wallet GO: ledger de créditos (reembolsos/cancelaciones) y retiros del
+   cliente. El saldo es la suma de los montos con signo (no se persiste).
+   --------------------------------------------------------------------------- */
+CREATE TABLE dbo.WalletMovimientos
+(
+    Id            INT            IDENTITY(1,1) NOT NULL,
+    ClienteId     INT            NOT NULL,
+    Tipo          NVARCHAR(20)   NOT NULL,
+    Monto         DECIMAL(12,2)  NOT NULL,
+    Concepto      NVARCHAR(200)  NOT NULL,
+    Fecha         DATETIME2(0)   NOT NULL CONSTRAINT DF_WalletMovimientos_Fecha DEFAULT (SYSUTCDATETIME()),
+    AlquilerId    INT            NULL,
+    CONSTRAINT PK_WalletMovimientos PRIMARY KEY (Id),
+    CONSTRAINT FK_WalletMovimientos_Clientes FOREIGN KEY (ClienteId) REFERENCES dbo.Clientes (Id),
+    CONSTRAINT FK_WalletMovimientos_Alquileres FOREIGN KEY (AlquilerId) REFERENCES dbo.Alquileres (Id),
+    CONSTRAINT CK_WalletMovimientos_Tipo CHECK (Tipo IN (N'CREDITO', N'RETIRO')),
+    CONSTRAINT CK_WalletMovimientos_Monto CHECK (Monto > 0)
+);
+GO
+CREATE INDEX IX_WalletMovimientos_Cliente ON dbo.WalletMovimientos (ClienteId);
+GO
+
 PRINT N'Esquema AutoGo creado.';
 GO
 
@@ -1115,6 +1138,69 @@ BEGIN
         (SELECT COALESCE(SUM(Monto), 0) FROM dbo.Facturas)                                            AS IngresosTotales,
         (SELECT COALESCE(SUM(Monto), 0) FROM dbo.Facturas
           WHERE FechaEmision >= @InicioMes AND FechaEmision < @FinMes)                                AS IngresosMes;
+END
+GO
+
+/* ---------------------------------------------------------------------------
+   Wallet GO
+   --------------------------------------------------------------------------- */
+CREATE OR ALTER PROCEDURE dbo.usp_Wallet_Movimientos
+    @ClienteId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, Tipo, Monto, Concepto, Fecha, AlquilerId
+    FROM dbo.WalletMovimientos
+    WHERE ClienteId = @ClienteId
+    ORDER BY Fecha DESC, Id DESC;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Wallet_Saldo
+    @ClienteId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT ISNULL(SUM(CASE WHEN Tipo = N'CREDITO' THEN Monto ELSE -Monto END), 0) AS Saldo
+    FROM dbo.WalletMovimientos
+    WHERE ClienteId = @ClienteId;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Wallet_Acreditar
+    @ClienteId INT, @Monto DECIMAL(12,2), @Concepto NVARCHAR(200), @AlquilerId INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF @Monto > 0
+        INSERT INTO dbo.WalletMovimientos (ClienteId, Tipo, Monto, Concepto, AlquilerId)
+        VALUES (@ClienteId, N'CREDITO', @Monto, @Concepto, @AlquilerId);
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Wallet_Retirar
+    @ClienteId INT, @Monto DECIMAL(12,2), @Concepto NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF @Monto > 0
+        INSERT INTO dbo.WalletMovimientos (ClienteId, Tipo, Monto, Concepto)
+        VALUES (@ClienteId, N'RETIRO', @Monto, @Concepto);
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Wallet_IngresosRetiros
+    @Desde DATE = NULL, @Hasta DATE = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT m.Id, c.Nombre AS ClienteNombre, m.Monto, m.Fecha
+    FROM dbo.WalletMovimientos m
+    JOIN dbo.Clientes c ON c.Id = m.ClienteId
+    WHERE m.Tipo = N'RETIRO'
+      AND (@Desde IS NULL OR m.Fecha >= @Desde)
+      AND (@Hasta IS NULL OR m.Fecha < DATEADD(DAY, 1, @Hasta))
+    ORDER BY m.Fecha DESC;
 END
 GO
 

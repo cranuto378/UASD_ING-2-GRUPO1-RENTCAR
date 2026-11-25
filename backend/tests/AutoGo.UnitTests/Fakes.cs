@@ -1,8 +1,30 @@
 using AutoGo.Application.Abstractions;
+using AutoGo.Application.Dtos;
+using AutoGo.Application.Services;
 using AutoGo.Domain.Entities;
 using AutoGo.Domain.Enums;
 
 namespace AutoGo.UnitTests;
+
+internal sealed class FakeWallet : IWalletService
+{
+    public List<(int ClienteId, decimal Monto, string Concepto, int? AlquilerId)> Creditos { get; } = [];
+
+    public Task<WalletDto> ObtenerMiWalletAsync(CancellationToken ct = default) =>
+        Task.FromResult(new WalletDto(0m, 30m, []));
+
+    public Task<RetiroWalletDto> RetirarAsync(CancellationToken ct = default) =>
+        throw new NotImplementedException();
+
+    public Task<IReadOnlyList<IngresoWalletDto>> IngresosAsync(DateOnly? desde, DateOnly? hasta, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<IngresoWalletDto>>([]);
+
+    public Task AcreditarAsync(int clienteId, decimal montoBase, string concepto, int? alquilerId, CancellationToken ct = default)
+    {
+        Creditos.Add((clienteId, montoBase, concepto, alquilerId));
+        return Task.CompletedTask;
+    }
+}
 
 internal sealed class FakeClock(DateOnly hoy) : IClock
 {

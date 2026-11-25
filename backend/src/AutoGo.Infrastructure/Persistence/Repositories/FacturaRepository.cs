@@ -39,3 +39,25 @@ public sealed class ParametrosRepository(SpExecutor db) : IParametrosRepository
     public Task ActualizarComisionWalletGoAsync(decimal comisionWalletGo, CancellationToken ct = default) =>
         db.EjecutarAsync("dbo.usp_Parametros_ActualizarComisionWalletGo", new { ComisionWalletGo = comisionWalletGo }, ct);
 }
+
+public sealed class WalletRepository(SpExecutor db) : IWalletRepository
+{
+    public async Task<decimal> ObtenerSaldoAsync(int clienteId, CancellationToken ct = default) =>
+        await db.EscalarAsync<decimal>("dbo.usp_Wallet_Saldo", new { ClienteId = clienteId }, ct);
+
+    public async Task<IReadOnlyList<WalletMovimiento>> ListarMovimientosAsync(int clienteId, CancellationToken ct = default) =>
+        (await db.ListarAsync<WalletMovimientoRow>("dbo.usp_Wallet_Movimientos", new { ClienteId = clienteId }, ct))
+            .Select(r => new WalletMovimiento(r.Id, r.Tipo, r.Monto, r.Concepto, r.Fecha.Utc(), r.AlquilerId)).ToList();
+
+    public Task AcreditarAsync(int clienteId, decimal monto, string concepto, int? alquilerId, CancellationToken ct = default) =>
+        db.EjecutarAsync("dbo.usp_Wallet_Acreditar",
+            new { ClienteId = clienteId, Monto = monto, Concepto = concepto, AlquilerId = alquilerId }, ct);
+
+    public Task RetirarAsync(int clienteId, decimal monto, string concepto, CancellationToken ct = default) =>
+        db.EjecutarAsync("dbo.usp_Wallet_Retirar", new { ClienteId = clienteId, Monto = monto, Concepto = concepto }, ct);
+
+    public async Task<IReadOnlyList<WalletRetiro>> ListarRetirosAsync(DateOnly? desde, DateOnly? hasta, CancellationToken ct = default) =>
+        (await db.ListarAsync<WalletRetiroRow>("dbo.usp_Wallet_IngresosRetiros",
+            new { Desde = desde?.ToDb(), Hasta = hasta?.ToDb() }, ct))
+            .Select(r => new WalletRetiro(r.Id, r.ClienteNombre, r.Monto, r.Fecha.Utc())).ToList();
+}

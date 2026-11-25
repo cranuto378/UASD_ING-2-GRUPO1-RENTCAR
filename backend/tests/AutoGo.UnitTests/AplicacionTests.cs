@@ -29,7 +29,7 @@ public class AlquilerServiceTests
 
     private AlquilerService Servicio(FakeUser usuario) =>
         new(_alquileres, _vehiculos, _clientes, new PoliticaTarifas(new OpcionesTarifas()), new CalendarioLaboral(), usuario, _clock,
-            new ConfigFinancieraProviderTemporal());
+            new ConfigFinancieraProviderTemporal(), new FakeWallet());
 
     [Fact]
     public async Task Cliente_alquila_para_si_mismo_por_portal()

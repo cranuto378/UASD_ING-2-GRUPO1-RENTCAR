@@ -139,3 +139,21 @@ internal sealed class ParametrosRow
 {
     public decimal ComisionWalletGo { get; set; }
 }
+
+internal sealed class WalletMovimientoRow
+{
+    public int Id { get; set; }
+    public string Tipo { get; set; } = "";
+    public decimal Monto { get; set; }
+    public string Concepto { get; set; } = "";
+    public DateTime Fecha { get; set; }
+    public int? AlquilerId { get; set; }
+}
+
+internal sealed class WalletRetiroRow
+{
+    public int Id { get; set; }
+    public string ClienteNombre { get; set; } = "";
+    public decimal Monto { get; set; }
+    public DateTime Fecha { get; set; }
+}
