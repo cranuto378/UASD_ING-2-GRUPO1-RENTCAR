@@ -604,12 +604,15 @@ async function abrirMenu(btn) {
 
   const espacioAbajo = innerHeight - r.bottom - 8;
   const espacioArriba = r.top - 8;
-  if (espacioAbajo >= espacioArriba) {
-    m.style.top = (r.bottom + 8) + 'px';
-    m.style.maxHeight = Math.max(120, espacioAbajo - 12) + 'px';
-  } else {
-    m.style.bottom = (innerHeight - r.top + 8) + 'px';
-    m.style.maxHeight = Math.max(120, espacioArriba - 12) + 'px';
+  const disponible = Math.max(120, (espacioAbajo >= espacioArriba ? espacioAbajo : espacioArriba) - 12);
+  if (espacioAbajo >= espacioArriba) m.style.top = (r.bottom + 8) + 'px';
+  else m.style.bottom = (innerHeight - r.top + 8) + 'px';
+
+  // Sólo se recorta con scroll si de verdad no cabe; si no, sin max-height
+  // ni scrollbar, para que no se vea un menú chiquito con barra de scroll.
+  if (m.scrollHeight > disponible) {
+    m.style.maxHeight = disponible + 'px';
+    m.style.overflowY = 'auto';
   }
 
   const primero = m.querySelector('a, button');
