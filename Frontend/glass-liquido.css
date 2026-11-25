@@ -7,12 +7,18 @@
    que haga scroll, así que su costo es insignificante. */
 
 .glass-obj {
-  position: relative;
   --mx: 50%;
   --my: 50%;
   --ang: 0deg;
   isolation: isolate;
   transition: box-shadow .35s ease;
+}
+
+/* :where() no suma especificidad: si el elemento ya trae position (fixed,
+   absolute...) de su propia regla, esa regla gana y no se rompe el layout
+   (pasó con .menu-usuario, que quedaba "position:relative" fuera de pantalla). */
+:where(.glass-obj) {
+  position: relative;
 }
 
 .glass-obj::before {

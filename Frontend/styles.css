@@ -2300,6 +2300,9 @@ input[type=file]::file-selector-button {
     position: fixed;
     z-index: 40;
     width: 260px;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
     padding: 8px;
     border-radius: 20px;
     background: rgba(40, 46, 96, .6);

@@ -600,10 +600,17 @@ async function abrirMenu(btn) {
   const ancho = 260;
   let left = r.left < innerWidth / 2 ? r.left : r.right - ancho;
   left = Math.max(12, Math.min(left, innerWidth - ancho - 12));
-
-  if (r.top > innerHeight / 2) m.style.bottom = (innerHeight - r.top + 8) + 'px';
-  else m.style.top = (r.bottom + 8) + 'px';
   m.style.left = left + 'px';
+
+  const espacioAbajo = innerHeight - r.bottom - 8;
+  const espacioArriba = r.top - 8;
+  if (espacioAbajo >= espacioArriba) {
+    m.style.top = (r.bottom + 8) + 'px';
+    m.style.maxHeight = Math.max(120, espacioAbajo - 12) + 'px';
+  } else {
+    m.style.bottom = (innerHeight - r.top + 8) + 'px';
+    m.style.maxHeight = Math.max(120, espacioArriba - 12) + 'px';
+  }
 
   const primero = m.querySelector('a, button');
   if (primero) primero.focus();
