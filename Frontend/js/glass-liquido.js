@@ -8,9 +8,14 @@
   const SELECTOR = [
     '.btn', '.icon-btn', '.nav a', '.chip', '.badge', '.pastilla',
     '.avatar', '.menu-usuario', '.campana', '.side-logo', '.demo-ico',
-    '.demo-btn', '.filtro-activo a', '.modal-h .icon-btn', '.tab', '.kpi',
+    '.demo-btn', '.filtro-activo', '.modal-h .icon-btn', '.tab', '.kpi',
     '.top-acc > *', '.acciones .icon-btn', '.tema-login',
-    '.yo', '.side-cerrar-sesion', '.side-pie a', '.side-pie button'
+    '.yo', '.side-cerrar-sesion', '.side-pie a', '.side-pie button',
+    // "Pildoras" con el mismo estilo de .chip/.badge pero sobre un <span>
+    // sin clase propia: se quedaban fuera del efecto por no matchear arriba.
+    '.veh-datos-rapidos span', '.veh-seleccion-check',
+    '.detalle-alq-meta span', '.devolucion-opciones span',
+    '.segmentos button', '.notif-filtros button'
   ].join(', ');
 
   function etiquetar(raiz) {
