@@ -18,6 +18,23 @@
     '.segmentos button', '.notif-filtros button'
   ].join(', ');
 
+  // Distorsión óptica real (lente de agua), SOLO sobre el único elemento
+  // hover activo a la vez (nunca sobre tarjetas ni listas) — el costo es
+  // insignificante porque nunca hay más de un elemento con esto a la vez.
+  function inyectarFiltroSvg() {
+    if (document.getElementById('lente-liquida')) return;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '0');
+    svg.setAttribute('height', '0');
+    svg.style.position = 'absolute';
+    svg.innerHTML = `
+      <filter id="lente-liquida" x="-25%" y="-25%" width="150%" height="150%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="2" seed="7" result="ruido"/>
+        <feDisplacementMap in="SourceGraphic" in2="ruido" scale="22" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>`;
+    document.body.appendChild(svg);
+  }
+
   function etiquetar(raiz) {
     const nodos = raiz.matches && raiz.matches(SELECTOR) ? [raiz] : [];
     if (raiz.querySelectorAll) nodos.push(...raiz.querySelectorAll(SELECTOR));
@@ -99,6 +116,7 @@
   }
 
   function iniciar() {
+    inyectarFiltroSvg();
     observarCambios();
     document.addEventListener('pointermove', onMove, { passive: true });
     document.addEventListener('pointerleave', onLeaveVentana, { passive: true });

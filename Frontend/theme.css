@@ -423,9 +423,11 @@ html:not([data-tema="noche"]) body.entorno-cliente .side {
 }
 
 html:not([data-tema="noche"]) body.entorno-cliente .card {
-  background: linear-gradient(145deg, rgba(255,255,255,.66), rgba(235,243,253,.52)) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.58), rgba(235,243,253,.40)) !important;
   border-color: rgba(255,255,255,.70) !important;
   box-shadow: 0 12px 30px rgba(45,65,94,.075), inset 0 1px 0 rgba(255,255,255,.76) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  backdrop-filter: blur(14px) saturate(130%);
 }
 
 html:not([data-tema="noche"]) body.entorno-cliente .icon-btn.cuadro {
@@ -496,9 +498,11 @@ html[data-tema="noche"] body.entorno-cliente .side {
 }
 
 html[data-tema="noche"] body.entorno-cliente .card {
-  background: linear-gradient(145deg, rgba(27,42,69,.66), rgba(10,19,36,.62)) !important;
+  background: linear-gradient(145deg, rgba(27,42,69,.58), rgba(10,19,36,.52)) !important;
   border-color: rgba(255,255,255,.105) !important;
   box-shadow: 0 12px 32px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.09) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  backdrop-filter: blur(14px) saturate(125%);
 }
 
 html[data-tema="noche"] body.entorno-cliente .main.hero-on::before {

@@ -151,21 +151,13 @@ img {
 }
 
 .card {
-    background: var(--glass);
+    background: linear-gradient(150deg, var(--glass-3), var(--glass-2));
     border: 1px solid var(--borde);
-    box-shadow: var(--sombra), var(--brillo);
-}
-
-.card {
-    /* Sin backdrop-filter: .card se repite docenas de veces en listas/grids
-       y el blur por elemento degradaba el scroll. El fondo sólido ya da
-       suficiente contraste; el cristal líquido va sólo en elementos fijos
-       pequeños (ver glass-liquido.css). */
-    background: var(--glass-2);
-    border-color: var(--borde);
     border-radius: var(--r-lg);
     padding: 20px;
     box-shadow: 0 12px 30px rgba(6, 9, 28, .18), var(--brillo);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(14px) saturate(150%);
     min-width: 0;
 }
 
@@ -4210,11 +4202,13 @@ html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .side {
 
 /* Contenido: vidrio más calmado que navegación y elementos flotantes. */
 html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .card {
-    background: rgba(255, 255, 255, .72) !important;
-    border-color: rgba(255,255,255,.66) !important;
+    background: linear-gradient(150deg, rgba(255,255,255,.62), rgba(255,255,255,.40)) !important;
+    border-color: rgba(255,255,255,.70) !important;
     box-shadow:
         0 10px 28px rgba(45, 64, 94, .09),
-        inset 0 1px 0 rgba(255,255,255,.72) !important;
+        inset 0 1px 0 rgba(255,255,255,.80) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    backdrop-filter: blur(14px) saturate(130%);
 }
 
 /* KPI: conserva su acento, pero ahora deja respirar el ambiente. */
@@ -4332,11 +4326,13 @@ html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .side {
 }
 
 html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .card {
-    background: rgba(17, 27, 49, .74) !important;
-    border-color: rgba(255,255,255,.11) !important;
+    background: linear-gradient(150deg, rgba(27,38,65,.58), rgba(17,27,49,.48)) !important;
+    border-color: rgba(255,255,255,.12) !important;
     box-shadow:
         0 12px 32px rgba(0,0,0,.20),
         inset 0 1px 0 rgba(255,255,255,.09) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(125%);
+    backdrop-filter: blur(14px) saturate(125%);
 }
 
 html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .panel-kpi {
