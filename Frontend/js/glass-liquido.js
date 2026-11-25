@@ -42,9 +42,14 @@
     obs.observe(document.body, { childList: true, subtree: true });
   }
 
+  // Si el mouse se queda quieto sobre el mismo elemento este tiempo, el
+  // contorno se apaga (vuelve a blanco/neutro) aunque el cursor siga encima.
+  const QUIETO_MS = 2000;
+
   let activo = null;
   let rafId = null;
   let pendiente = null;
+  let quietoTimer = null;
 
   function aplicar(el, x, y) {
     const r = el.getBoundingClientRect();
@@ -55,20 +60,34 @@
     el.style.setProperty('--mxn', String((mx / 100 + my / 100) / 2));
   }
 
+  function apagar(el) {
+    el.classList.remove('liquido-activo');
+    if (activo === el) activo = null;
+  }
+
+  function reprogramarApagado(el) {
+    if (quietoTimer) clearTimeout(quietoTimer);
+    quietoTimer = setTimeout(() => {
+      quietoTimer = null;
+      if (el.isConnected) apagar(el);
+    }, QUIETO_MS);
+  }
+
   function onMove(e) {
     const el = e.target.closest ? e.target.closest('.glass-obj') : null;
 
-    if (activo && activo !== el) {
-      activo.classList.remove('liquido-activo');
-      activo = null;
-    }
+    if (activo && activo !== el) apagar(activo);
 
-    if (!el) return;
+    if (!el) {
+      if (quietoTimer) { clearTimeout(quietoTimer); quietoTimer = null; }
+      return;
+    }
 
     if (activo !== el) {
       activo = el;
       el.classList.add('liquido-activo');
     }
+    reprogramarApagado(el);
 
     pendiente = { el, x: e.clientX, y: e.clientY };
     if (rafId) return;
@@ -80,10 +99,8 @@
   }
 
   function onLeaveVentana() {
-    if (activo) {
-      activo.classList.remove('liquido-activo');
-      activo = null;
-    }
+    if (quietoTimer) { clearTimeout(quietoTimer); quietoTimer = null; }
+    if (activo) apagar(activo);
   }
 
   function iniciar() {
