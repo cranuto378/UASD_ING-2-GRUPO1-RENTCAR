@@ -15,7 +15,7 @@
     --borde: rgba(255, 255, 255, .22);
     --borde-2: rgba(255, 255, 255, .12);
 
-    --blur: blur(26px) saturate(150%);
+    --blur: blur(16px) saturate(150%);
     --sombra: 0 30px 70px rgba(6, 9, 28, .38);
     --brillo: inset 0 1px 0 rgba(255, 255, 255, .28);
 
@@ -139,7 +139,6 @@ img {
 
 .glass,
 .app,
-.card,
 .auth-panel,
 .modal,
 .menu-usuario,
@@ -149,6 +148,12 @@ img {
     box-shadow: var(--sombra), var(--brillo);
     -webkit-backdrop-filter: var(--blur);
     backdrop-filter: var(--blur);
+}
+
+.card {
+    background: var(--glass);
+    border: 1px solid var(--borde);
+    box-shadow: var(--sombra), var(--brillo);
 }
 
 .card {
@@ -2197,8 +2202,8 @@ input[type=file]::file-selector-button {
     max-width: 560px;
     border-radius: 26px;
     background: rgba(40, 46, 96, .52);
-    -webkit-backdrop-filter: blur(34px) saturate(160%);
-    backdrop-filter: blur(34px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
     transform: translateY(10px) scale(.98);
     transition: transform .2s;
 }
@@ -2306,8 +2311,8 @@ input[type=file]::file-selector-button {
     padding: 8px;
     border-radius: 20px;
     background: rgba(40, 46, 96, .6);
-    -webkit-backdrop-filter: blur(30px) saturate(160%);
-    backdrop-filter: blur(30px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
 }
 
 .menu-usuario .quien {
@@ -4191,16 +4196,16 @@ html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .app {
     box-shadow:
         0 28px 70px rgba(39, 58, 88, .17),
         inset 0 1px 0 rgba(255,255,255,.82);
-    -webkit-backdrop-filter: blur(26px) saturate(125%);
-    backdrop-filter: blur(26px) saturate(125%);
+    -webkit-backdrop-filter: blur(12px) saturate(125%);
+    backdrop-filter: blur(12px) saturate(125%);
 }
 
 html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .side {
     background: rgba(233, 240, 250, .50) !important;
     border-right-color: rgba(102, 127, 163, .15);
     box-shadow: inset -1px 0 0 rgba(255,255,255,.32);
-    -webkit-backdrop-filter: blur(30px) saturate(130%);
-    backdrop-filter: blur(30px) saturate(130%);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    backdrop-filter: blur(12px) saturate(130%);
 }
 
 /* Contenido: vidrio más calmado que navegación y elementos flotantes. */
@@ -4254,8 +4259,8 @@ html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .tip {
     box-shadow:
         0 24px 60px rgba(34,52,83,.20),
         inset 0 1px 0 rgba(255,255,255,.88);
-    -webkit-backdrop-filter: blur(30px) saturate(132%);
-    backdrop-filter: blur(30px) saturate(132%);
+    -webkit-backdrop-filter: blur(18px) saturate(132%);
+    backdrop-filter: blur(18px) saturate(132%);
 }
 
 html:not([data-tema="noche"]) body:is(.entorno-admin,.entorno-cliente) .modal-bg {
@@ -4314,16 +4319,16 @@ html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .app {
     box-shadow:
         0 30px 76px rgba(0,0,0,.48),
         inset 0 1px 0 rgba(255,255,255,.12);
-    -webkit-backdrop-filter: blur(27px) saturate(125%);
-    backdrop-filter: blur(27px) saturate(125%);
+    -webkit-backdrop-filter: blur(12px) saturate(125%);
+    backdrop-filter: blur(12px) saturate(125%);
 }
 
 html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .side {
     background: rgba(5, 12, 27, .52) !important;
     border-right-color: rgba(255,255,255,.075);
     box-shadow: inset -1px 0 0 rgba(255,255,255,.035);
-    -webkit-backdrop-filter: blur(30px) saturate(128%);
-    backdrop-filter: blur(30px) saturate(128%);
+    -webkit-backdrop-filter: blur(12px) saturate(128%);
+    backdrop-filter: blur(12px) saturate(128%);
 }
 
 html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .card {
@@ -4359,8 +4364,8 @@ html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .tip {
     box-shadow:
         0 28px 70px rgba(0,0,0,.52),
         inset 0 1px 0 rgba(255,255,255,.11);
-    -webkit-backdrop-filter: blur(32px) saturate(128%);
-    backdrop-filter: blur(32px) saturate(128%);
+    -webkit-backdrop-filter: blur(18px) saturate(128%);
+    backdrop-filter: blur(18px) saturate(128%);
 }
 
 html[data-tema="noche"] body:is(.entorno-admin,.entorno-cliente) .modal-bg {
@@ -4659,8 +4664,8 @@ body:is(.entorno-admin,.entorno-cliente) select:disabled {
     background: rgba(246,249,253,.76);
     color: #1c2a43;
     box-shadow: 0 24px 70px rgba(31,53,84,.22), inset 0 1px 0 rgba(255,255,255,.82);
-    backdrop-filter: blur(30px) saturate(155%);
-    -webkit-backdrop-filter: blur(30px) saturate(155%);
+    backdrop-filter: blur(18px) saturate(155%);
+    -webkit-backdrop-filter: blur(18px) saturate(155%);
     transform-origin: top right;
     animation: notifEntrar .18s ease-out both;
 }

@@ -63,7 +63,7 @@ html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .fo
   display: block !important;
   inset: -72px;
   background: var(--foto) center 68% / cover no-repeat;
-  filter: blur(32px) saturate(1.02) brightness(.78) contrast(.92);
+  filter: blur(18px) saturate(1.02) brightness(.78) contrast(.92);
   opacity: .92;
   transform: scale(1.10);
 }
@@ -159,16 +159,16 @@ html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .ap
   background: linear-gradient(145deg, rgba(118, 145, 200, .16), rgba(63, 80, 128, .13)), rgba(31, 46, 81, .20) !important;
   border-color: rgba(226, 237, 255, .27);
   box-shadow: 0 28px 72px rgba(15, 28, 59, .27), inset 0 1px 0 rgba(255,255,255,.28);
-  -webkit-backdrop-filter: blur(28px) saturate(138%);
-  backdrop-filter: blur(28px) saturate(138%);
+  -webkit-backdrop-filter: blur(12px) saturate(138%);
+  backdrop-filter: blur(12px) saturate(138%);
 }
 
 html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .side {
   background: linear-gradient(180deg, rgba(67, 90, 143, .34), rgba(38, 53, 90, .31)) !important;
   border-right-color: rgba(222, 234, 255, .18);
   box-shadow: inset -1px 0 0 rgba(255,255,255,.07);
-  -webkit-backdrop-filter: blur(30px) saturate(135%);
-  backdrop-filter: blur(30px) saturate(135%);
+  -webkit-backdrop-filter: blur(12px) saturate(135%);
+  backdrop-filter: blur(12px) saturate(135%);
 }
 
 html:not([data-tema="noche"]) body:not(.entorno-admin):not(.entorno-cliente) .card {
@@ -393,7 +393,7 @@ html:not([data-tema="noche"]) body.entorno-cliente .fondo::before {
   display: block !important;
   inset: -76px;
   background: var(--foto) center 68% / cover no-repeat;
-  filter: blur(34px) saturate(.88) brightness(1.32) contrast(.82);
+  filter: blur(18px) saturate(.88) brightness(1.32) contrast(.82);
   opacity: .80;
   transform: scale(1.11);
 }
@@ -410,16 +410,16 @@ html:not([data-tema="noche"]) body.entorno-cliente .app {
   background: linear-gradient(145deg, rgba(255,255,255,.34), rgba(225,236,251,.23)), rgba(242,247,253,.26) !important;
   border-color: rgba(255,255,255,.80);
   box-shadow: 0 28px 68px rgba(45,65,94,.13), inset 0 1px 0 rgba(255,255,255,.88);
-  -webkit-backdrop-filter: blur(30px) saturate(130%);
-  backdrop-filter: blur(30px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
 }
 
 html:not([data-tema="noche"]) body.entorno-cliente .side {
   background: linear-gradient(180deg, rgba(242,247,254,.42), rgba(224,235,250,.30)) !important;
   border-right-color: rgba(82,111,151,.12);
   box-shadow: inset -1px 0 0 rgba(255,255,255,.48);
-  -webkit-backdrop-filter: blur(32px) saturate(132%);
-  backdrop-filter: blur(32px) saturate(132%);
+  -webkit-backdrop-filter: blur(12px) saturate(132%);
+  backdrop-filter: blur(12px) saturate(132%);
 }
 
 html:not([data-tema="noche"]) body.entorno-cliente .card {
@@ -485,14 +485,14 @@ html[data-tema="noche"] body.entorno-cliente {
 html[data-tema="noche"] body.entorno-cliente .app {
   background: linear-gradient(145deg, rgba(27,43,73,.18), rgba(7,14,29,.20)), rgba(5,12,26,.48) !important;
   border-color: rgba(255,255,255,.12);
-  -webkit-backdrop-filter: blur(30px) saturate(126%);
-  backdrop-filter: blur(30px) saturate(126%);
+  -webkit-backdrop-filter: blur(12px) saturate(126%);
+  backdrop-filter: blur(12px) saturate(126%);
 }
 
 html[data-tema="noche"] body.entorno-cliente .side {
   background: rgba(5,12,27,.48) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(126%);
-  backdrop-filter: blur(32px) saturate(126%);
+  -webkit-backdrop-filter: blur(12px) saturate(126%);
+  backdrop-filter: blur(12px) saturate(126%);
 }
 
 html[data-tema="noche"] body.entorno-cliente .card {
