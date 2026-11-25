@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restablecer contraseña · AutoGo Rent a Car</title>
+    <script>
+        // El correo enlaza a /restablecer-password?token=...; la aplicación usa rutas con #
+        location.replace(
+            location.pathname.replace(/restablecer-password\/?(index\.html)?$/, '') +
+            '#/restablecer' + location.search
+        );
+    </script>
+</head>
+
+<body style="background:#151b38;color:#fff;font-family:system-ui,sans-serif;">
+    <p style="padding:40px;text-align:center;">Redirigiendo…</p>
+</body>
+
+</html>

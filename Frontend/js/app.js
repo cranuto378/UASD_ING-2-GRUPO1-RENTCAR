@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    AUTOGO - APLICACIÓN
    Rutas por hash: #/ruta/parametro?filtros
 ========================================================= */
@@ -10,45 +10,15 @@ const raiz = $('#raiz');
 let renderId = 0;
 let haySesion = !!Api.sesion();
 let pendientes = null;
-let notificacionesCache = null;
-let filtroNotificaciones = 'todas';
 
 const usuario = () => (Api.sesion() || {}).usuario;
 const esAdmin = () => !!usuario() && /^admin/i.test(usuario().rol);
-const inicio = () => (!Api.sesion() ? 'login' : esAdmin() ? 'dashboard' : 'inicio');
-
-/* Roles y permisos administrativos */
-const PERMISOS_ROL = Object.freeze({
-  'Superadministrador': ['*'],
-  'Administrador': [
-    'dashboard.ver','alquileres.ver','alquileres.crear','alquileres.editar','alquileres.cancelar','alquileres.devolver',
-    'clientes.ver','clientes.crear','clientes.editar','flota.ver','flota.crear','flota.editar','flota.estado','flota.foto',
-    'facturas.ver','reportes.ver','configuracion.ver'
-  ],
-  'Operador': [
-    'dashboard.ver','alquileres.ver','alquileres.crear','alquileres.editar','alquileres.cancelar','alquileres.devolver',
-    'clientes.ver','clientes.crear','clientes.editar','flota.ver','flota.estado','facturas.ver'
-  ],
-  'Consulta': ['dashboard.ver','alquileres.ver','clientes.ver','flota.ver','facturas.ver','reportes.ver']
-});
-const perfilActual = () => {
-  if (!esAdmin()) return null;
-  const p = usuario()?.perfil;
-  if (p && PERMISOS_ROL[p]) return p;
-  const rol = String(usuario()?.rol || '').toUpperCase();
-  return rol === 'SUPERADMINISTRADOR' ? 'Superadministrador' : 'Administrador';
-};
-const puede = permiso => {
-  if (!esAdmin()) return false;
-  const ps = PERMISOS_ROL[perfilActual()] || [];
-  return ps.includes('*') || ps.includes(permiso);
-};
-const soloSi = (permiso, html) => puede(permiso) ? html : '';
+/// Personal interno (Administrador u Operador): acceso operativo de mostrador.
+const esStaff = () => !!usuario() && /^(admin|operador)/i.test(usuario().rol);
+const inicio = () => (!Api.sesion() ? 'login' : esAdmin() ? 'dashboard' : esStaff() ? 'alquileres' : 'inicio');
 
 const opcionesMetodo = (vacio) =>
   (vacio ? [{ valor: '', texto: vacio }] : []).concat(METODOS.map(m => ({ valor: m, texto: etq(m) })));
-
-const metodoTxt = m => (m === 'WALLET' ? 'Wallet GO' : etq(m));
 
 const debounce = (fn, ms = 300) => {
   let t;
@@ -58,55 +28,6 @@ const debounce = (fn, ms = 300) => {
   };
 };
 
-
-/* Configuración institucional.
-   Los valores de negocio se cargan y guardan en el backend. Las preferencias
-   puramente visuales (tema y ancho del menú) siguen siendo locales. */
-const CONFIG_FINANCIERA_DEFAULT = Object.freeze({
-  impuestoPct: 0, retencionPct: 0, recargoMoraPct: 30, retiroWalletClientePct: 30
-});
-const CONFIG_SISTEMA_DEFAULT = Object.freeze({
-  nombreComercial: 'AutoGo Rent a Car', rnc: '', telefono: '', correo: '', direccion: '',
-  diasMantenimientoPostDevolucion: 1, permitirRetirosWallet: true, diasAvisoVencimiento: 2
-});
-let configFinancieraCache = { ...CONFIG_FINANCIERA_DEFAULT };
-let configSistemaCache = { ...CONFIG_SISTEMA_DEFAULT };
-let configBackendCargada = false;
-let historialConfigCache = [];
-
-const leerConfigFinanciera = () => ({ ...configFinancieraCache });
-const leerConfigSistema = () => ({ ...configSistemaCache });
-const leerHistorialConfigFinanciera = () => [...historialConfigCache];
-
-function aplicarConfiguracionBackend(raw = {}) {
-  configFinancieraCache = { ...CONFIG_FINANCIERA_DEFAULT,
-    impuestoPct: Number(raw.impuestoPct ?? CONFIG_FINANCIERA_DEFAULT.impuestoPct),
-    retencionPct: Number(raw.retencionPct ?? CONFIG_FINANCIERA_DEFAULT.retencionPct),
-    recargoMoraPct: Number(raw.recargoMoraPct ?? CONFIG_FINANCIERA_DEFAULT.recargoMoraPct),
-    retiroWalletClientePct: Number(raw.retiroWalletClientePct ?? CONFIG_FINANCIERA_DEFAULT.retiroWalletClientePct)
-  };
-  configSistemaCache = { ...CONFIG_SISTEMA_DEFAULT,
-    nombreComercial: raw.nombreComercial ?? CONFIG_SISTEMA_DEFAULT.nombreComercial, rnc: raw.rnc ?? '',
-    telefono: raw.telefono ?? '', correo: raw.correo ?? '', direccion: raw.direccion ?? '',
-    diasMantenimientoPostDevolucion: Number(raw.diasMantenimientoPostDevolucion ?? 1),
-    permitirRetirosWallet: raw.permitirRetirosWallet !== false,
-    diasAvisoVencimiento: Number(raw.diasAvisoVencimiento ?? 2)
-  };
-  configBackendCargada = true;
-}
-
-async function cargarConfiguracionBackend({ forzar = false } = {}) {
-  if (!Api.sesion() || (configBackendCargada && !forzar)) return;
-  try { aplicarConfiguracionBackend(await Api.configuracion()); }
-  catch (_) { /* El backend puede estar en proceso de implementar el contrato. */ }
-}
-
-async function guardarConfiguracionBackend(cambios) {
-  const actual = { ...configSistemaCache, ...configFinancieraCache, ...cambios };
-  const guardada = await Api.actualizarConfiguracion(actual);
-  aplicarConfiguracionBackend(guardada || actual);
-  return guardada || actual;
-}
 
 /* =========================================================
    RUTAS
@@ -126,37 +47,43 @@ const RUTAS = {
   'inicio': { vista: vInicioCliente, acceso: 'cliente', titulo: 'Inicio' },
   'mis-alquileres': { vista: vMisAlquileres, acceso: 'cliente', titulo: 'Mis alquileres', sub: 'Consulta, revisa o cancela tus reservas.' },
   'mis-facturas': { vista: vMisFacturas, acceso: 'cliente', titulo: 'Mis facturas', sub: 'Todas las facturas y notas de crédito de tus alquileres.' },
-  'wallet': { vista: vWalletGo, acceso: 'cliente', titulo: 'Wallet GO', sub: 'Consulta tu saldo, créditos, usos y retiros.' },
-  'perfil': { vista: vPerfil, acceso: 'sesion', titulo: 'Mi perfil' },
-  'factura': { vista: vFactura, acceso: 'sesion', titulo: 'Factura', nav: () => (esAdmin() ? 'facturas' : 'mis-facturas') },
+  'perfil': { vista: vPerfil, acceso: 'cliente', titulo: 'Mi perfil' },
+  'factura': { vista: vFactura, acceso: 'sesion', titulo: 'Factura', nav: () => (esStaff() ? 'facturas' : 'mis-facturas') },
 
-  'dashboard': { vista: vDashboard, acceso: 'admin', permiso: 'dashboard.ver', titulo: 'Panel de control', sub: 'Resumen de la flota, los alquileres y los ingresos.' },
-  'nuevo-alquiler': { vista: vNuevoAlquiler, acceso: 'admin', permiso: 'alquileres.crear', titulo: 'Registrar alquiler', sub: 'Registro de alquiler en mostrador.' },
-  'alquileres': { vista: vAlquileres, acceso: 'admin', permiso: 'alquileres.ver', titulo: 'Gestionar alquileres', sub: 'Modifica, cancela o registra devoluciones.' },
-  'flota': { vista: vFlota, acceso: 'admin', permiso: 'flota.ver', titulo: 'Flota', sub: 'Vehículos, estados y fotos.' },
-  'clientes': { vista: vClientes, acceso: 'admin', permiso: 'clientes.ver', titulo: 'Clientes', sub: 'Clientes del portal y de mostrador.' },
-  'facturas': { vista: vFacturas, acceso: 'admin', permiso: 'facturas.ver', titulo: 'Facturación', sub: 'Facturas emitidas. No se editan ni se eliminan.' },
-  'reportes': { vista: vReportes, acceso: 'admin', permiso: 'reportes.ver', titulo: 'Reportes', sub: 'Indicadores, actividad e ingresos del período seleccionado.' },
-  'configuracion': { vista: vConfiguracion, acceso: 'admin', permiso: 'configuracion.ver', titulo: 'Configuración', sub: 'Parámetros generales del sistema.' },
-  'administradores': { vista: vAdministradores, acceso: 'admin', permiso: 'administradores.gestionar', titulo: 'Administradores', sub: 'Alta de nuevos usuarios administradores.' }
+  'dashboard': { vista: vDashboard, acceso: 'admin', titulo: 'Panel de control', sub: 'Resumen de la flota, los alquileres y los ingresos.' },
+  'nuevo-alquiler': { vista: vNuevoAlquiler, acceso: 'staff', titulo: 'Nuevo alquiler', sub: 'Registro de alquiler en mostrador.' },
+  'alquileres': { vista: vAlquileres, acceso: 'staff', titulo: 'Alquileres', sub: 'Modifica, cancela o registra devoluciones.' },
+  'flota': { vista: vFlota, acceso: 'staff', titulo: 'Flota', sub: 'Vehículos, estados, fotos y categorías.' },
+  'clientes': { vista: vClientes, acceso: 'staff', titulo: 'Clientes', sub: 'Clientes del portal y de mostrador.' },
+  'facturas': { vista: vFacturas, acceso: 'staff', titulo: 'Facturación', sub: 'Facturas emitidas. No se editan ni se eliminan.' },
+  'administradores': { vista: vAdministradores, acceso: 'admin', titulo: 'Administradores', sub: 'Alta de nuevos usuarios administradores.' },
+  'configuracion': { vista: vConfiguracion, acceso: 'admin', titulo: 'Configuración', sub: 'Parámetros generales y categorías de vehículos.' }
 };
 
 const NAV = {
   admin: [
     ['dashboard', 'Panel', 'grid'],
+    ['nuevo-alquiler', 'Nuevo alquiler', 'plusCircle'],
     ['alquileres', 'Alquileres', 'calendar'],
     ['flota', 'Flota', 'car'],
     ['clientes', 'Clientes', 'users'],
-    ['facturas', 'Facturación', 'receipt'],
-    ['reportes', 'Reportes', 'pulse'],
-    ['configuracion', 'Configuración', 'gear'],
-    ['administradores', 'Administradores', 'shield']
+    ['facturas', 'Facturas', 'receipt'],
+    ['administradores', 'Administradores', 'shield'],
+    ['configuracion', 'Configuración', 'settings']
+  ],
+  staff: [
+    ['nuevo-alquiler', 'Nuevo alquiler', 'plusCircle'],
+    ['alquileres', 'Alquileres', 'calendar'],
+    ['flota', 'Flota', 'car'],
+    ['clientes', 'Clientes', 'users'],
+    ['facturas', 'Facturas', 'receipt']
   ],
   cliente: [
     ['inicio', 'Inicio', 'home'],
     ['catalogo', 'Catálogo', 'car'],
     ['mis-alquileres', 'Mis alquileres', 'calendar'],
-    ['mis-facturas', 'Mis facturas', 'receipt']
+    ['mis-facturas', 'Mis facturas', 'receipt'],
+    ['perfil', 'Mi perfil', 'user']
   ],
   publico: [
     ['catalogo', 'Catálogo', 'car'],
@@ -187,13 +114,9 @@ function cambiarQuery(ruta, params) {
 
 async function render() {
   cerrarMenu();
-  cerrarNotificaciones();
-  $('#app')?.classList.remove('menu-abierto');
-  $('[data-menu-movil]')?.setAttribute('aria-expanded','false');
 
   const { ruta, param, q } = leerHash();
   const def = RUTAS[ruta];
-  document.body.classList.toggle('panel-admin', ruta === 'dashboard');
   const s = Api.sesion();
 
   haySesion = !!s;
@@ -201,27 +124,16 @@ async function render() {
   if (!def) return ir(inicio());
   if (s && s.usuario.debeCambiarPassword && ruta !== 'cambiar-password') return ir('cambiar-password');
   if (def.acceso === 'publica' && s) return ir(inicio());
-  if (['sesion', 'cliente', 'admin'].includes(def.acceso) && !s) {
+  if (['sesion', 'cliente', 'admin', 'staff'].includes(def.acceso) && !s) {
     return ir('login?next=' + encodeURIComponent(location.hash.replace(/^#\//, '')));
   }
-  if (def.acceso === 'cliente' && esAdmin()) return ir('dashboard');
+  if (def.acceso === 'cliente' && esStaff()) return ir(inicio());
   if (def.acceso === 'admin' && !esAdmin()) return ir(inicio());
-  if (esAdmin() && def.permiso && !puede(def.permiso)) { UI.toast('No tienes permiso para acceder a este módulo.', 'warn'); return ir('dashboard'); }
-  if (s) await cargarConfiguracionBackend();
+  if (def.acceso === 'staff' && !esStaff()) return ir(inicio());
 
   const id = ++renderId;
   const forzado = !!(s && s.usuario.debeCambiarPassword);
   const enAuth = def.layout === 'auth' || (ruta === 'cambiar-password' && forzado);
-
-  // El entorno visual Glass del panel administrativo debe mantenerse en
-  // todos sus módulos, no solamente en el Dashboard. Esta clase permite
-  // que fondo, sidebar, tarjetas, formularios y capas flotantes reaccionen
-  // juntos al modo día/noche sin alterar las pantallas públicas/auth.
-  document.body.classList.toggle('entorno-admin', !!s && esAdmin() && !enAuth);
-  document.body.classList.toggle('entorno-cliente', !!s && !esAdmin() && !enAuth);
-  document.body.classList.toggle('shell-activa', !enAuth);
-  document.documentElement.classList.toggle('shell-activa', !enAuth);
-
   const cont = enAuth ? montarAuth(def) : montarShell(ruta, def);
 
   document.title = `${def.titulo} · AutoGo Rent a Car`;
@@ -254,34 +166,31 @@ async function render() {
 
 function montarAuth(def) {
   const [titulo, texto] = def.lema || LEMA;
-  const claseAuth = def.titulo === 'Crear cuenta' ? 'auth-registro' : 'auth-compacto';
 
   raiz.innerHTML = `
-    <main class="auth ${claseAuth}">
-      <div class="auth-stage">
-        <section class="auth-foto">
-          <div>
-            <a href="#/catalogo" class="marca"><img src="logo.png" alt="AutoGo Rent a Car"></a>
-            <h1>${esc(titulo)}</h1>
-            <p>${esc(texto)}</p>
-          </div>
-          <div class="chips">
-            <span class="chip">${icon('calendar')}Reserva en línea</span>
-            <span class="chip">${icon('receipt')}Factura inmediata</span>
-            <span class="chip">${icon('shield')}Vehículos revisados</span>
-          </div>
-        </section>
-        <section class="auth-panel">
-          <div class="contenido" id="vista"></div>
-        </section>
-      </div>
+    <main class="auth">
+      <section class="auth-foto">
+        <div>
+          <a href="#/catalogo" class="marca"><img src="logo.png" alt="AutoGo Rent a Car"></a>
+          <h1>${esc(titulo)}</h1>
+          <p>${esc(texto)}</p>
+        </div>
+        <div class="chips">
+          <span class="chip">${icon('calendar')}Reserva en línea</span>
+          <span class="chip">${icon('receipt')}Factura inmediata</span>
+          <span class="chip">${icon('shield')}Vehículos revisados</span>
+        </div>
+      </section>
+      <section class="auth-panel">
+        <div class="contenido" id="vista"></div>
+      </section>
     </main>`;
 
   return $('#vista');
 }
 
 const menuExpandido = () => {
-  try { return localStorage.getItem('autogo.menu') !== '0'; } catch (e) { return false; }
+  try { return localStorage.getItem('autogo.menu') === '1'; } catch (e) { return false; }
 };
 
 function montarShell(ruta, def) {
@@ -298,7 +207,7 @@ function montarShell(ruta, def) {
         </aside>
 
         <section class="main" id="main">
-          <header class="topbar"><button class="icon-btn cuadro menu-movil" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav" data-menu-movil>${icon('menu')}</button>
+          <header class="topbar">
             <a class="marca" href="#/"><img src="logo.png" alt="AutoGo Rent a Car"></a>
             <div>
               <h1 id="titulo"></h1>
@@ -322,7 +231,6 @@ function montarShell(ruta, def) {
     };
   }
 
-  $('#app').classList.toggle('admin-shell', esAdmin());
   const activa = typeof def.nav === 'function' ? def.nav() : def.nav || ruta;
 
   pintarNav(activa);
@@ -341,210 +249,44 @@ function montarShell(ruta, def) {
   window.scrollTo(0, 0);
 
   if (esAdmin() && pendientes === null) refrescarPendientes();
-  if (esAdmin() && notificacionesCache === null) cargarNotificaciones();
 
   return nueva;
 }
 
 function pintarNav(activa) {
-  const itemsBase = !Api.sesion() ? NAV.publico : esAdmin() ? NAV.admin : NAV.cliente;
-  const items = esAdmin() ? itemsBase.filter(([r]) => !RUTAS[r]?.permiso || puede(RUTAS[r].permiso)) : itemsBase;
+  const items = !Api.sesion() ? NAV.publico : esAdmin() ? NAV.admin : esStaff() ? NAV.staff : NAV.cliente;
 
   $('#nav').innerHTML = items.map(([r, texto, ic]) => {
-    if (esAdmin() && r === 'alquileres') return `<details class="nav-grupo" ${['alquileres','nuevo-alquiler'].includes(activa) ? 'open' : ''}><summary title="Alquileres">${icon(ic)}<span>Alquileres</span><b class="nav-chevron">⌄</b></summary><div class="nav-sub">${soloSi('alquileres.crear', `<a href="#/nuevo-alquiler" class="${activa === 'nuevo-alquiler' ? 'act' : ''}"><span>Registrar alquiler</span></a>`)}<a href="#/alquileres" class="${activa === 'alquileres' ? 'act' : ''}"><span>Gestionar alquileres</span></a></div></details>`;
-    return `<a href="#/${r}" class="${r === activa ? 'act' : ''}" title="${esc(texto)}"${r === activa ? ' aria-current="page"' : ''}>${icon(ic)}<span>${esc(texto)}</span></a>`;
+    const cuenta = r === 'alquileres' && pendientes ? `<b class="contador" aria-label="${pendientes} pendientes">${pendientes}</b>` : '';
+    return `<a href="#/${r}" class="${r === activa ? 'act' : ''}" title="${esc(texto)}"${r === activa ? ' aria-current="page"' : ''}>${icon(ic)}<span>${esc(texto)}</span>${cuenta}</a>`;
   }).join('');
-  const u = usuario();
-  $('#sidePie').innerHTML = u ? `
-    <button class="yo" type="button" data-menu aria-haspopup="menu" aria-expanded="false" aria-label="Abrir opciones de mi cuenta" title="Mi cuenta">${UI.avatar(u.nombre)}<div><b>${esc(u.nombre)}</b><small>${esc(esAdmin() ? perfilActual() : u.rol)}</small></div></button>
-    <button class="side-cerrar-sesion" type="button" data-salir>${icon('logout')}<span>Cerrar sesión</span></button>` : '';
 
+  const u = usuario();
+
+  $('#sidePie').innerHTML = u ? `
+    <button class="yo" type="button" data-menu aria-label="Menú de usuario">
+      ${UI.avatar(u.nombre)}
+      <div><b>${esc(u.nombre)}</b><small>${esc(etq(String(u.rol).toUpperCase()))}</small></div>
+    </button>` : '';
 }
 
 function pintarFijas() {
   const u = usuario();
-  const noLeidas = notificacionesCache ? notificacionesCache.filter(n => !n.leida).length : (pendientes || 0);
-  $('#accFijas').innerHTML = `<button class="icon-btn cuadro" type="button" data-tema-global aria-label="Cambiar modo día o noche">${document.documentElement.getAttribute('data-tema') === 'noche' ? '☀' : '☾'}</button>` +
-    (esAdmin() ? `<button class="icon-btn campana" type="button" data-notificaciones aria-haspopup="dialog" aria-expanded="false" title="Notificaciones" aria-label="Notificaciones${noLeidas ? ': '+noLeidas+' sin leer' : ''}">${icon('bell')}${noLeidas ? `<span class="punto">${Math.min(noLeidas,99)}</span>` : ''}</button>` : '') +
-    (!u ? '<a class="btn sm" href="#/login">Iniciar sesión</a>' : '');
-}
+  const f = $('#accFijas');
 
-
-/* =========================================================
-   NOTIFICACIONES DEL PANEL
-   Se construyen con datos ya disponibles en la API. El estado leído/no leído
-   se guarda por usuario en el navegador hasta que el backend exponga una
-   entidad de notificaciones propia.
-========================================================= */
-
-function claveNotifLeidas() {
-  const u = usuario();
-  return `autogo.notificaciones.leidas.${u ? u.id || u.correo : 'anon'}`;
-}
-
-function leerNotifLeidas() {
-  try { return new Set(JSON.parse(localStorage.getItem(claveNotifLeidas()) || '[]')); }
-  catch (_) { return new Set(); }
-}
-
-function guardarNotifLeidas(ids) {
-  try { localStorage.setItem(claveNotifLeidas(), JSON.stringify([...ids])); } catch (_) {}
-}
-
-function fechaNotif(v) {
-  if (!v) return null;
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function textoTiempoNotif(fecha) {
-  const d = fechaNotif(fecha);
-  if (!d) return '';
-  const dif = Math.max(0, Date.now() - d.getTime());
-  const min = Math.floor(dif / 60000);
-  if (min < 1) return 'Ahora';
-  if (min < 60) return `Hace ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `Hace ${h} h`;
-  const dias = Math.floor(h / 24);
-  if (dias < 7) return `Hace ${dias} día${dias === 1 ? '' : 's'}`;
-  return d.toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
-}
-
-function normalizarNotif(n, leidas) {
-  return { ...n, leida: leidas.has(n.id) };
-}
-
-async function cargarNotificaciones({ repintar = true } = {}) {
-  if (!esAdmin()) return [];
-  const leidas = leerNotifLeidas();
-  const lista = [];
-  const hoyStr = hoy();
-  const limiteReciente = Date.now() - 3 * 24 * 60 * 60 * 1000;
-
-  try {
-    const r = await Api.alquileres({ first: 80, orden: 'vencimiento' });
-    (r.nodes || []).forEach(a => {
-      const nombre = a.clienteNombre || 'Cliente';
-      const veh = a.vehiculo || a.placa || 'vehículo';
-      if (a.estado === 'ACTIVO' && a.vencido) {
-        lista.push({ id:`alquiler-vencido-${a.id}`, tipo:'alerta', icono:'alert', titulo:'Devolución vencida', texto:`${nombre} · ${veh} · ${a.diasRetraso || 1} día(s) de retraso`, fecha:a.fechaFinPactada, ruta:`#/alquileres?filtro=vencidos` });
-      } else if (a.estado === 'ACTIVO' && a.fechaFinPactada === hoyStr) {
-        lista.push({ id:`alquiler-hoy-${a.id}`, tipo:'aviso', icono:'calendar', titulo:'Devolución para hoy', texto:`${nombre} debe devolver ${veh} hoy.`, fecha:a.fechaFinPactada, ruta:`#/alquileres?filtro=por_devolver` });
-      } else if (a.estado === 'ACTIVO' && a.fechaFinPactada) {
-        const fin = new Date(a.fechaFinPactada + 'T23:59:59');
-        const dias = Math.ceil((fin - new Date()) / 86400000);
-        if (dias > 0 && dias <= leerConfigSistema().diasAvisoVencimiento) lista.push({ id:`alquiler-proximo-${a.id}`, tipo:'info', icono:'clock', titulo:'Alquiler próximo a vencer', texto:`${nombre} · ${veh} · vence en ${dias} día${dias === 1 ? '' : 's'}.`, fecha:a.fechaFinPactada, ruta:`#/alquileres?filtro=activos` });
-      }
-      const creada = fechaNotif(a.fechaCreacion);
-      if (creada && creada.getTime() >= limiteReciente) {
-        lista.push({ id:`alquiler-nuevo-${a.id}`, tipo:'nuevo', icono:'calendar', titulo:'Nuevo alquiler registrado', texto:`${nombre} · ${veh}`, fecha:a.fechaCreacion, ruta:`#/alquileres` });
-      }
-      if (a.estado === 'COMPLETADO' && a.fechaDevolucion) {
-        const dev = fechaNotif(a.fechaDevolucion);
-        if (dev && dev.getTime() >= limiteReciente) lista.push({ id:`alquiler-devuelto-${a.id}`, tipo:'ok', icono:'check', titulo:'Vehículo devuelto', texto:`${veh} · devolución de ${nombre}`, fecha:a.fechaDevolucion, ruta:`#/alquileres` });
-      }
-    });
-  } catch (_) {}
-
-  try {
-    const r = await Api.facturas({ first: 30 });
-    (r.nodes || []).forEach(f => {
-      const d = fechaNotif(f.fechaEmision);
-      if (d && d.getTime() >= limiteReciente) lista.push({ id:`factura-${f.id}`, tipo:'pago', icono:'receipt', titulo:'Factura emitida', texto:`${f.clienteNombre || 'Cliente'} · ${fmt(f.total != null ? f.total : f.monto)} · ${metodoTxt(f.metodoPago)}`, fecha:f.fechaEmision, ruta:`#/factura/${f.id}` });
-    });
-  } catch (_) {}
-
-  if (Api.ADMIN_EXTRA && Api.administradores) {
-    try {
-      const r = await Api.administradores({});
-      const admins = r.nodes || r || [];
-      admins.forEach(a => {
-        const d = fechaNotif(a.fechaCreacion);
-        if (d && d.getTime() >= limiteReciente && String(a.id) !== String(usuario()?.id)) lista.push({ id:`admin-${a.id}`, tipo:'admin', icono:'shield', titulo:'Cuenta administrativa creada', texto:`${a.nombre} · ${a.perfil || a.rol || 'Administrador'}`, fecha:a.fechaCreacion, ruta:'#/administradores' });
-      });
-    } catch (_) {}
+  if (!u) {
+    f.innerHTML = `
+      <a class="btn ghost sm" href="#/registro">Crear cuenta</a>
+      <a class="btn sm" href="#/login">Iniciar sesión</a>`;
+    return;
   }
 
-  const unicas = [...new Map(lista.map(n => [n.id, n])).values()]
-    .map(n => normalizarNotif(n, leidas))
-    .sort((a,b) => (fechaNotif(b.fecha)?.getTime() || 0) - (fechaNotif(a.fecha)?.getTime() || 0));
-
-  notificacionesCache = unicas;
-  if (repintar && $('#app')) pintarFijas();
-  return unicas;
-}
-
-function cerrarNotificaciones() {
-  const p = $('#panelNotificaciones');
-  if (p) p.remove();
-  $('[data-notificaciones]')?.setAttribute('aria-expanded','false');
-  document.removeEventListener('click', clicFueraNotificaciones, true);
-}
-
-function clicFueraNotificaciones(e) {
-  if (!e.target.closest('#panelNotificaciones') && !e.target.closest('[data-notificaciones]')) cerrarNotificaciones();
-}
-
-function pintarListaNotificaciones() {
-  const panel = $('#panelNotificaciones');
-  if (!panel) return;
-  const lista = (notificacionesCache || []).filter(n => filtroNotificaciones === 'no-leidas' ? !n.leida : true);
-  const cont = $('[data-lista-notificaciones]', panel);
-  if (!cont) return;
-  cont.innerHTML = lista.length ? lista.map(n => `
-    <button type="button" class="notif-item ${n.leida ? 'leida' : 'nueva'}" data-notif-id="${esc(n.id)}" data-notif-ruta="${esc(n.ruta || '')}">
-      <span class="notif-ico ${esc(n.tipo)}">${icon(n.icono || 'bell')}</span>
-      <span class="notif-cuerpo"><b>${esc(n.titulo)}</b><span>${esc(n.texto)}</span><small>${esc(textoTiempoNotif(n.fecha))}</small></span>
-      ${n.leida ? '' : '<i class="notif-no-leida" aria-label="Sin leer"></i>'}
-    </button>`).join('') : `<div class="notif-vacio">${icon('bell')}<b>${filtroNotificaciones === 'no-leidas' ? 'No tienes notificaciones sin leer' : 'No hay notificaciones por ahora'}</b><span>Cuando haya actividad importante aparecerá aquí.</span></div>`;
-
-  $$('[data-filtro-notif]', panel).forEach(b => b.classList.toggle('act', b.dataset.filtroNotif === filtroNotificaciones));
-  const noLeidas = (notificacionesCache || []).filter(n => !n.leida).length;
-  $('[data-contador-notif]', panel).textContent = noLeidas ? `${noLeidas} sin leer` : 'Todo al día';
-  const todas = $('[data-marcar-todas]', panel);
-  if (todas) todas.disabled = !noLeidas;
-}
-
-async function abrirNotificaciones(btn) {
-  if ($('#panelNotificaciones')) return cerrarNotificaciones();
-  cerrarMenu();
-  btn.setAttribute('aria-expanded','true');
-  const p = document.createElement('section');
-  p.id = 'panelNotificaciones';
-  p.className = 'panel-notificaciones';
-  p.setAttribute('role','dialog');
-  p.setAttribute('aria-label','Notificaciones');
-  p.innerHTML = `
-    <header class="notif-cabecera"><div><h3>Notificaciones</h3><span data-contador-notif>Cargando…</span></div><button class="icon-btn notif-cerrar" type="button" data-cerrar-notif aria-label="Cerrar">×</button></header>
-    <div class="notif-herramientas"><div class="notif-filtros"><button type="button" data-filtro-notif="todas" class="act">Todas</button><button type="button" data-filtro-notif="no-leidas">Sin leer</button></div><button type="button" class="notif-marcar" data-marcar-todas>Marcar todas como leídas</button></div>
-    <div class="notif-lista" data-lista-notificaciones><div class="notif-cargando">Cargando notificaciones…</div></div>`;
-  document.body.appendChild(p);
-  const r = btn.getBoundingClientRect();
-  const ancho = Math.min(430, innerWidth - 24);
-  p.style.width = ancho + 'px';
-  p.style.right = Math.max(12, innerWidth - r.right) + 'px';
-  p.style.top = Math.min(r.bottom + 10, innerHeight - 120) + 'px';
-  await cargarNotificaciones({ repintar:false });
-  pintarListaNotificaciones();
-  setTimeout(() => document.addEventListener('click', clicFueraNotificaciones, true));
-}
-
-function marcarNotificacion(id, navegar = true) {
-  const leidas = leerNotifLeidas(); leidas.add(id); guardarNotifLeidas(leidas);
-  if (notificacionesCache) notificacionesCache = notificacionesCache.map(n => n.id === id ? { ...n, leida:true } : n);
-  pintarFijas();
-  const n = notificacionesCache?.find(x => x.id === id);
-  if (navegar && n?.ruta) { cerrarNotificaciones(); location.hash = n.ruta; }
-  else pintarListaNotificaciones();
-}
-
-function marcarTodasNotificaciones() {
-  const leidas = leerNotifLeidas();
-  (notificacionesCache || []).forEach(n => leidas.add(n.id));
-  guardarNotifLeidas(leidas);
-  notificacionesCache = (notificacionesCache || []).map(n => ({ ...n, leida:true }));
-  pintarFijas(); pintarListaNotificaciones();
+  f.innerHTML = `
+    ${esAdmin() ? `
+      <a class="icon-btn campana glass-lente" href="#/alquileres?filtro=activos" title="Devoluciones pendientes" aria-label="Devoluciones pendientes${pendientes ? ': ' + pendientes : ''}">
+        ${icon('bell')}${pendientes ? `<span class="punto">${pendientes}</span>` : ''}
+      </a>` : ''}
+    <button class="icon-btn glass-lente" type="button" data-menu title="Cuenta" aria-label="Opciones de la cuenta">${icon('gear')}</button>`;
 }
 
 async function refrescarPendientes() {
@@ -567,14 +309,11 @@ async function refrescarPendientes() {
 
 /* Menú de usuario */
 
-async function abrirMenu(btn) {
+function abrirMenu(btn) {
   cerrarMenu();
 
   const u = usuario();
   if (!u) return;
-
-  const walletCuenta = !esAdmin() ? await Api.miWallet().catch(() => null) : null;
-  if (!btn.isConnected) return;
 
   const m = document.createElement('div');
   m.className = 'menu-usuario';
@@ -585,12 +324,11 @@ async function abrirMenu(btn) {
       ${UI.avatar(u.nombre, 'sm')}
       <div><b>${esc(u.nombre)}</b><small>${esc(u.correo)}</small></div>
     </div>
-    <a href="#/perfil" role="menuitem">${icon('user')}Mi perfil</a>
-    ${!esAdmin() && Number(walletCuenta?.saldo || 0) > 0 ? `<a href="#/wallet" role="menuitem">${icon('wallet')}Wallet GO <span class="menu-saldo">${fmt.dinero(walletCuenta.saldo)}</span></a>` : ''}
-    <a href="#/cambiar-password" role="menuitem">${icon('lock')}Cambiar contraseña</a>`;
+    ${!esStaff() ? `<a href="#/perfil" role="menuitem">${icon('user')}Mi perfil</a>` : ''}
+    <a href="#/cambiar-password" role="menuitem">${icon('lock')}Cambiar contraseña</a>
+    <button type="button" role="menuitem" data-salir>${icon('logout')}Cerrar sesión</button>`;
 
   document.body.appendChild(m);
-  btn.setAttribute('aria-expanded', 'true');
 
   const r = btn.getBoundingClientRect();
   const ancho = 260;
@@ -612,7 +350,6 @@ function clicFuera(e) {
 }
 
 function cerrarMenu() {
-  $$('[data-menu][aria-expanded]').forEach(b => b.setAttribute('aria-expanded','false'));
   const m = $('#menuUsuario');
   if (m) m.remove();
   document.removeEventListener('click', clicFuera);
@@ -625,7 +362,6 @@ async function salir() {
 
   Api.cerrarSesion();
   pendientes = null;
-  notificacionesCache = null;
   UI.toast('Sesión cerrada.', 'info');
   ir('login');
 }
@@ -639,7 +375,6 @@ function manejarSesion(e) {
   if (e.code === 'AUTH_NOT_AUTHENTICATED') {
     Api.cerrarSesion();
     pendientes = null;
-    notificacionesCache = null;
     UI.toast('Tu sesión expiró. Inicia sesión de nuevo.', 'warn');
     ir('login');
     return true;
@@ -709,76 +444,37 @@ const fotoVeh = v => (v && v.fotoUrl
   ? `<img src="${esc(Api.media(v.fotoUrl))}" alt="${esc(v.marca + ' ' + v.modelo)}" loading="lazy" data-veh>`
   : UI.sinFoto());
 
-const tarjetaVeh = (v, { accion = 'rentar', texto = 'Rentar', sel = false, registro = false } = {}) => `
-  <article class="card veh-card${sel ? ' sel' : ''}${registro ? ' veh-card-registro' : ''}"${registro ? ` data-card-veh="${v.id}"` : ''}>
-    <div class="veh-foto">
-      ${fotoVeh(v)}
-      <div class="veh-foto-etiquetas">
-        ${badge(null, v.categoria, 'neutro')}
-        ${registro ? badge(null, 'Disponible', 'ok') : ''}
-      </div>
-      ${registro && sel ? `<span class="veh-seleccion-check">${icon('check')} Seleccionado</span>` : ''}
-    </div>
+const tarjetaVeh = (v, { accion = 'rentar', texto = 'Rentar', sel = false } = {}) => `
+  <article class="card veh-card${sel ? ' sel' : ''}">
+    <div class="veh-foto">${fotoVeh(v)}${badge(null, v.categoria, 'neutro')}</div>
     <div class="veh-cuerpo">
-      <div class="veh-titulo-linea">
-        <div>
-          <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
-          <span class="meta">${esc(v.anio)} · Placa ${esc(v.placa)}</span>
-        </div>
-      </div>
-      ${registro ? `<div class="veh-datos-rapidos">
-        ${v.transmision ? `<span>${icon('settings')} ${esc(etq(v.transmision))}</span>` : ''}
-        ${v.color ? `<span>${icon('tag')} ${esc(v.color)}</span>` : ''}
-        <span>${icon('calendar')} ${esc(v.anio)}</span>
-      </div>` : ''}
+      <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
+      <span class="meta">${esc(v.anio)} · Placa ${esc(v.placa)}</span>
       <div class="veh-pie">
-        <div class="precio"><small>${registro ? 'Tarifa diaria' : ''}</small><b>${fmt.dinero(v.precioDia)}</b> <span>/ día</span></div>
-        <button class="btn sm${sel ? ' veh-btn-elegido' : ''}" type="button" data-${accion}="${v.id}">${texto}</button>
+        <div class="precio"><b>${fmt.dinero(v.precioDia)}</b> <span>/ día</span></div>
+        <button class="btn sm" type="button" data-${accion}="${v.id}">${texto}</button>
       </div>
     </div>
   </article>`;
 
-function estadoOperativoAlquiler(a) {
+function estadoAlquiler(a) {
   const h = hoy();
-
-  if (a.estado === 'COMPLETADO') return { clave: 'completado', texto: 'Completado', tono: 'ok' };
-  if (a.estado === 'CANCELADO') return { clave: 'cancelado', texto: 'Cancelado', tono: 'cancelado' };
+  let extra = '';
 
   if (a.estado === 'ACTIVO') {
-    if (a.vencido || (a.fechaFinPactada && a.fechaFinPactada < h)) {
-      return { clave: 'vencido', texto: 'Vencido', tono: 'bad' };
-    }
-    if (a.fechaInicio > h) {
-      return { clave: 'reserva', texto: 'Reserva', tono: 'reserva' };
-    }
-    if (a.fechaFinPactada === h) {
-      return { clave: 'por_devolver', texto: 'Por devolver', tono: 'warn' };
-    }
-    return { clave: 'activo', texto: 'Activo', tono: 'info' };
+    if (a.vencido) extra = badge(null, `${a.diasRetraso} día(s) de retraso`, 'bad');
+    else if (a.fechaFinPactada === h) extra = badge(null, 'Entrega hoy', 'warn');
+    else if (a.fechaInicio > h) extra = badge(null, 'Reserva', 'neutro');
   }
 
-  return { clave: String(a.estado || '').toLowerCase(), texto: etq(a.estado), tono: 'neutro' };
-}
-
-function estadoAlquiler(a) {
-  const e = estadoOperativoAlquiler(a);
-  return `<div class="badges">${badge(null, e.texto, e.tono)}</div>`;
-}
-
-function claseFilaAlquiler(a) {
-  const e = estadoOperativoAlquiler(a).clave;
-  if (e === 'vencido') return 'fila-alerta';
-  if (e === 'reserva') return 'fila-reserva';
-  if (e === 'por_devolver') return 'fila-por-devolver';
-  if (e === 'cancelado') return 'fila-cancelado';
-  return '';
+  return `<div class="badges">${badge(a.estado)}${extra}</div>`;
 }
 
 const puedeCancelar = a => a.estado === 'ACTIVO' && a.fechaInicio > hoy();
 const puedeDevolver = a => a.estado === 'ACTIVO' && a.fechaInicio <= hoy();
 
 function tipoFactura(f) {
-  return f.tipo === 'AJUSTE' && Number(f.total != null ? f.total : f.monto) < 0 ? badge(null, 'Nota de crédito', 'ok') : badge(f.tipo);
+  return f.tipo === 'AJUSTE' && Number(f.monto) < 0 ? badge(null, 'Nota de crédito', 'ok') : badge(f.tipo);
 }
 
 const montoFactura = m => `<span class="${Number(m) < 0 ? 'negativo' : ''}">${fmt.dinero(m)}</span>`;
@@ -899,10 +595,24 @@ function vLogin(c, ctx) {
 
     <p class="pie">¿No tienes cuenta? <a href="#/registro" class="link">Regístrate</a></p>
     <p class="pie"><a href="#/catalogo" class="link suave">Ver vehículos disponibles ${icon('arrowRight')}</a></p>
-`;
+
+    ${Api.DEMO ? `
+      <div class="nota-demo">
+        Modo demostración. Entra como
+        <button type="button" data-demo="admin@autogo.com|Admin2026">administrador</button> o como
+        <button type="button" data-demo="ana@correo.com|Clave2026">cliente</button>.
+      </div>` : ''}`;
 
   const f = $('#f', c);
 
+  $$('[data-demo]', c).forEach(b => {
+    b.onclick = () => {
+      const [correo, pass] = b.dataset.demo.split('|');
+      f.correo.value = correo;
+      f.password.value = pass;
+      f.requestSubmit();
+    };
+  });
 
   f.onsubmit = async e => {
     e.preventDefault();
@@ -1174,7 +884,7 @@ async function vCatalogo(c, ctx) {
   Api.categorias().then(cs => {
     if (!ctx.vigente()) return;
     f.cat.innerHTML = `<option value="">Todas las categorías</option>` +
-      cs.filter(x => x.activo !== false).map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+      cs.map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
     f.cat.value = cat;
   }).catch(() => { /* el filtro queda solo con "Todas" */ });
 
@@ -1225,7 +935,7 @@ async function vCatalogo(c, ctx) {
       if (autoVeh) {
         const v = lista.find(x => x.id === +autoVeh);
         autoVeh = null;
-        if (v && Api.sesion() && !esAdmin()) confirmarAlquiler(v, ini, fin, buscar);
+        if (v && Api.sesion() && !esStaff()) confirmarAlquiler(v, ini, fin, buscar);
       }
     } catch (err) {
       if (!ctx.vigente()) return;
@@ -1250,7 +960,7 @@ async function vCatalogo(c, ctx) {
       return ir('login?next=' + encodeURIComponent(destino));
     }
 
-    if (esAdmin()) return ir(`nuevo-alquiler?veh=${v.id}&desde=${ini}&hasta=${fin}`);
+    if (esStaff()) return ir(`nuevo-alquiler?veh=${v.id}&desde=${ini}&hasta=${fin}`);
 
     confirmarAlquiler(v, ini, fin, buscar);
   });
@@ -1272,20 +982,13 @@ function confirmarAlquiler(v, ini, fin, refrescar) {
         <dt>Entrega</dt><dd>${fmt.fecha(fin)}</dd>
         <dt>Días</dt><dd data-k="dias">…</dd>
         <dt>Precio por día</dt><dd data-k="precio">…</dd>
-        <dt>Subtotal</dt><dd data-k="subtotal">…</dd>
-        <dt>Impuestos</dt><dd data-k="impuesto">…</dd>
-        <dt>Retención</dt><dd data-k="retencion">…</dd>
       </dl>
 
       <div class="total"><span>Monto total</span><b data-k="total">…</b></div>
 
       <form class="form" id="fc" novalidate style="margin-top:18px">
-        <div class="wallet-uso" id="cajaWallet" hidden>
-          <label class="check"><input type="checkbox" name="usarWallet" checked> Usar mi saldo Wallet GO (<b data-k="wsaldo"></b>)</label>
-          <small data-k="wdet"></small>
-        </div>
-        <div id="cajaMetodo">${UI.campo({ name: 'metodoPago', label: 'Método de pago', tipo: 'select', opciones: opcionesMetodo() })}</div>
-        <div class="info-banda">${icon('info')}<span>La factura se emite al confirmar. Si cancelas antes de la fecha de salida, el monto pagado queda en tu Wallet GO.</span></div>
+        ${UI.campo({ name: 'metodoPago', label: 'Método de pago', tipo: 'select', opciones: opcionesMetodo() })}
+        <div class="info-banda">${icon('info')}<span>La factura se emite al confirmar. Puedes cancelar sin cargo antes de la fecha de salida.</span></div>
         ${formErr}
         <div class="modal-acc">
           <button class="btn ghost" type="button" data-cerrar>Volver</button>
@@ -1297,39 +1000,11 @@ function confirmarAlquiler(v, ini, fin, refrescar) {
   const f = $('#fc', m.el);
   const btn = $('[type=submit]', f);
 
-  let cotizacion = null;
-  let saldoWallet = 0;
-  const cajaW = $('#cajaWallet', m.el);
-  const cajaM = $('#cajaMetodo', m.el);
-
-  function pintarWallet() {
-    if (!cotizacion) return;
-    const total = Number(cotizacion.total);
-    const usa = saldoWallet > 0 && f.usarWallet.checked;
-    const usado = usa ? Math.min(saldoWallet, total) : 0;
-    const resto = Math.round((total - usado) * 100) / 100;
-
-    cajaW.hidden = !(saldoWallet > 0);
-    $('[data-k=wsaldo]', m.el).textContent = fmt.dinero(saldoWallet);
-    $('[data-k=wdet]', m.el).innerHTML = !usa ? '' : resto > 0
-      ? `Se descontarán <b>${fmt.dinero(usado)}</b> de tu Wallet GO y pagarás <b>${fmt.dinero(resto)}</b> con el método elegido.`
-      : `Se descontarán <b>${fmt.dinero(usado)}</b> de tu Wallet GO. No tendrás que pagar nada más.`;
-    cajaM.hidden = resto <= 0;
-  }
-
-  f.usarWallet.onchange = pintarWallet;
-  Api.miWallet().then(w => { saldoWallet = Number(w.saldo) || 0; pintarWallet(); }).catch(() => { /* sin wallet: se paga normal */ });
-
   Api.cotizarAlquiler(v.id, ini, fin).then(cot => {
     $('[data-k=dias]', m.el).textContent = cot.dias;
     $('[data-k=precio]', m.el).textContent = fmt.dinero(cot.precioDia);
-    $('[data-k=subtotal]', m.el).textContent = fmt.dinero(cot.subtotal != null ? cot.subtotal : cot.total);
-    $('[data-k=impuesto]', m.el).textContent = fmt.dinero(cot.impuesto || 0);
-    $('[data-k=retencion]', m.el).textContent = cot.retencion ? `− ${fmt.dinero(cot.retencion)}` : fmt.dinero(0);
     $('[data-k=total]', m.el).textContent = fmt.dinero(cot.total);
     btn.disabled = false;
-    cotizacion = cot;
-    pintarWallet();
   }).catch(err => errorEnForm(f, err));
 
   f.onsubmit = async e => {
@@ -1338,7 +1013,7 @@ function confirmarAlquiler(v, ini, fin, refrescar) {
     UI.ocupado(btn, true);
 
     try {
-      const r = await Api.crearAlquiler({ vehiculoId: v.id, fechaInicio: ini, fechaFin: fin, metodoPago: f.metodoPago.value, usarWallet: !cajaW.hidden && f.usarWallet.checked });
+      const r = await Api.crearAlquiler({ vehiculoId: v.id, fechaInicio: ini, fechaFin: fin, metodoPago: f.metodoPago.value });
       m.cerrar();
 
       modalExito({
@@ -1376,7 +1051,7 @@ async function vInicioCliente(c, ctx) {
 
   c.innerHTML = UI.cargando(4);
 
-  const [alquileres, facturas, wallet] = await Promise.all([Api.misAlquileres(), Api.misFacturas(), Api.miWallet().catch(() => null)]);
+  const [alquileres, facturas] = await Promise.all([Api.misAlquileres(), Api.misFacturas()]);
   if (!ctx.vigente()) return;
 
   const h = hoy();
@@ -1385,21 +1060,21 @@ async function vInicioCliente(c, ctx) {
   const reservas = activos.filter(a => a.fechaInicio > h);
   const vencidos = activos.filter(a => a.vencido);
   const proxima = enCurso.map(a => a.fechaFinPactada).sort()[0];
-  const facturado = facturas.reduce((t, x) => t + Number(x.total != null ? x.total : x.monto), 0);
+  const facturado = facturas.reduce((t, x) => t + Number(x.monto), 0);
 
   c.innerHTML = `
-    <div class="seccion cliente-inicio">
+    <div class="seccion">
       ${vencidos.length ? `
         <div class="aviso-banda">${icon('alert')}
           <span>Tienes ${vencidos.length} alquiler(es) con la entrega vencida. Devuelve el vehículo lo antes posible para evitar más cargos por mora.</span>
           <a class="btn sm" href="#/mis-alquileres">Ver</a>
         </div>` : ''}
 
-      <div class="kpis cliente-kpis">
-        <div class="card kpi cliente-kpi tono-blue"><span class="etq"><span class="cliente-kpi-ico">${icon('car')}</span> En curso</span><span class="valor">${enCurso.length}</span><span class="nota">Alquileres activos</span></div>
-        <div class="card kpi cliente-kpi tono-purple"><span class="etq"><span class="cliente-kpi-ico">${icon('calendar')}</span> Reservas</span><span class="valor">${reservas.length}</span><span class="nota">Próximas salidas</span></div>
-        <div class="card kpi cliente-kpi tono-orange"><span class="etq"><span class="cliente-kpi-ico">${icon('clock')}</span> Próxima entrega</span><span class="valor">${proxima ? fmt.fechaCorta(proxima) : '—'}</span><span class="nota">${proxima ? fmt.fecha(proxima) : 'Sin entregas pendientes'}</span></div>
-        ${Number(wallet?.saldo || 0) > 0 ? `<a class="card kpi cliente-kpi tono-green cliente-kpi-link" href="#/wallet"><span class="etq"><span class="cliente-kpi-ico">${icon('wallet')}</span> Wallet GO</span><span class="valor">${fmt.dinero(wallet.saldo)}</span><span class="nota">Saldo disponible</span></a>` : ''}
+      <div class="kpis">
+        <div class="card kpi"><span class="etq">${icon('car')} En curso</span><span class="valor">${enCurso.length}</span><span class="nota">Alquileres activos</span></div>
+        <div class="card kpi"><span class="etq">${icon('calendar')} Reservas</span><span class="valor">${reservas.length}</span><span class="nota">Próximas salidas</span></div>
+        <div class="card kpi"><span class="etq">${icon('clock')} Próxima entrega</span><span class="valor">${proxima ? fmt.fechaCorta(proxima) : '—'}</span><span class="nota">${proxima ? fmt.fecha(proxima) : 'Sin entregas pendientes'}</span></div>
+        <div class="card kpi"><span class="etq">${icon('wallet')} Total facturado</span><span class="valor">${fmt.dinero(facturado)}</span><span class="nota">${facturas.length} factura(s)</span></div>
       </div>
 
       <div class="dos-col">
@@ -1419,6 +1094,8 @@ async function vInicioCliente(c, ctx) {
           <div class="accesos">
             <a class="acceso" href="#/catalogo">${icon('search')}<b>Catálogo</b><small>Vehículos libres por fechas</small></a>
             <a class="acceso" href="#/mis-facturas">${icon('receipt')}<b>Facturas</b><small>Consulta e imprime</small></a>
+            <a class="acceso" href="#/perfil">${icon('user')}<b>Mi perfil</b><small>Tus datos de cliente</small></a>
+            <a class="acceso" href="#/cambiar-password">${icon('lock')}<b>Seguridad</b><small>Cambia tu contraseña</small></a>
           </div>
         </section>
       </div>
@@ -1508,21 +1185,16 @@ async function vMisAlquileres(c, ctx) {
 }
 
 async function detalleAlquiler(a, { alCambiar } = {}) {
-  const admin = esAdmin();
+  const admin = esStaff();
 
   const m = UI.modal({
     titulo: `Alquiler #${a.id}`,
     ancho: 600,
     cuerpo: `
-      <div class="detalle-alq-head">
-        <div class="detalle-alq-foto" data-detalle-foto>${UI.sinFoto(true)}</div>
-        <div class="detalle-alq-identidad">
-          <span class="detalle-alq-eyebrow">VEHÍCULO DEL ALQUILER</span>
-          <b>${esc(a.vehiculo)}</b>
-          <span>Placa ${esc(a.placa)} · ${etq(a.canal)}</span>
-          <div class="detalle-alq-meta" data-detalle-veh-meta><span>${fmt.dinero(a.precioDia)} / día</span></div>
-        </div>
-        <div class="detalle-alq-estado">${estadoAlquiler(a)}</div>
+      <div class="resumen-veh">
+        <div class="foto-mini">${UI.sinFoto(true)}</div>
+        <div><b>${esc(a.vehiculo)}</b><span>Placa ${esc(a.placa)} · ${etq(a.canal)}</span></div>
+        <div style="margin-left:auto">${estadoAlquiler(a)}</div>
       </div>
 
       <dl class="dl">
@@ -1555,24 +1227,6 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
       </div>`
   });
 
-  // Completa el encabezado con la ficha real del vehículo (foto, año, categoría y datos extra).
-  if (a.vehiculoId) {
-    Api.vehiculo(a.vehiculoId).then(v => {
-      const foto = $('[data-detalle-foto]', m.el);
-      const meta = $('[data-detalle-veh-meta]', m.el);
-      if (foto) foto.innerHTML = fotoVeh(v);
-      if (meta) {
-        const extras = [
-          v.anio ? String(v.anio) : null,
-          v.categoria || null,
-          v.transmision || null,
-          v.color || null
-        ].filter(Boolean);
-        meta.innerHTML = `<span>${fmt.dinero(v.precioDia)} / día</span>${extras.map(x => `<span>${esc(x)}</span>`).join('')}`;
-      }
-    }).catch(() => { /* La información base del alquiler sigue visible. */ });
-  }
-
   $$('[data-acc]', m.el).forEach(b => {
     b.onclick = () => {
       m.cerrar();
@@ -1582,12 +1236,16 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
     };
   });
 
+  Api.vehiculo(a.vehiculoId).then(v => {
+    $('.foto-mini', m.el).innerHTML = fotoVeh(v);
+  }).catch(() => { /* se queda el ícono genérico */ });
+
   // Vista previa de mora para el cliente si el alquiler ya salió
   if (!admin && puedeDevolver(a)) {
     Api.cotizarDevolucion(a.id).then(d => {
       $('#estimado', m.el).innerHTML = `
         <div class="info-banda" style="margin-top:16px">${icon('info')}
-          <span>Si lo devuelves hoy: ${d.diasMora ? `${d.diasMora} día(s) de mora por <b>${fmt.dinero(d.montoMora)}</b>, total neto <b>${fmt.dinero(d.montoTotal)}</b>.` : (d.diasNoUsados ? `recibirías <b>${fmt.dinero(d.creditoWallet || 0)}</b> en Wallet GO por ${d.diasNoUsados} día(s) no utilizado(s), después de impuestos y retención.` : 'sin cargos adicionales.')}</span>
+          <span>Si lo devuelves hoy: ${d.diasMora ? `${d.diasMora} día(s) de mora por <b>${fmt.dinero(d.montoMora)}</b>, total <b>${fmt.dinero(d.montoTotal)}</b>.` : 'sin cargos por mora.'}</span>
         </div>`;
     }).catch(() => { /* la vista previa es opcional */ });
   }
@@ -1600,8 +1258,8 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
     $('#facs', m.el).innerHTML = facturas.length ? `<div class="lista">${facturas.map(f => `
       <div class="item">
         <span class="avatar sm">${icon('receipt')}</span>
-        <div><b>${fmt.numFactura(f.id)} · ${esc(f.concepto)}</b><small>${fmt.fechaHora(f.fechaEmision)}${f.metodoPago ? ' · ' + metodoTxt(f.metodoPago) : ''}</small></div>
-        <span class="monto">${montoFactura(f.total != null ? f.total : f.monto)}</span>
+        <div><b>${fmt.numFactura(f.id)} · ${esc(f.concepto)}</b><small>${fmt.fechaHora(f.fechaEmision)}${f.metodoPago ? ' · ' + etq(f.metodoPago) : ''}</small></div>
+        <span class="monto">${montoFactura(f.monto)}</span>
         <a class="icon-btn sm" href="#/factura/${f.id}" title="Ver factura" aria-label="Ver factura" data-cerrar>${icon('arrowRight')}</a>
       </div>`).join('')}</div>` : '<p class="texto">Sin facturas.</p>';
 
@@ -1612,10 +1270,9 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
 }
 
 async function cancelarAlquiler(a, alCambiar) {
-  const pctRetiro = leerConfigFinanciera().retiroWalletClientePct;
   const r = await UI.confirmar(
     `Cancelar alquiler #${a.id}`,
-    `Se cancelará el alquiler del <b>${esc(a.vehiculo)}</b> (${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaFinPactada)}) y se emitirá una nota de crédito. El monto pagado quedará como saldo en la <b>Wallet GO</b> ${esAdmin() ? 'del cliente' : 'de tu perfil'}: podrá usarse en otro alquiler y, si se retira, se aplicará el porcentaje de retiro vigente (${pctRetiro} % para el cliente).`,
+    `Se cancelará el alquiler del <b>${esc(a.vehiculo)}</b> (${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaFinPactada)}) y se emitirá una nota de crédito por el reembolso total.`,
     { boton: 'Cancelar alquiler', peligro: true, motivo: true }
   );
 
@@ -1623,11 +1280,11 @@ async function cancelarAlquiler(a, alCambiar) {
 
   try {
     const op = await Api.cancelarAlquiler(a.id, r.motivo);
-    avisoOperacion('Alquiler cancelado. El monto pagado se abonó a la Wallet GO.', op.facturaId);
+    avisoOperacion('Alquiler cancelado. Se emitió la nota de crédito.', op.facturaId);
     if (alCambiar) alCambiar();
   } catch (e) {
     if (e.code === 'CANCELACION_NO_PERMITIDA') {
-      UI.toast(esAdmin() ? 'El alquiler ya comenzó: registra la devolución en su lugar.' : 'El alquiler ya comenzó y no puede cancelarse. Devuelve el vehículo en la sucursal.', 'warn');
+      UI.toast(esStaff() ? 'El alquiler ya comenzó: registra la devolución en su lugar.' : 'El alquiler ya comenzó y no puede cancelarse. Devuelve el vehículo en la sucursal.', 'warn');
       if (alCambiar) alCambiar();
       return;
     }
@@ -1652,19 +1309,20 @@ async function vMisFacturas(c, ctx) {
 function tablaFacturas(lista, admin) {
   return `
     <div class="tabla-wrap">
-      <table class="tabla tabla-facturas">
+      <table class="tabla">
         <thead><tr>
-          <th>No.</th><th>Emisión</th><th>Tipo</th>${admin ? '<th>Cliente</th>' : ''}<th>Vehículo</th><th>Método</th><th class="num">Total</th><th></th>
+          <th>No.</th><th>Emisión</th><th>Tipo</th>${admin ? '<th>Cliente</th>' : ''}<th>Vehículo</th><th>Concepto</th><th>Método</th><th class="num">Monto</th><th></th>
         </tr></thead>
         <tbody>${lista.map(f => `
-          <tr class="${Number(f.total != null ? f.total : f.monto) < 0 ? 'fila-credito' : (f.tipo === 'MORA' ? 'fila-mora' : '')}">
+          <tr>
             <td class="nowrap"><b>${String(f.id).padStart(4, '0')}</b></td>
             <td class="nowrap">${fmt.fechaHora(f.fechaEmision)}</td>
             <td>${tipoFactura(f)}</td>
             ${admin ? `<td class="principal"><b>${esc(f.clienteNombre)}</b><small>${esc(f.clienteCedula)}</small></td>` : ''}
             <td class="principal"><b>${esc(f.vehiculo)}</b><small>${esc(f.placa)}</small></td>
-            <td>${f.metodoPago ? metodoTxt(f.metodoPago) : '—'}</td>
-            <td class="num"><b>${montoFactura(f.total != null ? f.total : f.monto)}</b></td>
+            <td>${esc(f.concepto)}</td>
+            <td>${f.metodoPago ? etq(f.metodoPago) : '—'}</td>
+            <td class="num">${montoFactura(f.monto)}</td>
             <td><div class="acciones"><a class="icon-btn" href="#/factura/${f.id}" title="Ver factura" aria-label="Ver factura ${f.id}">${icon('eye')}</a></div></td>
           </tr>`).join('')}
         </tbody>
@@ -1680,7 +1338,7 @@ async function vFactura(c, ctx) {
     <button class="btn ghost" type="button" data-volver>${icon('arrowLeft')} Volver</button>
     <button class="btn" type="button" data-imprimir>${icon('printer')} Imprimir</button>`);
 
-  $('[data-volver]').onclick = () => (history.length > 1 ? history.back() : ir(esAdmin() ? 'facturas' : 'mis-facturas'));
+  $('[data-volver]').onclick = () => (history.length > 1 ? history.back() : ir(esStaff() ? 'facturas' : 'mis-facturas'));
   $('[data-imprimir]').onclick = () => window.print();
 
   c.innerHTML = `<div class="card factura">${UI.cargando(6)}</div>`;
@@ -1689,18 +1347,14 @@ async function vFactura(c, ctx) {
   if (!ctx.vigente()) return;
 
   ctx.titulo(`Factura ${String(f.id).padStart(4, '0')}`);
-  const credito = Number(f.total != null ? f.total : f.monto) < 0;
+  const credito = Number(f.monto) < 0;
 
   c.innerHTML = `
     <article class="card factura">
       <header class="fac-h">
         <div class="empresa">
           <img src="logo.png" alt="AutoGo Rent a Car">
-          <small>${esc(leerConfigSistema().nombreComercial)}</small>
-          ${leerConfigSistema().rnc ? `<small>RNC: ${esc(leerConfigSistema().rnc)}</small>` : ''}
-          ${leerConfigSistema().telefono ? `<small>${esc(leerConfigSistema().telefono)}</small>` : ''}
-          ${leerConfigSistema().correo ? `<small>${esc(leerConfigSistema().correo)}</small>` : ''}
-          ${leerConfigSistema().direccion ? `<small>${esc(leerConfigSistema().direccion)}</small>` : ''}
+          <small>AutoGo Rent a Car</small>
         </div>
         <div class="fac-num">
           <span>${credito ? 'Nota de crédito' : 'Factura'}</span>
@@ -1712,7 +1366,7 @@ async function vFactura(c, ctx) {
       <div class="fac-meta">
         <span>Emitida: <b>${fmt.fechaHora(f.fechaEmision)}</b></span>
         <span>Alquiler: <b>#${f.alquilerId}</b></span>
-        <span>Método de pago: <b>${f.metodoPago ? metodoTxt(f.metodoPago) : '—'}</b></span>
+        <span>Método de pago: <b>${f.metodoPago ? etq(f.metodoPago) : '—'}</b></span>
       </div>
 
       <div class="fac-cols">
@@ -1744,187 +1398,28 @@ async function vFactura(c, ctx) {
             <td class="nowrap">${fmt.fecha(f.fechaInicio)}</td>
             <td class="nowrap">${fmt.fecha(f.fechaFinPactada)}</td>
             <td class="num">${f.dias}</td>
-            <td class="num">${fmt.dinero(f.total != null ? f.total : f.monto)}</td>
+            <td class="num">${fmt.dinero(f.monto)}</td>
           </tr></tbody>
         </table>
       </div>
 
-      <div class="fac-desglose">
-        ${f.desgloseModo === 'CREDITO_DEVOLUCION' ? `
-          <div><span>Valor de días no utilizados</span><b>${fmt.dinero(Math.abs(f.subtotal != null ? f.subtotal : f.monto))}</b></div>
-          <div><span>Impuestos descontados</span><b>− ${fmt.dinero(Math.abs(f.impuesto || 0))}</b></div>
-          <div><span>Retención</span><b>− ${fmt.dinero(Math.abs(f.retencion || 0))}</b></div>
-        ` : `
-          <div><span>Subtotal</span><b>${fmt.dinero(f.subtotal != null ? f.subtotal : f.monto)}</b></div>
-          <div><span>Impuestos</span><b>${fmt.dinero(f.impuesto || 0)}</b></div>
-          <div><span>Retención</span><b>${f.retencion ? `− ${fmt.dinero(Math.abs(f.retencion))}` : fmt.dinero(0)}</b></div>
-        `}
-      </div>
-
       <div class="fac-total">
-        <span>${credito ? (f.desgloseModo === 'CREDITO_DEVOLUCION' ? 'Crédito a Wallet GO' : 'Total acreditado') : 'Total pagado'}</span>
-        <b>${fmt.dinero(Math.abs(f.total != null ? f.total : f.monto))}</b>
+        <span>${credito ? 'Total acreditado' : 'Total pagado'}</span>
+        <b>${fmt.dinero(f.monto)}</b>
       </div>
 
-      ${esAdmin() && f.configFinanciera ? `<p class="fac-tasas">Tasas aplicadas en esta operación: impuesto ${Number(f.configFinanciera.impuestoPct || 0).toFixed(2)} %, retención ${Number(f.configFinanciera.retencionPct || 0).toFixed(2)} %${f.tipo === 'MORA' ? `, recargo por mora ${Number(f.configFinanciera.recargoMoraPct || 0).toFixed(2)} %` : ''}. Estas tasas quedan registradas con la operación y no cambian si Configuración se modifica posteriormente.</p>` : ''}
-
-      <p class="fac-pie">Gracias por preferir ${esc(leerConfigSistema().nombreComercial)}. Montos expresados en pesos dominicanos (RD$).</p>
+      <p class="fac-pie">Gracias por preferir AutoGo Rent a Car. Montos expresados en pesos dominicanos (RD$).</p>
     </article>`;
 }
 
-function tarjetaWallet(w) {
-  const saldo = Number(w.saldo) || 0;
-  const movs = (w.movimientos || []).slice(0, 4);
-
-  return `
-    <section class="card wallet-card" id="wallet">
-      <div class="wallet-h">${icon('wallet')}<h3>Wallet GO</h3></div>
-      <p class="wallet-lbl">Saldo disponible</p>
-      <div class="wallet-saldo">${fmt.dinero(saldo)}</div>
-      <p class="wallet-nota">Aquí se guardan créditos por cancelaciones y devoluciones anticipadas. Úsalos en tu próximo alquiler; si el saldo no alcanza, pagas la diferencia.</p>
-      <div class="wallet-acc">
-        <a class="btn" href="#/wallet">${icon('wallet')} Ver Wallet GO</a>
-        <a class="btn ghost" href="#/catalogo">${icon('car')} Reservar</a>
-        <button class="btn ghost" type="button" data-retiro${saldo > 0 && leerConfigSistema().permitirRetirosWallet ? '' : ' disabled'}>${icon('logout')} Retiro</button>
-      </div>
-      ${movs.length ? `<ul class="wallet-mov">${movs.map(m => `
-        <li>
-          <div><b>${esc(m.concepto)}</b><small>${fmt.fechaHora(m.fecha)}</small></div>
-          <span class="${m.tipo === 'ABONO' ? 'mas' : 'menos'}">${m.tipo === 'ABONO' ? '+' : '−'} ${fmt.dinero(m.monto)}</span>
-        </li>`).join('')}</ul>` : ''}
-    </section>`;
-}
-
-async function vWalletGo(c, ctx) {
-  ctx.acciones(`<a class="btn" href="#/catalogo">${icon('car')} Usar saldo en un alquiler</a>`);
-  c.innerHTML = `<div class="wallet-page">${UI.cargando(5)}</div>`;
-
-  const w = await Api.miWallet();
-  if (!ctx.vigente()) return;
-  if (Number(w?.saldo || 0) <= 0) {
-    ctx.acciones('');
-    c.innerHTML = `<div class="card"><div class="vacio"><h4>Wallet GO sin saldo disponible</h4><p>Wallet GO aparecerá en Mi cuenta cuando recibas un crédito por cancelación o devolución anticipada.</p><a class="btn" href="#/inicio">Volver al inicio</a></div></div>`;
-    return;
-  }
-
-  const movimientos = (w.movimientos || []).slice();
-  const sumaTipo = tipo => movimientos.filter(m => m.tipo === tipo).reduce((t,m) => t + Number(m.monto || 0), 0);
-  const totAbonos = sumaTipo('ABONO');
-  const totUsos = sumaTipo('USO');
-  const totRetiros = sumaTipo('RETIRO');
-
-  c.innerHTML = `
-    <div class="wallet-page">
-      <section class="wallet-hero card">
-        <div class="wallet-hero-main">
-          <span class="wallet-eyebrow">Saldo disponible</span>
-          <strong>${fmt.dinero(Number(w.saldo) || 0)}</strong>
-          <p>Tu saldo puede utilizarse en futuros alquileres. Los créditos provienen de cancelaciones y devoluciones anticipadas.</p>
-          <div class="wallet-hero-actions">
-            <a class="btn" href="#/catalogo">${icon('car')} Hacer una reserva</a>
-            <button class="btn ghost" type="button" data-wallet-retirar${Number(w.saldo) > 0 && leerConfigSistema().permitirRetirosWallet ? '' : ' disabled'}>${icon('logout')} Retirar saldo</button>
-          </div>
-        </div>
-        <div class="wallet-hero-info">
-          <span>Retiro en efectivo</span>
-          <b>Recibes ${Number(w.porcentajeRetiro || 0).toFixed(2)} %</b>
-          <small>La retención solo se aplica al retirar. Si utilizas Wallet GO en un alquiler, aprovechas el saldo completo.</small>
-        </div>
-      </section>
-
-      <div class="wallet-resumen">
-        <button class="card wallet-mini tono-green act" type="button" data-wallet-f="todos"><span class="wallet-mini-ico">${icon('wallet')}</span><span><small>Saldo actual</small><b>${fmt.dinero(Number(w.saldo)||0)}</b><em>${movimientos.length} movimiento(s)</em></span></button>
-        <button class="card wallet-mini tono-blue" type="button" data-wallet-f="ABONO"><span class="wallet-mini-ico">${icon('plus')}</span><span><small>Créditos</small><b>${fmt.dinero(totAbonos)}</b><em>Abonos recibidos</em></span></button>
-        <button class="card wallet-mini tono-purple" type="button" data-wallet-f="USO"><span class="wallet-mini-ico">${icon('car')}</span><span><small>Usado</small><b>${fmt.dinero(totUsos)}</b><em>Aplicado a alquileres</em></span></button>
-        <button class="card wallet-mini tono-orange" type="button" data-wallet-f="RETIRO"><span class="wallet-mini-ico">${icon('logout')}</span><span><small>Retiros</small><b>${fmt.dinero(totRetiros)}</b><em>Solicitudes realizadas</em></span></button>
-      </div>
-
-      <section class="card wallet-historial">
-        <div class="card-h"><div><h3>Movimientos de Wallet GO</h3><p>Créditos, usos en alquileres y retiros.</p></div></div>
-        <div id="walletMovs"></div>
-      </section>
-    </div>`;
-
-  let filtro = 'todos';
-  const caja = $('#walletMovs', c);
-  const pintar = () => {
-    $$('[data-wallet-f]', c).forEach(b => b.classList.toggle('act', b.dataset.walletF === filtro));
-    const lista = filtro === 'todos' ? movimientos : movimientos.filter(m => m.tipo === filtro);
-    caja.innerHTML = lista.length ? `<div class="wallet-tabla-wrap"><table class="tabla wallet-tabla">
-      <thead><tr><th>Fecha</th><th>Movimiento</th><th>Concepto</th><th>Alquiler</th><th class="num">Monto</th></tr></thead>
-      <tbody>${lista.map(m => {
-        const positivo = m.tipo === 'ABONO';
-        const tono = m.tipo === 'ABONO' ? 'ok' : (m.tipo === 'USO' ? 'info' : 'warn');
-        return `<tr>
-          <td class="nowrap">${fmt.fechaHora(m.fecha)}</td>
-          <td>${badge(null, etq(m.tipo), tono)}</td>
-          <td class="principal"><b>${esc(m.concepto)}</b></td>
-          <td>${m.alquilerId ? `<a class="link" href="#/mis-alquileres">#${m.alquilerId}</a>` : '—'}</td>
-          <td class="num wallet-monto ${positivo ? 'positivo' : 'negativo'}">${positivo ? '+' : '−'} ${fmt.dinero(Math.abs(Number(m.monto)||0))}</td>
-        </tr>`;
-      }).join('')}</tbody></table></div>` : UI.vacio('No hay movimientos en esta categoría.', 'wallet');
-  };
-
-  c.addEventListener('click', e => {
-    const f = e.target.closest('[data-wallet-f]');
-    if (f) { filtro = f.dataset.walletF; pintar(); return; }
-    const r = e.target.closest('[data-wallet-retirar]');
-    if (r) retirarWallet(w, () => render());
-  });
-
-  pintar();
-}
-
-async function retirarWallet(w, alCambiar) {
-  const cfgSistema = leerConfigSistema();
-  if (!cfgSistema.permitirRetirosWallet) {
-    return UI.toast('Los retiros de Wallet GO están deshabilitados por configuración.', 'warn');
-  }
-  const saldo = Number(w.saldo) || 0;
-  const pct = w.porcentajeRetiro || 30;
-  const aCliente = Math.round(saldo * pct) / 100;
-  const aEmpresa = Math.round((saldo - aCliente) * 100) / 100;
-
-  const ok = await UI.confirmar(
-    'Retirar fondos de Wallet GO',
-    `Esto es lo que conlleva hacer el retiro:
-     <ul class="retiro-lista" style="margin-top:12px">
-       <li>Recibirás únicamente el <b>${pct} %</b> de tu saldo: <b>${fmt.dinero(aCliente)}</b>.</li>
-       <li>AutoGo retiene el <b>${100 - pct} %</b> restante: <b>${fmt.dinero(aEmpresa)}</b>.</li>
-       <li>Tu saldo quedará en <b>${fmt.dinero(0)}</b> y la acción <b>no se puede deshacer</b>.</li>
-     </ul>
-     Si usas el saldo completo en un alquiler no pierdes nada: la retención solo aplica al retirar.`,
-    { boton: 'Confirmar retiro', peligro: true }
-  );
-
-  if (!ok) return;
-
-  try {
-    const r = await Api.retirarWallet();
-    modalExito({
-      titulo: 'Retiro registrado',
-      texto: `Recibirás <b>${fmt.dinero(r.montoCliente)}</b>. AutoGo retuvo ${fmt.dinero(r.montoEmpresa)}.`
-    });
-    if (alCambiar) alCambiar();
-  } catch (e) {
-    avisarError(e);
-  }
-}
-
 async function vPerfil(c, ctx) {
-  if (esAdmin()) {
-    const u = usuario();
-    c.innerHTML = `<section class="card angosta"><div class="perfil-cab">${UI.avatar(u.nombre,'lg')}<div><h2>${esc(u.nombre)}</h2><p>Mi perfil</p></div></div><dl class="dl"><dt>Correo</dt><dd>${esc(u.correo)}</dd><dt>Rol</dt><dd>${esc(u.rol)}</dd></dl><a class="btn" style="margin-top:24px" href="#/cambiar-password">${icon('lock')} Cambiar contraseña</a></section>`;
-    return;
-  }
   ctx.acciones(`<a class="btn ghost" href="#/cambiar-password">${icon('lock')} Cambiar contraseña</a>`);
   c.innerHTML = `<div class="card angosta">${UI.cargando(5)}</div>`;
 
-  const [p, wallet] = await Promise.all([Api.miPerfil(), Api.miWallet().catch(() => null)]);
+  const p = await Api.miPerfil();
   if (!ctx.vigente()) return;
 
   c.innerHTML = `
-    <div class="perfil-grid">
     <div class="card angosta">
       <div class="perfil-cab">
         ${UI.avatar(p.nombre, 'lg')}
@@ -1945,12 +1440,7 @@ async function vPerfil(c, ctx) {
       <div class="info-banda" style="margin-top:20px">${icon('info')}
         <span>Para actualizar tus datos personales, comunícate con cualquier sucursal de AutoGo.</span>
       </div>
-    </div>
-    ${wallet ? tarjetaWallet(wallet) : ''}
     </div>`;
-
-  const retiro = $('[data-retiro]', c);
-  if (retiro) retiro.onclick = () => retirarWallet(wallet, () => render());
 }
 
 
@@ -1959,29 +1449,19 @@ async function vPerfil(c, ctx) {
 ========================================================= */
 
 async function vDashboard(c, ctx) {
-  ctx.acciones(`<span class="panel-fecha">${fmt.fecha(hoy())}</span>`);
+  ctx.acciones(`<a class="btn" href="#/nuevo-alquiler">${icon('plus')} Nuevo alquiler</a>`);
 
   const tarjeta = (area, titulo, extra = '') =>
     `<section class="card ${area}"><div class="card-h"><h3>${titulo}</h3>${extra}</div><div data-cuerpo>${UI.cargando(3)}</div></section>`;
 
   c.innerHTML = `
-    <div class="seccion panel-resumen">
-      <div class="panel-intro"><span class="panel-eyebrow">OPERACIÓN DIARIA</span><span class="panel-demo">Resumen del sistema</span></div>
+    <div class="seccion">
       <div class="kpis" id="kpis">${Array.from({ length: 5 }, () => `<div class="card kpi">${UI.cargando(1)}</div>`).join('')}</div>
       <div class="dash">
         ${tarjeta('a-act', 'Actividad reciente')}
         ${tarjeta('a-graf', 'Ingresos', '<span class="pastilla" id="crec">Últimos 6 meses</span>')}
-        ${tarjeta('a-flota', 'Estado de la flota', '<a class="panel-link" href="#/flota">Ver toda la flota →</a>')}
-        ${tarjeta('a-pend', 'Por devolver', '<a class="panel-link" href="#/alquileres?filtro=por_devolver">Ver alquileres →</a>')}
-        <section class="card a-atajos"><div class="card-h"><h3>Accesos rápidos</h3></div>
-          <div class="panel-atajos">
-            <a href="#/nuevo-alquiler" class="tono-blue">${icon('plusCircle')}<span>Nuevo alquiler</span>${icon('chevR')}</a>
-            <a href="#/flota" class="tono-green">${icon('car')}<span>Gestionar flota</span>${icon('chevR')}</a>
-            <a href="#/clientes" class="tono-purple">${icon('users')}<span>Ver clientes</span>${icon('chevR')}</a>
-            <a href="#/facturas" class="tono-blue">${icon('receipt')}<span>Facturación</span>${icon('chevR')}</a>
-          </div>
-          <p class="panel-proximos">Reportes y Configuración: pendientes de implementar.</p>
-        </section>
+        ${tarjeta('a-flota', 'Estado de la flota')}
+        ${tarjeta('a-pend', 'Por devolver')}
       </div>
     </div>`;
 
@@ -1995,19 +1475,17 @@ async function vDashboard(c, ctx) {
     pintarFijas();
     pintarNav('dashboard');
 
-    const mes = hoy().slice(0, 7) + '-01';
-    const kpi = (titulo, valor, nota, ic, tono, ruta) => `<a class="card kpi panel-kpi tono-${tono}" href="#/${ruta}"><span class="panel-kpi-top"><span class="panel-icon">${icon(ic)}</span>${icon('chevR')}</span><span class="etq">${titulo}</span><span class="valor">${valor}</span><span class="nota">${nota}</span></a>`;
-    $('#kpis', c).innerHTML =
-      kpi('Ingresos del mes', fmt.dinero(d.ingresosMes), 'Ver facturación del período', 'wallet', 'green', `facturas?desde=${mes}&hasta=${hoy()}`) +
-      kpi('Alquileres activos', d.alquileresActivos, 'Incluye reservas futuras', 'calendar', 'blue', 'alquileres?filtro=activos') +
-      kpi('Vencidos', d.alquileresVencidos, 'Revisar entregas atrasadas', 'alert', 'coral', 'alquileres?filtro=vencidos') +
-      kpi('Vehículos disponibles', `${d.vehiculosDisponibles}<small> / ${d.totalVehiculos}</small>`, 'Ver vehículos disponibles', 'car', 'purple', 'flota?estado=DISPONIBLE') +
-      kpi('Clientes', d.totalClientes, 'Ver clientes registrados', 'users', 'blue', 'clientes');
+    $('#kpis', c).innerHTML = `
+      <div class="card kpi"><span class="etq">${icon('wallet')} Ingresos del mes</span><span class="valor">${fmt.dinero(d.ingresosMes)}</span><span class="nota">Total histórico ${fmt.dinero(d.ingresosTotales)}</span></div>
+      <div class="card kpi"><span class="etq">${icon('calendar')} Alquileres activos</span><span class="valor">${d.alquileresActivos}</span><span class="nota">Incluye reservas futuras</span></div>
+      <div class="card kpi"><span class="etq">${icon('alert')} Vencidos</span><span class="valor">${d.alquileresVencidos}</span><span class="nota">${d.pendientesDevolucion} pendiente(s) de devolución</span></div>
+      <div class="card kpi"><span class="etq">${icon('car')} Disponibles</span><span class="valor">${d.vehiculosDisponibles}<small style="font-size:15px;color:var(--txt-3)"> / ${d.totalVehiculos}</small></span><span class="nota">Vehículos listos para rentar</span></div>
+      <div class="card kpi"><span class="etq">${icon('users')} Clientes</span><span class="valor">${d.totalClientes}</span><span class="nota">Registrados y activos</span></div>`;
 
     const partes = [
       ['Disponibles', d.vehiculosDisponibles, 'c-ok'],
       ['Alquilados', d.vehiculosAlquilados, 'c-info'],
-      ['Mantenimiento', d.vehiculosEnMantenimiento, 'panel-mantenimiento'],
+      ['Mantenimiento', d.vehiculosEnMantenimiento, 'c-warn'],
       ['Fuera de servicio', d.vehiculosFueraDeServicio, 'c-bad']
     ];
     const total = d.totalVehiculos || 1;
@@ -2017,7 +1495,7 @@ async function vDashboard(c, ctx) {
       <div class="barra-flota" role="img" aria-label="${partes.map(p => `${p[0]}: ${p[1]}`).join(', ')}">
         ${partes.filter(p => p[1] > 0).map(p => `<span class="${p[2]}" style="width:${(p[1] / total) * 100}%" title="${p[0]}: ${p[1]}"></span>`).join('')}
       </div>
-      <div class="leyenda">${partes.map(p => `<div><i class="${p[2]}"></i>${p[0]}<b>${p[1]} <small>${Math.round(p[1] / total * 100)} %</small></b></div>`).join('')}</div><div class="panel-por-devolver">${icon('clock')}<span><b>${d.pendientesDevolucion} por devolver</b><small>Incluidos en los alquileres activos · hoy o vencidos</small></span></div>`;
+      <div class="leyenda">${partes.map(p => `<div><i class="${p[2]}"></i>${p[0]}<b>${p[1]}</b></div>`).join('')}</div>`;
   }).catch(e => {
     if (!ctx.vigente()) return;
     falloCarga($('#kpis', c), e, () => render());
@@ -2047,21 +1525,16 @@ async function vDashboard(c, ctx) {
   }).catch(e => ctx.vigente() && falloCarga(cuerpo('.a-act'), e, () => render()));
 
   // Pendientes de devolución (vencidos o con entrega hoy)
-  panelTodas(p => Api.alquileres({ estado: 'ACTIVO', orden: 'vencimiento', ...p })).then(async r => {
+  Api.alquileres({ estado: 'ACTIVO', orden: 'vencimiento', first: 20 }).then(r => {
     if (!ctx.vigente()) return;
     const h = hoy();
-    const lista = r.nodes.filter(a => String(a.fechaFinPactada).slice(0, 10) <= h);
-    const fotos = new Map();
-    await Promise.all([...new Set(lista.slice(0, 5).map(a => a.vehiculoId))].map(async id => {
-      try { fotos.set(id, await Api.vehiculo(id)); } catch (_) { /* ícono de respaldo */ }
-    }));
-    if (!ctx.vigente()) return;
+    const lista = r.nodes.filter(a => a.fechaFinPactada <= h);
     const caja = cuerpo('.a-pend');
 
     caja.innerHTML = lista.length ? `<div class="lista">${lista.slice(0, 5).map(a => `
       <div class="item">
-        <div class="foto-mini">${fotoVeh(fotos.get(a.vehiculoId))}</div>
-        <div><b>${esc(a.vehiculo)}</b><small>${esc(a.placa)} · ${esc(a.clienteNombre)}</small><small>Entrega: ${fmt.fecha(a.fechaFinPactada)} · ${a.vencido ? 'Vencido' : 'Hoy'}</small></div>
+        <span class="avatar sm">${icon(a.vencido ? 'alert' : 'clock')}</span>
+        <div><b>${esc(a.clienteNombre)}</b><small>${esc(a.placa)} · ${a.vencido ? `${a.diasRetraso} día(s) de retraso` : 'Entrega hoy'}</small></div>
         <button class="btn ghost sm" type="button" data-dev="${a.id}">Recibir</button>
       </div>`).join('')}</div>`
       : UI.vacio('No hay devoluciones pendientes para hoy.', 'check');
@@ -2109,7 +1582,6 @@ async function serieIngresos() {
   }
 
   const suma = Object.fromEntries(meses.map(k => [k, 0]));
-  const deWallet = Object.fromEntries(meses.map(k => [k, 0]));
   let after = null;
   let vueltas = 0;
 
@@ -2117,28 +1589,12 @@ async function serieIngresos() {
     const r = await Api.facturas({ desde: meses[0] + '-01', hasta: h, first: 200, after });
     r.nodes.forEach(f => {
       const k = mesLocal(f.fechaEmision);
-      if (k in suma) suma[k] += Number(f.total != null ? f.total : f.monto);
+      if (k in suma) suma[k] += Number(f.monto);
     });
     after = r.pageInfo.hasNextPage ? r.pageInfo.endCursor : null;
   } while (after && ++vueltas < 25);
 
-  // Retiros de Wallet GO: la retención de la empresa también es ingreso del mes
-  try {
-    const iw = await Api.ingresosWallet({ desde: meses[0] + '-01', hasta: h });
-    (iw || []).forEach(i => {
-      const k = mesLocal(i.fecha);
-      if (k in suma) {
-        suma[k] += Number(i.monto);
-        deWallet[k] += Number(i.monto);
-      }
-    });
-  } catch (e) { /* si no hay datos de wallet, la serie queda solo con facturas */ }
-
-  return meses.map(k => ({
-    clave: k, etq: nombreMes(k),
-    valor: Math.round(suma[k] * 100) / 100,
-    wallet: Math.round(deWallet[k] * 100) / 100
-  }));
+  return meses.map(k => ({ clave: k, etq: nombreMes(k), valor: Math.round(suma[k] * 100) / 100 }));
 }
 
 const GRAF = { W: 640, H: 236, izq: 64, der: 14, arr: 14, aba: 30 };
@@ -2235,7 +1691,7 @@ function activarGrafico(caja, serie) {
     punto.setAttribute('cx', x);
     punto.setAttribute('cy', y);
 
-    tip.innerHTML = `<span>${esc(serie[i].etq)} ${serie[i].clave.slice(0, 4)}</span><b>${fmt.dinero(serie[i].valor)}</b>${serie[i].wallet > 0 ? `<span>Incluye ${fmt.dinero(serie[i].wallet)} de Wallet GO</span>` : ''}`;
+    tip.innerHTML = `<span>${esc(serie[i].etq)} ${serie[i].clave.slice(0, 4)}</span><b>${fmt.dinero(serie[i].valor)}</b>`;
     tip.style.left = x * k + 'px';
     tip.style.top = y * k + 'px';
     tip.classList.add('on');
@@ -2263,111 +1719,26 @@ function activarGrafico(caja, serie) {
 
 const FILTROS_ALQ = {
   todos: { texto: 'Todos', args: {} },
-  activos: {
-    texto: 'Activos',
-    args: { estado: 'ACTIVO', orden: 'vencimiento' },
-    local: a => estadoOperativoAlquiler(a).clave === 'activo'
-  },
-  reservas: {
-    texto: 'Reservas',
-    args: { estado: 'ACTIVO', orden: 'vencimiento' },
-    local: a => estadoOperativoAlquiler(a).clave === 'reserva'
-  },
-  vencidos: {
-    texto: 'Vencidos',
-    args: { estado: 'ACTIVO', orden: 'vencimiento' },
-    local: a => estadoOperativoAlquiler(a).clave === 'vencido'
-  },
-  por_devolver: {
-    texto: 'Por devolver',
-    args: { estado: 'ACTIVO', orden: 'vencimiento' },
-    local: a => estadoOperativoAlquiler(a).clave === 'por_devolver'
-  },
+  activos: { texto: 'Activos', args: { estado: 'ACTIVO', orden: 'vencimiento' } },
+  vencidos: { texto: 'Vencidos', args: { soloVencidos: true, orden: 'vencimiento' } },
   completados: { texto: 'Completados', args: { estado: 'COMPLETADO' } },
   cancelados: { texto: 'Cancelados', args: { estado: 'CANCELADO' } }
 };
-
-function textoAlquiler(a) {
-  return `${a.id} ${a.clienteNombre || ''} ${a.clienteCedula || ''} ${a.vehiculo || ''} ${a.placa || ''}`.toLowerCase();
-}
-
-async function alquileresFiltrados({ filtro = 'todos', texto = '', canal = '', desde = '', hasta = '', first = 12, after = null, last = null, before = null } = {}) {
-  const def = FILTROS_ALQ[filtro] || FILTROS_ALQ.todos;
-  const r = await panelTodas(p => Api.alquileres({ ...def.args, ...p }));
-  let lista = r.nodes;
-
-  if (def.local) lista = lista.filter(def.local);
-  const q = texto.trim().toLowerCase();
-  if (q) lista = lista.filter(a => textoAlquiler(a).includes(q));
-  if (canal) lista = lista.filter(a => a.canal === canal);
-  if (desde) lista = lista.filter(a => a.fechaInicio >= desde);
-  if (hasta) lista = lista.filter(a => a.fechaInicio <= hasta);
-
-  const cantidad = last || first;
-  const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
-  const nodes = lista.slice(inicio, inicio + cantidad);
-  return {
-    nodes,
-    totalCount: lista.length,
-    pageInfo: {
-      hasNextPage: inicio + cantidad < lista.length,
-      endCursor: String(inicio + cantidad),
-      hasPreviousPage: inicio > 0,
-      startCursor: String(inicio)
-    }
-  };
-}
-
-async function resumenAlquileres() {
-  const r = await panelTodas(p => Api.alquileres({ orden: 'vencimiento', ...p }));
-  const h = hoy();
-  const vigentes = r.nodes.filter(a => a.estado === 'ACTIVO');
-  const operativos = vigentes.map(a => ({ a, estado: estadoOperativoAlquiler(a).clave }));
-
-  return {
-    total: r.nodes.length,
-    activos: operativos.filter(x => x.estado === 'activo').length,
-    reservas: operativos.filter(x => x.estado === 'reserva').length,
-    vencidos: operativos.filter(x => x.estado === 'vencido').length,
-    porDevolver: operativos.filter(x => x.estado === 'por_devolver').length
-  };
-}
 
 async function vAlquileres(c, ctx) {
   let filtro = FILTROS_ALQ[ctx.q.get('filtro')] ? ctx.q.get('filtro') : 'todos';
   const clienteId = +ctx.q.get('cliente') || null;
   const clienteNombre = ctx.q.get('nombre');
-  const vehiculoId = +ctx.q.get('vehiculo') || null;
-  const vehiculoNombre = ctx.q.get('vehiculoNombre');
-  const filtros = { texto: '', canal: '', desde: '', hasta: '' };
 
-  ctx.acciones(soloSi('alquileres.crear', `<a class="btn" href="#/nuevo-alquiler${clienteId ? '?cliente=' + clienteId : ''}">${icon('plus')} Nuevo alquiler</a>`));
+  ctx.acciones(`<a class="btn" href="#/nuevo-alquiler${clienteId ? '?cliente=' + clienteId : ''}">${icon('plus')} Nuevo alquiler</a>`);
 
   c.innerHTML = `
-    <div class="alq-resumen" id="alqResumen">
-      ${Array.from({ length: 4 }, () => '<div class="card alq-mini"><span class="skeleton"></span></div>').join('')}
-    </div>
-
-    <div class="herramientas alq-herramientas">
-      <div class="segmentos" role="tablist" aria-label="Estado de alquileres">
+    <div class="herramientas">
+      <div class="segmentos" role="tablist">
         ${Object.entries(FILTROS_ALQ).map(([k, f]) => `<button type="button" data-f="${k}">${f.texto}</button>`).join('')}
       </div>
       ${clienteId ? `<span class="filtro-activo">Cliente: <b>${esc(clienteNombre || '#' + clienteId)}</b><a href="#/alquileres" aria-label="Quitar filtro de cliente">${icon('x')}</a></span>` : ''}
-      ${vehiculoId ? `<span class="filtro-activo">Vehículo: <b>${esc(vehiculoNombre || '#' + vehiculoId)}</b><a href="#/alquileres" aria-label="Quitar filtro de vehículo">${icon('x')}</a></span>` : ''}
     </div>
-
-    <div class="card alq-filtros">
-      <div class="buscar">${icon('search')}<input type="search" id="qAlq" placeholder="Buscar cliente, cédula, vehículo, placa o #" aria-label="Buscar alquiler" autocomplete="off"></div>
-      <select id="canalAlq" aria-label="Filtrar por canal">
-        <option value="">Todos los canales</option>
-        <option value="MOSTRADOR">Mostrador</option>
-        <option value="PORTAL">Portal</option>
-      </select>
-      <label class="alq-fecha"><span>Desde</span><input type="date" id="desdeAlq"></label>
-      <label class="alq-fecha"><span>Hasta</span><input type="date" id="hastaAlq"></label>
-      <button class="btn ghost sm" type="button" id="limpiarAlq">Limpiar</button>
-    </div>
-
     <div class="card" id="lista"></div>`;
 
   const marcar = () => $$('[data-f]', c).forEach(b => {
@@ -2378,99 +1749,50 @@ async function vAlquileres(c, ctx) {
   const l = listado({
     cont: $('#lista', c),
     vigente: ctx.vigente,
-    cargar: pag => clienteId
-      ? panelAlquileresCliente({ clienteId, filtro, filtros, ...pag })
-      : vehiculoId
-        ? panelAlquileresVehiculo({ vehiculoId, filtro, filtros, ...pag })
-        : alquileresFiltrados({ filtro, ...filtros, ...pag }),
+    cargar: pag => Api.alquileres({ ...FILTROS_ALQ[filtro].args, clienteId, ...pag }),
     pintar: r => (r.nodes.length ? `
       <div class="tabla-wrap">
-        <table class="tabla tabla-alquileres">
+        <table class="tabla">
           <thead><tr><th>#</th><th>Cliente</th><th>Vehículo</th><th>Salida</th><th>Entrega</th><th class="num">Monto</th><th>Estado</th><th></th></tr></thead>
           <tbody>${r.nodes.map(a => `
-            <tr class="${claseFilaAlquiler(a)}">
-              <td class="nowrap"><b>#${a.id}</b><br><small>${etq(a.canal)}</small></td>
+            <tr>
+              <td class="nowrap">#${a.id}<br><small style="color:var(--txt-3)">${etq(a.canal)}</small></td>
               <td class="principal"><b>${esc(a.clienteNombre)}</b><small>${esc(a.clienteCedula)}</small></td>
               <td class="principal"><b>${esc(a.vehiculo)}</b><small>${esc(a.placa)}</small></td>
               <td class="nowrap">${fmt.fecha(a.fechaInicio)}</td>
-              <td class="nowrap">${fmt.fecha(a.fechaDevolucion || a.fechaFinPactada)}${a.vencido ? `<small class="alq-atraso">${a.diasRetraso || 1} día(s) tarde</small>` : (a.estado === 'ACTIVO' && a.fechaFinPactada === hoy() ? '<small class="alq-entrega-hoy">Entrega hoy</small>' : '')}</td>
+              <td class="nowrap">${fmt.fecha(a.fechaDevolucion || a.fechaFinPactada)}</td>
               <td class="num">${fmt.dinero(a.montoTotal)}</td>
               <td>${estadoAlquiler(a)}</td>
               <td><div class="acciones">
                 <button class="icon-btn" type="button" data-acc="ver" data-id="${a.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
-                ${soloSi('alquileres.editar', `<button class="icon-btn" type="button" data-acc="modificar" data-id="${a.id}" title="Modificar" aria-label="Modificar"${a.estado === 'ACTIVO' ? '' : ' disabled'}>${icon('edit')}</button>`)}
-                ${soloSi('alquileres.devolver', `<button class="icon-btn" type="button" data-acc="devolver" data-id="${a.id}" title="Registrar devolución" aria-label="Registrar devolución"${puedeDevolver(a) ? '' : ' disabled'}>${icon('undo')}</button>`)}
-                ${soloSi('alquileres.cancelar', `<button class="icon-btn" type="button" data-acc="cancelar" data-id="${a.id}" title="Cancelar" aria-label="Cancelar"${puedeCancelar(a) ? '' : ' disabled'}>${icon('ban')}</button>`)}
+                <button class="icon-btn" type="button" data-acc="modificar" data-id="${a.id}" title="Modificar" aria-label="Modificar"${a.estado === 'ACTIVO' ? '' : ' disabled'}>${icon('edit')}</button>
+                <button class="icon-btn" type="button" data-acc="devolver" data-id="${a.id}" title="Registrar devolución" aria-label="Registrar devolución"${puedeDevolver(a) ? '' : ' disabled'}>${icon('undo')}</button>
+                <button class="icon-btn" type="button" data-acc="cancelar" data-id="${a.id}" title="Cancelar" aria-label="Cancelar"${puedeCancelar(a) ? '' : ' disabled'}>${icon('ban')}</button>
               </div></td>
             </tr>`).join('')}
           </tbody>
         </table>
-      </div>` : UI.vacio('No hay alquileres que coincidan con los filtros.', 'calendar'))
+      </div>` : UI.vacio('No hay alquileres con este filtro.', 'calendar'))
   });
-
-  async function actualizarResumen() {
-    const caja = $('#alqResumen', c);
-    try {
-      const d = await resumenAlquileres();
-      if (!ctx.vigente()) return;
-      caja.innerHTML = `
-        <button type="button" class="card alq-mini tono-blue" data-res="activos"><span class="alq-mini-ico">${icon('calendar')}</span><span><small>Activos</small><b>${d.activos}</b><em>En curso</em></span></button>
-        <button type="button" class="card alq-mini tono-purple" data-res="reservas"><span class="alq-mini-ico">${icon('clock')}</span><span><small>Reservas</small><b>${d.reservas}</b><em>Salidas próximas</em></span></button>
-        <button type="button" class="card alq-mini tono-coral ${d.vencidos ? 'alerta' : ''}" data-res="vencidos"><span class="alq-mini-ico">${icon('alert')}</span><span><small>Vencidos</small><b>${d.vencidos}</b><em>Requieren atención</em></span></button>
-        <button type="button" class="card alq-mini tono-orange" data-res="por_devolver"><span class="alq-mini-ico">${icon('undo')}</span><span><small>Por devolver</small><b>${d.porDevolver}</b><em>Entrega prevista hoy</em></span></button>`;
-    } catch (_) {
-      caja.innerHTML = '';
-    }
-  }
 
   const recargar = () => {
     l.recargar();
-    actualizarResumen();
     refrescarPendientes();
   };
 
-  const aplicarFiltros = debounce(() => l.recargar(true), 220);
-  $('#qAlq', c).addEventListener('input', e => { filtros.texto = e.target.value; aplicarFiltros(); });
-  $('#canalAlq', c).addEventListener('change', e => { filtros.canal = e.target.value; l.recargar(true); });
-  $('#desdeAlq', c).addEventListener('change', e => {
-    filtros.desde = e.target.value;
-    const hasta = $('#hastaAlq', c);
-    if (filtros.desde) hasta.min = filtros.desde;
-    l.recargar(true);
-  });
-  $('#hastaAlq', c).addEventListener('change', e => {
-    filtros.hasta = e.target.value;
-    l.recargar(true);
-  });
-  $('#limpiarAlq', c).onclick = () => {
-    filtros.texto = filtros.canal = filtros.desde = filtros.hasta = '';
-    $('#qAlq', c).value = '';
-    $('#canalAlq', c).value = '';
-    $('#desdeAlq', c).value = '';
-    $('#hastaAlq', c).value = '';
-    $('#hastaAlq', c).removeAttribute('min');
-    l.recargar(true);
-  };
-
   c.addEventListener('click', e => {
-    const resumen = e.target.closest('[data-res]');
-    if (resumen) {
-      filtro = resumen.dataset.res;
-      marcar();
-      cambiarQuery('alquileres', { filtro, cliente: clienteId, nombre: clienteNombre, vehiculo: vehiculoId, vehiculoNombre });
-      return l.recargar(true);
-    }
-
     const f = e.target.closest('[data-f]');
+
     if (f) {
       filtro = f.dataset.f;
       marcar();
-      cambiarQuery('alquileres', { filtro, cliente: clienteId, nombre: clienteNombre, vehiculo: vehiculoId, vehiculoNombre });
+      cambiarQuery('alquileres', { filtro, cliente: clienteId, nombre: clienteNombre });
       return l.recargar(true);
     }
 
     const b = e.target.closest('[data-acc]');
     if (!b) return;
+
     const a = l.nodos().find(x => x.id === +b.dataset.id);
     if (!a) return;
 
@@ -2483,40 +1805,7 @@ async function vAlquileres(c, ctx) {
   });
 
   marcar();
-  actualizarResumen();
   await l.recargar(true);
-}
-
-async function panelAlquileresCliente({ clienteId, filtro = 'todos', filtros = {}, first = 12, after = null, last = null, before = null }) {
-  const def = FILTROS_ALQ[filtro] || FILTROS_ALQ.todos;
-  const r = await panelTodas(p => Api.alquileres({ clienteId, ...def.args, ...p }));
-  let lista = r.nodes;
-  if (def.local) lista = lista.filter(def.local);
-  const q = (filtros.texto || '').trim().toLowerCase();
-  if (q) lista = lista.filter(a => textoAlquiler(a).includes(q));
-  if (filtros.canal) lista = lista.filter(a => a.canal === filtros.canal);
-  if (filtros.desde) lista = lista.filter(a => a.fechaInicio >= filtros.desde);
-  if (filtros.hasta) lista = lista.filter(a => a.fechaInicio <= filtros.hasta);
-  const cantidad = last || first;
-  const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
-  const nodes = lista.slice(inicio, inicio + cantidad);
-  return { nodes, totalCount: lista.length, pageInfo: { hasNextPage: inicio + cantidad < lista.length, endCursor: String(inicio + cantidad), hasPreviousPage: inicio > 0, startCursor: String(inicio) } };
-}
-
-async function panelAlquileresVehiculo({ vehiculoId, filtro = 'todos', filtros = {}, first = 12, after = null, last = null, before = null }) {
-  const def = FILTROS_ALQ[filtro] || FILTROS_ALQ.todos;
-  const r = await panelTodas(p => Api.alquileres({ vehiculoId, ...def.args, ...p }));
-  let lista = r.nodes;
-  if (def.local) lista = lista.filter(def.local);
-  const q = (filtros.texto || '').trim().toLowerCase();
-  if (q) lista = lista.filter(a => textoAlquiler(a).includes(q));
-  if (filtros.canal) lista = lista.filter(a => a.canal === filtros.canal);
-  if (filtros.desde) lista = lista.filter(a => a.fechaInicio >= filtros.desde);
-  if (filtros.hasta) lista = lista.filter(a => a.fechaInicio <= filtros.hasta);
-  const cantidad = last || first;
-  const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
-  const nodes = lista.slice(inicio, inicio + cantidad);
-  return { nodes, totalCount: lista.length, pageInfo: { hasNextPage: inicio + cantidad < lista.length, endCursor: String(inicio + cantidad), hasPreviousPage: inicio > 0, startCursor: String(inicio) } };
 }
 
 function modificarAlquiler(a, alCambiar) {
@@ -2642,161 +1931,62 @@ function modificarAlquiler(a, alCambiar) {
 }
 
 function devolverAlquiler(a, alCambiar) {
-  let fotosInspeccion = [];
-
   const m = UI.modal({
     titulo: `Registrar devolución #${a.id}`,
-    ancho: 720,
+    ancho: 560,
     cuerpo: `
-      <div class="devolucion-cab">
-        <div class="devolucion-foto" data-dev-foto>${UI.sinFoto(true)}</div>
-        <div class="devolucion-identidad">
-          <span class="devolucion-eyebrow">VEHÍCULO A RECIBIR</span>
-          <h3>${esc(a.vehiculo)}</h3>
-          <p>${esc(a.placa)} · ${esc(a.clienteNombre)}</p>
-          <div class="devolucion-fechas">
-            <span><small>Salida</small><b>${fmt.fecha(a.fechaInicio)}</b></span>
-            <span><small>Entrega pactada</small><b>${fmt.fecha(a.fechaFinPactada)}</b></span>
-          </div>
-        </div>
-        <div class="devolucion-estado">${estadoAlquiler(a)}</div>
+      <div class="resumen-veh">
+        <div class="foto-mini">${UI.sinFoto(true)}</div>
+        <div><b>${esc(a.vehiculo)} · ${esc(a.placa)}</b><span>${esc(a.clienteNombre)} · entrega pactada ${fmt.fecha(a.fechaFinPactada)}</span></div>
       </div>
 
-      <form class="form devolucion-form" id="fd" novalidate>
-        <section class="devolucion-bloque">
-          <div class="devolucion-bloque-h">
-            <div><span class="devolucion-num">1</span><div><b>Fecha y cargos</b><small>Confirma cuándo fue recibido el vehículo.</small></div></div>
-          </div>
-          ${UI.campo({ name: 'fechaDevolucion', label: 'Fecha de devolución', tipo: 'date', value: hoy(), attrs: `min="${a.fechaInicio}" max="${hoy()}"` })}
+      <form class="form" id="fd" novalidate>
+        ${UI.campo({ name: 'fechaDevolucion', label: 'Fecha de devolución', tipo: 'date', value: hoy(), attrs: `min="${a.fechaInicio}" max="${hoy()}"` })}
 
-          <dl class="dl devolucion-costos">
-            <dt>Subtotal del alquiler</dt><dd data-k="base">…</dd>
-            <dt>Días de mora</dt><dd data-k="dias">…</dd>
-            <dt>Recargo de mora</dt><dd data-k="recargo-mora">…</dd>
-            <dt>Monto final de mora</dt><dd data-k="mora">…</dd>
-          </dl>
-          <div class="devolucion-credito" data-k="credito-box" hidden>
-            <div class="info-banda">${icon('wallet')}<span>Devolución anticipada: <b data-k="dias-no-usados"></b> día(s) no utilizado(s). Se generará un crédito neto para Wallet GO.</span></div>
-            <dl class="dl devolucion-costos">
-              <dt>Valor de días no usados</dt><dd data-k="reembolso-base">…</dd>
-              <dt>Impuestos descontados</dt><dd data-k="reembolso-impuesto">…</dd>
-              <dt>Retención</dt><dd data-k="reembolso-retencion">…</dd>
-              <dt>Crédito Wallet GO</dt><dd data-k="credito-wallet">…</dd>
-            </dl>
-          </div>
-          <div class="total devolucion-total"><span>Total neto del alquiler</span><b data-k="total">…</b></div>
+        <dl class="dl">
+          <dt>Monto base</dt><dd data-k="base">…</dd>
+          <dt>Días de mora</dt><dd data-k="dias">…</dd>
+          <dt>Monto de mora</dt><dd data-k="mora">…</dd>
+        </dl>
+        <div class="total" style="margin-top:0"><span>Total del alquiler</span><b data-k="total">…</b></div>
 
-          <div data-k="pago" hidden>
-            ${UI.campo({ name: 'metodoPagoMora', label: 'Método de pago de la mora', tipo: 'select', opciones: opcionesMetodo() })}
-          </div>
-        </section>
+        <div data-k="pago" hidden>
+          ${UI.campo({ name: 'metodoPagoMora', label: 'Método de pago de la mora', tipo: 'select', opciones: opcionesMetodo() })}
+        </div>
 
-        <section class="devolucion-bloque">
-          <div class="devolucion-bloque-h">
-            <div><span class="devolucion-num">2</span><div><b>Inspección de devolución</b><small>Registra únicamente incidencias relevantes.</small></div></div>
-          </div>
-
-          <div class="devolucion-danos">
-            <span>¿Se encontraron daños?</span>
-            <div class="devolucion-opciones" role="radiogroup" aria-label="Daños encontrados">
-              <label><input type="radio" name="danos" value="NO" checked><span>No</span></label>
-              <label><input type="radio" name="danos" value="SI"><span>Sí</span></label>
-            </div>
-          </div>
-
-          <label class="campo devolucion-observaciones">
-            <span>Observaciones <small>(opcional)</small></span>
-            <textarea name="observaciones" rows="3" maxlength="500" placeholder="Ej.: rayón en puerta derecha, retrovisor golpeado, sin novedades..."></textarea>
-            <small class="campo-ayuda">Úsalo para dejar constancia de cualquier incidencia o comentario de la recepción.</small>
-          </label>
-
-          <div class="devolucion-fotos">
-            <div class="devolucion-fotos-h">
-              <div><b>Fotos de devolución</b><small>Opcional · sirven como respaldo visual de la inspección.</small></div>
-              <label class="btn ghost sm dev-subir-foto">${icon('camera')} Añadir fotos<input type="file" id="devFotos" accept="image/*" multiple hidden></label>
-            </div>
-            <div class="devolucion-fotos-grid" id="devFotosGrid"><div class="devolucion-fotos-vacio">${icon('camera')}<span>Aún no se han añadido fotos.</span></div></div>
-          </div>
-        </section>
-
-        <div class="info-banda devolucion-mantenimiento">${icon('info')}<span>Al registrar la devolución, el vehículo pasa automáticamente a <b>Mantenimiento</b> durante ${leerConfigSistema().diasMantenimientoPostDevolucion} día(s), según Configuración.</span></div>
+        <div class="info-banda">${icon('info')}<span>Al registrar la devolución, el vehículo pasa a mantenimiento hasta el siguiente día laborable.</span></div>
 
         ${formErr}
-        <div class="modal-acc devolucion-acciones">
+        <div class="modal-acc">
           <button class="btn ghost" type="button" data-cerrar>Volver</button>
-          <button class="btn" type="submit" disabled>${icon('check')} Revisar y registrar devolución</button>
+          <button class="btn" type="submit" disabled>Registrar devolución</button>
         </div>
       </form>`
   });
+
+  Api.vehiculo(a.vehiculoId).then(v => {
+    $('.foto-mini', m.el).innerHTML = fotoVeh(v);
+  }).catch(() => { /* se queda el ícono genérico */ });
 
   const f = $('#fd', m.el);
   const btn = $('[type=submit]', f);
   let cot = null;
 
-  // Cargar la foto real del vehículo cuando esté disponible.
-  if (a.vehiculoId) {
-    Api.vehiculo(a.vehiculoId).then(v => {
-      const caja = $('[data-dev-foto]', m.el);
-      if (caja) caja.innerHTML = fotoVeh(v);
-    }).catch(() => {});
-  }
-
-  const pintarFotos = () => {
-    const g = $('#devFotosGrid', m.el);
-    if (!g) return;
-    if (!fotosInspeccion.length) {
-      g.innerHTML = `<div class="devolucion-fotos-vacio">${icon('camera')}<span>Aún no se han añadido fotos.</span></div>`;
-      return;
-    }
-    g.innerHTML = fotosInspeccion.map((x, i) => `
-      <figure class="devolucion-foto-item">
-        <img src="${x.url}" alt="Foto de devolución ${i + 1}">
-        <button type="button" data-quitar-foto="${i}" aria-label="Quitar foto">${icon('x')}</button>
-      </figure>`).join('');
-  };
-
-  $('#devFotos', m.el).addEventListener('change', e => {
-    const archivos = [...e.target.files].filter(x => x.type.startsWith('image/')).slice(0, Math.max(0, 6 - fotosInspeccion.length));
-    archivos.forEach(file => fotosInspeccion.push({ file, url: URL.createObjectURL(file) }));
-    e.target.value = '';
-    pintarFotos();
-  });
-
-  $('#devFotosGrid', m.el).addEventListener('click', e => {
-    const b = e.target.closest('[data-quitar-foto]');
-    if (!b) return;
-    const i = +b.dataset.quitarFoto;
-    const x = fotosInspeccion[i];
-    if (x) URL.revokeObjectURL(x.url);
-    fotosInspeccion.splice(i, 1);
-    pintarFotos();
-  });
-
   async function cotizar() {
     UI.limpiarErrores(f);
     btn.disabled = true;
-    ['base', 'dias', 'recargo-mora', 'mora', 'total', 'dias-no-usados', 'reembolso-base', 'reembolso-impuesto', 'reembolso-retencion', 'credito-wallet'].forEach(k => { const x = $(`[data-k=${k}]`, m.el); if (x) x.textContent = '…'; });
+    ['base', 'dias', 'mora', 'total'].forEach(k => { $(`[data-k=${k}]`, m.el).textContent = '…'; });
 
     try {
       cot = await Api.cotizarDevolucion(a.id, f.fechaDevolucion.value || null);
-      $('[data-k=base]', m.el).textContent = fmt.dinero(cot.subtotalAlquiler != null ? cot.subtotalAlquiler : cot.montoBase);
+      $('[data-k=base]', m.el).textContent = fmt.dinero(cot.montoBase);
       $('[data-k=dias]', m.el).textContent = cot.diasMora;
-      $('[data-k=recargo-mora]', m.el).textContent = fmt.dinero(cot.recargoMora || 0);
       $('[data-k=mora]', m.el).textContent = fmt.dinero(cot.montoMora);
       $('[data-k=total]', m.el).textContent = fmt.dinero(cot.montoTotal);
       $('[data-k=pago]', m.el).hidden = !(cot.diasMora > 0);
-      const creditoBox = $('[data-k=credito-box]', m.el);
-      creditoBox.hidden = !(cot.diasNoUsados > 0);
-      if (cot.diasNoUsados > 0) {
-        $('[data-k=dias-no-usados]', m.el).textContent = cot.diasNoUsados;
-        $('[data-k=reembolso-base]', m.el).textContent = fmt.dinero(cot.subtotalReembolso || 0);
-        $('[data-k=reembolso-impuesto]', m.el).textContent = `− ${fmt.dinero(cot.impuestoReembolso || 0)}`;
-        $('[data-k=reembolso-retencion]', m.el).textContent = `− ${fmt.dinero(cot.retencionReembolso || 0)}`;
-        $('[data-k=credito-wallet]', m.el).textContent = fmt.dinero(cot.creditoWallet || 0);
-      }
       btn.disabled = false;
     } catch (e) {
-      ['base', 'dias', 'recargo-mora', 'mora', 'total', 'dias-no-usados', 'reembolso-base', 'reembolso-impuesto', 'reembolso-retencion', 'credito-wallet'].forEach(k => { const x = $(`[data-k=${k}]`, m.el); if (x) x.textContent = '—'; });
+      ['base', 'dias', 'mora', 'total'].forEach(k => { $(`[data-k=${k}]`, m.el).textContent = '—'; });
       errorEnForm(f, e);
     }
   }
@@ -2807,75 +1997,23 @@ function devolverAlquiler(a, alCambiar) {
   f.onsubmit = async e => {
     e.preventDefault();
     if (!cot) return;
-    UI.limpiarErrores(f);
+    UI.ocupado(btn, true);
 
-    const danos = f.danos.value === 'SI';
-    const observaciones = f.observaciones.value.trim();
-    if (danos && !observaciones) {
-      const err = $('.form-err', f);
-      err.textContent = 'Describe brevemente los daños encontrados antes de continuar.';
-      err.style.display = 'block';
-      f.observaciones.focus();
-      return;
+    try {
+      const r = await Api.registrarDevolucion({
+        alquilerId: a.id,
+        fechaDevolucion: f.fechaDevolucion.value || null,
+        metodoPagoMora: cot.diasMora > 0 ? f.metodoPagoMora.value : null
+      });
+
+      m.cerrar();
+      avisoOperacion(r.facturaId ? 'Devolución registrada. Se emitió la factura de mora.' : 'Devolución registrada sin cargos de mora.', r.facturaId);
+      refrescarPendientes();
+      if (alCambiar) alCambiar();
+    } catch (err) {
+      UI.ocupado(btn, false);
+      errorEnForm(f, err);
     }
-
-    const metodo = cot.diasMora > 0 ? f.metodoPagoMora.value : null;
-    const resumen = UI.modal({
-      titulo: 'Confirmar devolución',
-      ancho: 520,
-      cuerpo: `
-        <div class="devolucion-confirmar">
-          <div class="devolucion-confirmar-veh"><b>${esc(a.vehiculo)}</b><span>${esc(a.placa)} · ${esc(a.clienteNombre)}</span></div>
-          <div class="revision-grid">
-            <div><small>Fecha de devolución</small><b>${fmt.fecha(f.fechaDevolucion.value)}</b></div>
-            <div><small>Mora</small><b>${cot.diasMora ? `${cot.diasMora} día(s)` : 'Sin mora'}</b><span>${fmt.dinero(cot.montoMora)}</span></div>
-            <div><small>Inspección</small><b>${danos ? 'Con daños reportados' : 'Sin daños reportados'}</b><span>${fotosInspeccion.length} foto(s)</span></div>
-            <div><small>Pago de mora</small><b>${cot.diasMora ? etq(metodo) : 'No aplica'}</b></div>
-            ${cot.diasNoUsados ? `<div><small>Crédito Wallet GO</small><b>${fmt.dinero(cot.creditoWallet || 0)}</b><span>${cot.diasNoUsados} día(s) no utilizado(s)</span></div>` : ''}
-          </div>
-          ${observaciones ? `<div class="devolucion-confirmar-obs"><small>Observaciones</small><p>${esc(observaciones)}</p></div>` : ''}
-          <div class="revision-total"><span>Total neto del alquiler</span><b>${fmt.dinero(cot.montoTotal)}</b></div>
-          <div class="info-banda">${icon('info')}<span>El vehículo quedará en mantenimiento durante ${leerConfigSistema().diasMantenimientoPostDevolucion} día(s) después de registrar la devolución.</span></div>
-          <div class="modal-acc">
-            <button class="btn ghost" type="button" data-volver-dev>Volver y revisar</button>
-            <button class="btn" type="button" data-confirmar-dev>${icon('check')} Confirmar devolución</button>
-          </div>
-        </div>`
-    });
-
-    $('[data-volver-dev]', resumen.el).onclick = () => resumen.cerrar();
-    $('[data-confirmar-dev]', resumen.el).onclick = async () => {
-      const confirmar = $('[data-confirmar-dev]', resumen.el);
-      UI.ocupado(confirmar, true);
-      try {
-        const r = await Api.registrarDevolucion({
-          alquilerId: a.id,
-          fechaDevolucion: f.fechaDevolucion.value || null,
-          metodoPagoMora: metodo,
-          danosEncontrados: danos,
-          observaciones: observaciones || null
-        });
-
-        // Las fotos se persisten en backend una vez creada la devolución.
-        for (const x of fotosInspeccion) {
-          try { await Api.subirFotoDevolucion(a.id, x.file); }
-          catch (fotoErr) { UI.toast(`La devolución se registró, pero no se pudo subir ${x.file.name}.`, 'warn'); }
-        }
-        fotosInspeccion.forEach(x => URL.revokeObjectURL(x.url));
-        resumen.cerrar();
-        m.cerrar();
-        const mensajeDev = r.creditoWallet > 0
-          ? `Devolución registrada. Se acreditaron ${fmt.dinero(r.creditoWallet)} al Wallet GO por ${r.diasNoUsados || 0} día(s) no utilizado(s).`
-          : (cot.diasMora > 0 ? 'Devolución registrada. Se emitió la factura de mora.' : 'Devolución registrada sin cargos adicionales.');
-        avisoOperacion(mensajeDev, r.facturaId);
-        refrescarPendientes();
-        if (alCambiar) alCambiar();
-      } catch (err) {
-        UI.ocupado(confirmar, false);
-        resumen.cerrar();
-        errorEnForm(f, err);
-      }
-    };
   };
 }
 
@@ -2885,7 +2023,6 @@ function devolverAlquiler(a, alCambiar) {
 ========================================================= */
 
 async function vNuevoAlquiler(c, ctx) {
-  ctx.acciones(`<a class="btn ghost" href="#/alquileres">${icon('x')} Cerrar</a>`);
   const h = hoy();
   const st = {
     cliente: null,
@@ -2895,64 +2032,39 @@ async function vNuevoAlquiler(c, ctx) {
     vehiculos: [],
     vehiculo: null,
     cot: null,
-    preVeh: +ctx.q.get('veh') || null,
-    metodoPago: METODOS[0] || 'EFECTIVO'
+    preVeh: +ctx.q.get('veh') || null
   };
   st.fin = ctx.q.get('hasta') && ctx.q.get('hasta') > st.ini ? ctx.q.get('hasta') : sumarDias(st.ini, 3);
 
   c.innerHTML = `
-    <div class="registro-alquiler-cab">
-      <div>
-        <span class="eyebrow">Proceso de mostrador</span>
-        <h2>Registrar un nuevo alquiler</h2>
-        <p>Selecciona el cliente, define las fechas, elige un vehículo disponible y revisa los datos antes de confirmar.</p>
-      </div>
-      <div class="registro-progreso" aria-label="Progreso del registro">
-        <span class="activo" data-prog="1"><i>1</i> Cliente</span>
-        <b></b>
-        <span data-prog="2"><i>2</i> Vehículo</span>
-        <b></b>
-        <span data-prog="3"><i>3</i> Confirmación</span>
-      </div>
-    </div>
-
-    <div class="dos-col registro-alquiler-layout">
+    <div class="dos-col">
       <div class="pasos">
-        <section class="card registro-paso">
-          <div class="paso-h" id="p1"><i>1</i><div><h3>Cliente</h3><small>Busca un cliente existente o registra uno nuevo.</small></div></div>
+        <section class="card">
+          <div class="paso-h" id="p1"><i>1</i><h3>Cliente</h3></div>
           <div id="cli"></div>
         </section>
 
-        <section class="card registro-paso">
-          <div class="paso-h" id="p2"><i>2</i><div><h3>Fechas y vehículo</h3><small>Solo se mostrarán vehículos disponibles para el período seleccionado.</small></div></div>
-          <form class="buscador buscador-alquiler" id="fv" novalidate>
+        <section class="card">
+          <div class="paso-h" id="p2"><i>2</i><h3>Fechas y vehículo</h3></div>
+          <form class="buscador" id="fv" novalidate style="margin-bottom:16px">
             ${UI.campo({ name: 'desde', label: 'Salida', tipo: 'date', value: st.ini, attrs: `min="${h}"` })}
             ${UI.campo({ name: 'hasta', label: 'Entrega', tipo: 'date', value: st.fin, attrs: `min="${sumarDias(st.ini, 1)}" max="${sumarDias(st.ini, 90)}"` })}
             ${UI.campo({ name: 'cat', label: 'Categoría', tipo: 'select', opciones: [{ valor: '', texto: 'Todas' }] })}
-            <button class="btn ghost buscar-disponibles" type="submit">${icon('search')} Buscar disponibles</button>
+            <button class="btn ghost" type="submit">${icon('search')} Buscar</button>
             ${formErr}
           </form>
           <div id="vehs"></div>
         </section>
       </div>
 
-      <aside class="card pegajoso registro-resumen" id="resumen"></aside>
+      <aside class="card pegajoso" id="resumen"></aside>
     </div>`;
 
   const fv = $('#fv', c);
 
-  const actualizarProgreso = () => {
-    const paso = st.cliente && st.vehiculo && st.cot ? 3 : st.cliente ? 2 : 1;
-    $$('[data-prog]', c).forEach(x => {
-      const n = +x.dataset.prog;
-      x.classList.toggle('activo', n === paso);
-      x.classList.toggle('hecho', n < paso);
-    });
-  };
-
   Api.categorias().then(cs => {
     if (!ctx.vigente()) return;
-    fv.cat.innerHTML = '<option value="">Todas</option>' + cs.filter(x => x.activo !== false).map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+    fv.cat.innerHTML = '<option value="">Todas</option>' + cs.map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
   }).catch(() => { /* filtro opcional */ });
 
 
@@ -2961,31 +2073,13 @@ async function vNuevoAlquiler(c, ctx) {
   function pintarCliente() {
     const caja = $('#cli', c);
     $('#p1', c).classList.toggle('hecho', !!st.cliente);
-    actualizarProgreso();
 
     if (st.cliente) {
-      const cl = st.cliente;
-      const sinLicencia = !cl.licenciaConducir;
-      const inactivo = cl.activo === false;
       caja.innerHTML = `
-        <div class="cliente-seleccionado${inactivo ? ' cliente-inactivo' : ''}">
-          <div class="cliente-seleccionado-h">
-            ${UI.avatar(cl.nombre, 'sm')}
-            <div class="cliente-identidad">
-              <b>${esc(cl.nombre)}</b>
-              <span>${esc(cl.cedula)}</span>
-            </div>
-            ${badge(null, inactivo ? 'Inactivo' : 'Activo', inactivo ? 'bad' : 'ok')}
-            <button class="btn ghost sm" type="button" data-cambiar>Cambiar</button>
-          </div>
-          <div class="cliente-datos-grid">
-            <div><small>Teléfono</small><b>${cl.telefono ? esc(cl.telefono) : 'No registrado'}</b></div>
-            <div><small>Correo</small><b>${cl.correo ? esc(cl.correo) : 'No registrado'}</b></div>
-            <div><small>Licencia</small><b>${cl.licenciaConducir ? esc(cl.licenciaConducir) : 'No registrada'}</b></div>
-            <div><small>Cuenta</small><b>${cl.tieneCuenta ? 'Con acceso al portal' : 'Cliente de mostrador'}</b></div>
-          </div>
-          ${inactivo ? `<div class="info-banda alerta">${icon('alert')}<span>Este cliente está inactivo. Debes activarlo antes de registrar un alquiler.</span></div>` : ''}
-          ${!inactivo && sinLicencia ? `<div class="info-banda aviso">${icon('info')}<span>Este cliente no tiene una licencia de conducir registrada. Verifica el documento antes de confirmar el alquiler.</span></div>` : ''}
+        <div class="elegido">
+          ${UI.avatar(st.cliente.nombre, 'sm')}
+          <div><b>${esc(st.cliente.nombre)}</b><small>${esc(st.cliente.cedula)}${st.cliente.telefono ? ' · ' + esc(st.cliente.telefono) : ''}</small></div>
+          <button class="btn ghost sm" type="button" data-cambiar>Cambiar</button>
         </div>`;
       $('[data-cambiar]', caja).onclick = () => {
         st.cliente = null;
@@ -2996,7 +2090,7 @@ async function vNuevoAlquiler(c, ctx) {
     }
 
     caja.innerHTML = `
-      <div class="herramientas cliente-buscador" style="margin-bottom:0">
+      <div class="herramientas" style="margin-bottom:0">
         <div class="buscar">${icon('search')}<input type="search" id="qCli" placeholder="Buscar por nombre, cédula o correo" aria-label="Buscar cliente" autocomplete="off"></div>
         <button class="btn ghost" type="button" data-nuevo>${icon('plus')} Cliente nuevo</button>
       </div>
@@ -3009,7 +2103,7 @@ async function vNuevoAlquiler(c, ctx) {
     const buscar = debounce(async () => {
       const t = q.value.trim();
       if (t.length < 2) {
-        res.innerHTML = '<p class="texto ayuda-busqueda">Escribe al menos 2 caracteres para buscar.</p>';
+        res.innerHTML = '';
         return;
       }
 
@@ -3019,10 +2113,9 @@ async function vNuevoAlquiler(c, ctx) {
         const r = await Api.clientes({ texto: t, first: 6 });
         ultimos = r.nodes;
         res.innerHTML = ultimos.length ? ultimos.map(x => `
-          <button type="button" data-cli="${x.id}"${x.activo === false ? ' class="cliente-resultado-inactivo"' : ''}>
+          <button type="button" data-cli="${x.id}">
             ${UI.avatar(x.nombre, 'sm')}
-            <div><b>${esc(x.nombre)}</b><small>${esc(x.cedula)}${x.telefono ? ' · ' + esc(x.telefono) : ''}${x.correo ? ' · ' + esc(x.correo) : ''}</small></div>
-            ${badge(null, x.activo === false ? 'Inactivo' : 'Seleccionar', x.activo === false ? 'bad' : 'neutro')}
+            <div><b>${esc(x.nombre)}</b><small>${esc(x.cedula)}${x.correo ? ' · ' + esc(x.correo) : ''}</small></div>
           </button>`).join('') : '<p class="texto" style="color:var(--txt-3)">Sin resultados. Puedes registrarlo como cliente nuevo.</p>';
       } catch (e) {
         res.innerHTML = '';
@@ -3032,7 +2125,6 @@ async function vNuevoAlquiler(c, ctx) {
 
     q.addEventListener('input', buscar);
     q.focus();
-    res.innerHTML = '<p class="texto ayuda-busqueda">Busca el cliente antes de continuar.</p>';
 
     res.onclick = e => {
       const b = e.target.closest('[data-cli]');
@@ -3105,13 +2197,11 @@ async function vNuevoAlquiler(c, ctx) {
 
   function pintarVehiculos() {
     $('#p2', c).classList.toggle('hecho', !!st.vehiculo);
-    actualizarProgreso();
     $('#vehs', c).innerHTML = st.vehiculos.length
-      ? `<div class="vehiculos-disponibles-cab"><span><b>${st.vehiculos.length}</b> vehículo(s) disponible(s)</span><small>${fmt.fecha(st.ini)} → ${fmt.fecha(st.fin)}</small></div><div class="veh-grid veh-grid-registro">${st.vehiculos.map(v => tarjetaVeh(v, {
+      ? `<div class="veh-grid">${st.vehiculos.map(v => tarjetaVeh(v, {
         accion: 'elegir',
-        texto: st.vehiculo && st.vehiculo.id === v.id ? `${icon('check')} Elegido` : 'Elegir vehículo',
-        sel: st.vehiculo && st.vehiculo.id === v.id,
-        registro: true
+        texto: st.vehiculo && st.vehiculo.id === v.id ? `${icon('check')} Elegido` : 'Elegir',
+        sel: st.vehiculo && st.vehiculo.id === v.id
       })).join('')}</div>`
       : UI.vacio('No hay vehículos disponibles para esas fechas.', 'car');
   }
@@ -3135,110 +2225,54 @@ async function vNuevoAlquiler(c, ctx) {
 
   $('#vehs', c).addEventListener('click', e => {
     const b = e.target.closest('[data-elegir]');
-    const card = e.target.closest('[data-card-veh]');
-    const id = b ? +b.dataset.elegir : card ? +card.dataset.cardVeh : null;
-    if (!id) return;
-    const v = st.vehiculos.find(x => x.id === id);
+    if (!b) return;
+    const v = st.vehiculos.find(x => x.id === +b.dataset.elegir);
     if (v) elegirVehiculo(v);
   });
 
 
-  /* Paso 3: resumen, revisión y confirmación */
+  /* Resumen y confirmación */
 
-  async function confirmarRegistro(fr) {
-    const v = st.vehiculo;
-    const cl = st.cliente;
-    const cot = st.cot;
-    const metodo = fr.metodoPago.value;
-    const estadoPrevisto = st.ini > hoy()
-      ? { texto: 'Reserva', tono: 'reserva' }
-      : (st.fin === hoy() ? { texto: 'Por devolver', tono: 'warn' } : { texto: 'Activo', tono: 'info' });
-    const datosVehiculo = [v.transmision ? etq(v.transmision) : null, v.color || null].filter(Boolean).join(' · ');
+  function pintarResumen() {
+    const r = $('#resumen', c);
+    const listo = st.cliente && st.vehiculo && st.cot;
 
-    const m = UI.modal({
-      titulo: 'Confirmar alquiler',
-      ancho: 700,
-      cuerpo: `
-        <div class="revision-alquiler revision-alquiler-final">
-          <div class="revision-cabecera">
-            <div>
-              <span class="eyebrow">Paso final</span>
-              <h3>Revisa los datos antes de registrar</h3>
-              <p>Confirma que el cliente, el vehículo, las fechas y el pago sean correctos.</p>
-            </div>
-            ${badge(null, estadoPrevisto.texto, estadoPrevisto.tono)}
-          </div>
+    r.innerHTML = `
+      <div class="card-h"><h3>Resumen</h3></div>
+      <dl class="dl">
+        <dt>Cliente</dt><dd>${st.cliente ? esc(st.cliente.nombre) : '—'}</dd>
+        <dt>Vehículo</dt><dd>${st.vehiculo ? `${esc(st.vehiculo.marca)} ${esc(st.vehiculo.modelo)}` : '—'}</dd>
+        <dt>Placa</dt><dd>${st.vehiculo ? esc(st.vehiculo.placa) : '—'}</dd>
+        <dt>Salida</dt><dd>${fmt.fecha(st.ini)}</dd>
+        <dt>Entrega</dt><dd>${fmt.fecha(st.fin)}</dd>
+        <dt>Días</dt><dd>${st.cot ? st.cot.dias : '—'}</dd>
+        <dt>Precio por día</dt><dd>${st.cot ? fmt.dinero(st.cot.precioDia) : '—'}</dd>
+      </dl>
+      <div class="total"><span>Total</span><b>${st.cot ? fmt.dinero(st.cot.total) : '—'}</b></div>
 
-          <section class="revision-vehiculo revision-bloque-principal">
-            <div class="revision-vehiculo-foto">${fotoVeh(v)}</div>
-            <div class="revision-vehiculo-datos">
-              <span class="revision-label">Vehículo</span>
-              <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
-              <p>${esc(v.anio)} · ${esc(v.categoria)} · Placa ${esc(v.placa)}</p>
-              ${datosVehiculo ? `<p class="revision-meta-extra">${esc(datosVehiculo)}</p>` : ''}
-              <div class="revision-tarifa"><b>${fmt.dinero(cot.precioDia)}</b><small>/ día</small></div>
-            </div>
-          </section>
+      <form class="form" id="fr" novalidate style="margin-top:18px">
+        ${UI.campo({ name: 'metodoPago', label: 'Método de pago', tipo: 'select', opciones: opcionesMetodo() })}
+        ${formErr}
+        <button class="btn block" type="submit"${listo ? '' : ' disabled'}>${icon('check')} Confirmar alquiler</button>
+      </form>`;
 
-          <div class="revision-secciones">
-            <section class="revision-seccion-card">
-              <div class="revision-seccion-head">${icon('user')}<span>Cliente</span></div>
-              <div class="revision-dato-principal"><b>${esc(cl.nombre)}</b><span>${esc(cl.cedula)}</span></div>
-              <div class="revision-mini-grid">
-                <div><small>Teléfono</small><b>${cl.telefono ? esc(cl.telefono) : 'No registrado'}</b></div>
-                <div><small>Correo</small><b>${cl.correo ? esc(cl.correo) : 'No registrado'}</b></div>
-                <div class="todo"><small>Licencia</small><b class="${cl.licenciaConducir ? '' : 'revision-aviso-texto'}">${cl.licenciaConducir ? esc(cl.licenciaConducir) : 'No registrada'}</b></div>
-              </div>
-            </section>
+    const fr = $('#fr', r);
 
-            <section class="revision-seccion-card">
-              <div class="revision-seccion-head">${icon('calendar')}<span>Período</span></div>
-              <div class="revision-periodo">
-                <div><small>Salida</small><b>${fmt.fecha(st.ini)}</b></div>
-                <span class="revision-flecha">→</span>
-                <div><small>Entrega</small><b>${fmt.fecha(st.fin)}</b></div>
-              </div>
-              <div class="revision-dias">${cot.dias} día(s) de alquiler</div>
-            </section>
-          </div>
-
-          ${!cl.licenciaConducir ? `<div class="info-banda aviso revision-alerta">${icon('info')}<span>La licencia de conducir no está registrada. Verifica físicamente la licencia antes de confirmar el alquiler.</span></div>` : ''}
-
-          <section class="revision-pago">
-            <div class="revision-seccion-head">${icon('receipt')}<span>Pago y total</span></div>
-            <div class="revision-pago-filas">
-              <div><span>Método de pago</span><b>${esc(metodoTxt(metodo))}</b></div>
-              <div><span>Tarifa diaria</span><b>${fmt.dinero(cot.precioDia)}</b></div>
-              <div><span>Días</span><b>${cot.dias}</b></div>
-              <div class="revision-subtotal"><span>Subtotal del alquiler</span><b>${fmt.dinero(cot.subtotal != null ? cot.subtotal : cot.total)}</b></div>
-              <div><span>Impuestos</span><b>${fmt.dinero(cot.impuesto || 0)}</b></div>
-              <div><span>Retención</span><b>${cot.retencion ? `− ${fmt.dinero(cot.retencion)}` : fmt.dinero(0)}</b></div>
-            </div>
-            <div class="revision-total revision-total-final"><span>Total actual</span><b>${fmt.dinero(cot.total)}</b></div>
-          </section>
-
-          <p class="revision-nota">Los porcentajes mostrados son los vigentes al registrar este alquiler y quedarán vinculados a la operación. Cambios posteriores en Configuración no modificarán esta factura.</p>
-
-          <div class="modal-acc revision-acciones-finales">
-            <button class="btn ghost" type="button" data-cerrar>${icon('edit')} Volver y revisar</button>
-            <button class="btn" type="button" data-confirmar-final>${icon('check')} Confirmar alquiler</button>
-          </div>
-        </div>`
-    });
-
-    $('[data-confirmar-final]', m.el).onclick = async () => {
-      const btn = $('[data-confirmar-final]', m.el);
+    fr.onsubmit = async e => {
+      e.preventDefault();
+      UI.limpiarErrores(fr);
+      const btn = $('[type=submit]', fr);
       UI.ocupado(btn, true);
+
       try {
         const op = await Api.crearAlquiler({
-          clienteId: cl.id,
-          vehiculoId: v.id,
+          clienteId: st.cliente.id,
+          vehiculoId: st.vehiculo.id,
           fechaInicio: st.ini,
           fechaFin: st.fin,
-          metodoPago: metodo
+          metodoPago: fr.metodoPago.value
         });
 
-        m.cerrar();
         modalExito({
           titulo: 'Alquiler registrado',
           texto: `Alquiler <b>#${op.alquiler.id}</b> de ${esc(op.alquiler.clienteNombre)} · ${esc(op.alquiler.vehiculo)} (${esc(op.alquiler.placa)}).`,
@@ -3252,79 +2286,11 @@ async function vNuevoAlquiler(c, ctx) {
       } catch (err) {
         UI.ocupado(btn, false);
         if (err.code === 'VEHICULO_NO_DISPONIBLE') {
-          m.cerrar();
           UI.toast('El vehículo ya no está disponible en esas fechas. Elige otro.', 'warn');
           return buscarVehiculos();
         }
-        avisarError(err);
+        errorEnForm(fr, err);
       }
-    };
-  }
-
-  function pintarResumen() {
-    const r = $('#resumen', c);
-    const clienteValido = st.cliente && st.cliente.activo !== false;
-    const listo = clienteValido && st.vehiculo && st.cot;
-    actualizarProgreso();
-
-    const veh = st.vehiculo;
-    const cl = st.cliente;
-
-    r.innerHTML = `
-      <div class="registro-resumen-h">
-        <div><span class="eyebrow">Paso 3</span><h3>Resumen del alquiler</h3></div>
-        ${listo ? badge(null, 'Listo para revisar', 'ok') : badge(null, 'Pendiente', 'neutro')}
-      </div>
-
-      ${veh ? `
-        <div class="resumen-vehiculo-registro">
-          <div class="resumen-vehiculo-foto">${fotoVeh(veh)}</div>
-          <div>
-            <b>${esc(veh.marca)} ${esc(veh.modelo)}</b>
-            <span>${esc(veh.anio)} · ${esc(veh.categoria)}</span>
-            <small>Placa ${esc(veh.placa)}${veh.transmision ? ' · ' + esc(veh.transmision) : ''}${veh.color ? ' · ' + esc(veh.color) : ''}</small>
-          </div>
-        </div>` : `
-        <div class="resumen-vacio-registro">${icon('car')}<div><b>Selecciona un vehículo</b><span>La información y cotización aparecerán aquí.</span></div></div>`}
-
-      <div class="resumen-seccion">
-        <span class="resumen-seccion-titulo">Cliente</span>
-        <div class="resumen-fila"><span>Nombre</span><b>${cl ? esc(cl.nombre) : '—'}</b></div>
-        <div class="resumen-fila"><span>Cédula</span><b>${cl ? esc(cl.cedula) : '—'}</b></div>
-        ${cl ? `<div class="resumen-fila"><span>Licencia</span><b class="${cl.licenciaConducir ? '' : 'texto-aviso'}">${cl.licenciaConducir ? esc(cl.licenciaConducir) : 'No registrada'}</b></div>` : ''}
-      </div>
-
-      <div class="resumen-seccion">
-        <span class="resumen-seccion-titulo">Período</span>
-        <div class="resumen-fila"><span>Salida</span><b>${fmt.fecha(st.ini)}</b></div>
-        <div class="resumen-fila"><span>Entrega</span><b>${fmt.fecha(st.fin)}</b></div>
-        <div class="resumen-fila"><span>Días</span><b>${st.cot ? st.cot.dias : '—'}</b></div>
-      </div>
-
-      <div class="resumen-seccion costo-alquiler">
-        <span class="resumen-seccion-titulo">Costos</span>
-        <div class="resumen-fila"><span>Precio por día</span><b>${st.cot ? fmt.dinero(st.cot.precioDia) : '—'}</b></div>
-        <div class="resumen-fila"><span>Subtotal</span><b>${st.cot ? fmt.dinero(st.cot.subtotal != null ? st.cot.subtotal : st.cot.total) : '—'}</b></div>
-        <div class="resumen-fila"><span>Impuestos</span><b>${st.cot ? fmt.dinero(st.cot.impuesto || 0) : '—'}</b></div>
-        <div class="resumen-fila"><span>Retención</span><b>${st.cot ? (st.cot.retencion ? `− ${fmt.dinero(st.cot.retencion)}` : fmt.dinero(0)) : '—'}</b></div>
-      </div>
-
-      <div class="total total-registro"><span>Total</span><b>${st.cot ? fmt.dinero(st.cot.total) : '—'}</b></div>
-
-      <form class="form" id="fr" novalidate>
-        ${UI.campo({ name: 'metodoPago', label: 'Método de pago', tipo: 'select', value: st.metodoPago, opciones: opcionesMetodo() })}
-        ${cl && cl.activo === false ? `<div class="form-err" style="display:block">El cliente está inactivo y no puede continuar.</div>` : formErr}
-        <button class="btn block" type="submit"${listo ? '' : ' disabled'}>${icon('check')} Revisar y confirmar</button>
-      </form>`;
-
-    const fr = $('#fr', r);
-    fr.metodoPago.addEventListener('change', () => { st.metodoPago = fr.metodoPago.value; });
-    fr.onsubmit = e => {
-      e.preventDefault();
-      UI.limpiarErrores(fr);
-      st.metodoPago = fr.metodoPago.value;
-      if (!listo) return;
-      confirmarRegistro(fr);
     };
   }
 
@@ -3346,207 +2312,61 @@ async function vNuevoAlquiler(c, ctx) {
    FLOTA
 ========================================================= */
 
-function claseFilaVehiculo(v) {
-  if (!v.activo) return 'fila-veh-inactivo';
-  return ({
-    DISPONIBLE: 'fila-veh-disponible',
-    ALQUILADO: 'fila-veh-alquilado',
-    MANTENIMIENTO: 'fila-veh-mantenimiento',
-    FUERA_DE_SERVICIO: 'fila-veh-fuera'
-  })[v.estadoActual] || '';
-}
-
-async function resumenFlota() {
-  const [d, r] = await Promise.all([
-    Api.dashboard(),
-    Api.vehiculos({ incluirInactivos: true, first: 200 })
-  ]);
-  const lista = r.nodes || [];
-  return {
-    total: d.totalVehiculos || 0,
-    disponibles: d.vehiculosDisponibles || 0,
-    alquilados: d.vehiculosAlquilados || 0,
-    mantenimiento: d.vehiculosEnMantenimiento || 0,
-    fuera: d.vehiculosFueraDeServicio || 0,
-    inactivos: lista.filter(v => v.activo === false).length
-  };
-}
-
-async function historialVehiculo(v) {
-  const m = UI.modal({
-    titulo: `Historial · ${esc(v.marca)} ${esc(v.modelo)}`,
-    ancho: 760,
-    cuerpo: `<div class="historial-veh-cargando"><span class="skeleton"></span><p>Cargando historial del vehículo…</p></div>`
-  });
-  try {
-    const r = await Api.alquileres({ vehiculoId: v.id, first: 100 });
-    const lista = [...(r.nodes || [])].sort((a,b) => String(b.fechaCreacion || b.fechaInicio).localeCompare(String(a.fechaCreacion || a.fechaInicio)));
-    const estadoAhora = v.activo ? badge(v.estadoActual) : badge(null, 'Inactivo', 'neutro');
-    m.cuerpo.innerHTML = `
-      <div class="historial-veh-head">
-        <div class="historial-veh-foto">${fotoVeh(v)}</div>
-        <div><span class="eyebrow">${esc(v.placa)}</span><h3>${esc(v.marca)} ${esc(v.modelo)}</h3><div class="badges">${estadoAhora}</div></div>
-      </div>
-      ${v.estadoActual === 'MANTENIMIENTO' ? `<div class="info-banda aviso">${icon('pulse')}<span>Mantenimiento actual${v.mantenimientoHasta ? ` hasta <b>${fmt.fecha(v.mantenimientoHasta)}</b>` : ' sin fecha de finalización'}.</span></div>` : ''}
-      <div class="historial-veh-resumen">
-        <div><small>Alquileres registrados</small><b>${lista.length}</b></div>
-        <div><small>Completados</small><b>${lista.filter(a=>a.estado==='COMPLETADO').length}</b></div>
-        <div><small>Cancelados</small><b>${lista.filter(a=>a.estado==='CANCELADO').length}</b></div>
-      </div>
-      <div class="historial-veh-lista">
-        ${lista.length ? lista.map(a => `
-          <article class="historial-veh-item">
-            <div class="historial-veh-linea"><span></span></div>
-            <div class="historial-veh-contenido">
-              <div class="historial-veh-titulo"><b>Alquiler #${a.id}</b>${estadoAlquiler(a)}</div>
-              <p>${esc(a.clienteNombre)} · ${esc(a.clienteCedula)}</p>
-              <div class="historial-veh-meta"><span>${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaDevolucion || a.fechaFinPactada)}</span><b>${fmt.dinero(a.montoTotal)}</b></div>
-            </div>
-          </article>`).join('') : UI.vacio('Este vehículo todavía no tiene alquileres registrados.', 'calendar')}
-      </div>
-      <div class="modal-acc"><button class="btn ghost" type="button" data-cerrar>Cerrar</button></div>`;
-  } catch (err) {
-    m.cuerpo.innerHTML = `<div class="vacio"><h4>No se pudo cargar el historial</h4><p>${esc(err.message || 'Inténtalo de nuevo.')}</p></div>`;
-  }
-}
-
-function detalleVehiculo(v, alActualizar) {
-  const extra = !!Api.VEHICULO_EXTRA;
-  const m = UI.modal({
-    titulo: 'Detalle del vehículo',
-    ancho: 720,
-    cuerpo: `
-      <div class="detalle-veh">
-        <div class="detalle-veh-foto">${fotoVeh(v)}</div>
-        <div class="detalle-veh-info">
-          <span class="detalle-veh-eyebrow">VEHÍCULO #${v.id}</span>
-          <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
-          <p>${esc(v.placa)} · ${esc(v.categoria || 'Sin categoría')}</p>
-          <div class="badges">${v.activo ? badge(v.estadoActual) : badge(null, 'Inactivo', 'neutro')}</div>
-        </div>
-      </div>
-      <div class="detalle-veh-grid">
-        <div><small>Año</small><b>${esc(v.anio)}</b></div>
-        <div><small>Precio por día</small><b>${fmt.dinero(v.precioDia)}</b></div>
-        <div><small>Categoría</small><b>${esc(v.categoria || '—')}</b></div>
-        <div><small>Placa</small><b>${esc(v.placa)}</b></div>
-        ${extra ? `<div><small>Transmisión</small><b>${esc(etq(v.transmision) || '—')}</b></div>
-        <div><small>Color</small><b>${esc(v.color || '—')}</b></div>
-        <div><small>Capacidad</small><b>${v.capacidad ? `${esc(v.capacidad)} pasajeros` : '—'}</b></div>` : ''}
-        ${v.estadoActual === 'MANTENIMIENTO' ? `<div><small>Mantenimiento hasta</small><b>${v.mantenimientoHasta ? fmt.fecha(v.mantenimientoHasta) : 'Sin fecha definida'}</b></div>` : ''}
-      </div>
-      ${extra && v.observaciones ? `<div class="detalle-veh-obs"><small>Observaciones</small><p>${esc(v.observaciones)}</p></div>` : ''}
-      <div class="modal-acc">
-        <button class="btn ghost" type="button" data-cerrar>Cerrar</button>
-        ${soloSi('alquileres.ver', `<button class="btn ghost" type="button" data-historial-detalle>${icon('clock')} Historial</button>`)}
-        ${soloSi('alquileres.ver', `<a class="btn ghost" href="#/alquileres?vehiculo=${v.id}&vehiculoNombre=${encodeURIComponent(`${v.marca} ${v.modelo} · ${v.placa}`)}" data-cerrar>${icon('calendar')} Ver alquileres</a>`)}
-        ${!v.activo ? soloSi('flota.estado', `<button class="btn" type="button" data-reactivar-detalle>${icon('undo')} Reactivar</button>`) : soloSi('flota.editar', `<button class="btn" type="button" data-editar-detalle>${icon('edit')} Editar vehículo</button>`)}
-      </div>`
-  });
-  const hist = $('[data-historial-detalle]', m.el);
-  if (hist) hist.onclick = () => historialVehiculo(v);
-  const editar = $('[data-editar-detalle]', m.el);
-  if (editar) editar.onclick = () => {
-    m.cerrar();
-    location.hash = '#/flota?editar=' + v.id;
-  };
-  const reactivar = $('[data-reactivar-detalle]', m.el);
-  if (reactivar) reactivar.onclick = async () => {
-    UI.ocupado(reactivar, true);
-    try {
-      await Api.reactivarVehiculo(v.id);
-      UI.toast('Vehículo reactivado.');
-      m.cerrar();
-      alActualizar?.();
-    } catch (err) {
-      UI.ocupado(reactivar, false);
-      avisarError(err);
-    }
-  };
-}
-
 async function vFlota(c, ctx) {
   let categorias = [];
-  const ESTADOS_PANEL_FLOTA = ['DISPONIBLE', 'ALQUILADO', 'MANTENIMIENTO', 'FUERA_DE_SERVICIO', 'INACTIVO'];
-  const estadoPanel = ESTADOS_PANEL_FLOTA.includes(ctx.q.get('estado')) ? ctx.q.get('estado') : null;
-  const filtros = { texto: '', categoriaId: '' };
+  const filtros = { texto: '', categoriaId: '', incluirInactivos: false };
 
-  ctx.acciones(soloSi('flota.crear', `<button class="btn" type="button" data-nuevo-veh>${icon('plus')} Nuevo vehículo</button>`));
+  ctx.acciones(`<button class="btn" type="button" data-nuevo-veh>${icon('plus')} Nuevo vehículo</button>`);
 
   c.innerHTML = `
-    <div class="flota-resumen" id="flotaResumen">
-      ${Array.from({ length: 4 }, () => '<div class="card flota-mini"><span class="skeleton"></span></div>').join('')}
-    </div>
     <div class="herramientas">
-      ${estadoPanel ? `<span class="filtro-activo">Estado: <b>${esc(etq(estadoPanel))}</b><a href="#/flota" aria-label="Quitar filtro de estado">×</a></span>` : ''}
       <div class="buscar">${icon('search')}<input type="search" id="qVeh" placeholder="Buscar por placa, marca o modelo" aria-label="Buscar vehículo"></div>
       <select id="catVeh" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select>
+      <label class="check"><input type="checkbox" id="inacVeh"> Incluir inactivos</label>
+      ${esAdmin() ? `<div class="derecha"><a class="btn ghost" href="#/configuracion">${icon('tag')} Gestionar categorías</a></div>` : ''}
     </div>
     <div class="card" id="lista"></div>`;
 
   const pintarCategorias = () => {
     const s = $('#catVeh', c);
     const v = s.value;
-    s.innerHTML = '<option value="">Todas las categorías</option>' + categorias.filter(x => x.activo !== false).map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+    s.innerHTML = '<option value="">Todas las categorías</option>' + categorias.map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
     s.value = v;
   };
 
   const l = listado({
     cont: $('#lista', c),
     vigente: ctx.vigente,
-    cargar: pag => (estadoPanel ? p => panelFlotaEstado(estadoPanel, p) : Api.vehiculos)({
+    cargar: pag => Api.vehiculos({
       texto: filtros.texto || null,
       categoriaId: filtros.categoriaId ? +filtros.categoriaId : null,
-      incluirInactivos: estadoPanel === 'INACTIVO',
+      incluirInactivos: filtros.incluirInactivos,
       ...pag
     }),
     pintar: r => (r.nodes.length ? `
       <div class="tabla-wrap">
         <table class="tabla">
-          <thead><tr><th></th><th>Vehículo</th><th>Placa</th><th class="num">Precio/día</th><th>Estado</th><th>Mantenimiento hasta</th><th></th></tr></thead>
+          <thead><tr><th></th><th>Vehículo</th><th>Placa</th><th class="num">Precio/día</th><th>Estado</th><th></th></tr></thead>
           <tbody>${r.nodes.map(v => `
-            <tr class="${claseFilaVehiculo(v)}">
+            <tr class="${v.activo ? '' : 'inactivo'}">
               <td><div class="foto-mini">${fotoVeh(v)}</div></td>
               <td class="principal"><b>${esc(v.marca)} ${esc(v.modelo)}</b><small>${esc(v.anio)} · ${esc(v.categoria)}</small></td>
               <td class="nowrap">${esc(v.placa)}</td>
               <td class="num">${fmt.dinero(v.precioDia)}</td>
               <td><div class="badges">
                 ${v.activo ? badge(v.estadoActual) : badge(null, 'Inactivo', 'neutro')}
-                </div></td>
-              <td class="nowrap">${v.estadoActual === 'MANTENIMIENTO' ? (v.mantenimientoHasta ? fmt.fecha(v.mantenimientoHasta) : 'Sin fecha') : '—'}</td>
+                ${v.activo && v.estadoActual === 'MANTENIMIENTO' && v.mantenimientoHasta ? `<small style="color:var(--txt-3)">hasta ${fmt.fecha(v.mantenimientoHasta)}</small>` : ''}
+              </div></td>
               <td><div class="acciones">
-                <button class="icon-btn" type="button" data-acc="ver" data-id="${v.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
-                <button class="icon-btn" type="button" data-acc="historial" data-id="${v.id}" title="Historial" aria-label="Historial">${icon('clock')}</button>
-                ${soloSi('flota.editar', `<button class="icon-btn" type="button" data-acc="editar" data-id="${v.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>`)}
-                ${soloSi('flota.estado', `<button class="icon-btn" type="button" data-acc="estado" data-id="${v.id}" title="Cambiar estado" aria-label="Cambiar estado"${v.activo ? '' : ' disabled'}>${icon('pulse')}</button>`)}
-                ${soloSi('flota.foto', `<button class="icon-btn" type="button" data-acc="foto" data-id="${v.id}" title="Foto" aria-label="Subir foto">${icon('camera')}</button>`)}
-                ${soloSi('flota.editar', `<button class="icon-btn" type="button" data-acc="${v.activo ? 'baja' : 'reactivar'}" data-id="${v.id}" title="${v.activo ? 'Desactivar' : 'Reactivar'}" aria-label="${v.activo ? 'Desactivar' : 'Reactivar'}">${icon(v.activo ? 'ban' : 'undo')}</button>`)}
+                <button class="icon-btn" type="button" data-acc="editar" data-id="${v.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>
+                <button class="icon-btn" type="button" data-acc="estado" data-id="${v.id}" title="Cambiar estado" aria-label="Cambiar estado"${v.activo ? '' : ' disabled'}>${icon('pulse')}</button>
+                <button class="icon-btn" type="button" data-acc="foto" data-id="${v.id}" title="Foto" aria-label="Subir foto">${icon('camera')}</button>
+                <button class="icon-btn" type="button" data-acc="baja" data-id="${v.id}" title="Desactivar" aria-label="Desactivar"${v.activo ? '' : ' disabled'}>${icon('ban')}</button>
               </div></td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>` : UI.vacio('No hay vehículos que coincidan con la búsqueda.', 'car'))
-  });
-
-  async function actualizarResumenFlota() {
-    const caja = $('#flotaResumen', c);
-    try {
-      const d = await resumenFlota();
-      if (!ctx.vigente()) return;
-      caja.innerHTML = `
-        <button type="button" class="card flota-mini tono-green ${estadoPanel === 'DISPONIBLE' ? 'act' : ''}" data-flota-estado="DISPONIBLE" aria-pressed="${estadoPanel === 'DISPONIBLE'}"><span class="flota-mini-ico">${icon('check')}</span><span><small>Disponibles</small><b>${d.disponibles}</b><em>Listos para alquilar</em></span></button>
-        <button type="button" class="card flota-mini tono-blue ${estadoPanel === 'ALQUILADO' ? 'act' : ''}" data-flota-estado="ALQUILADO" aria-pressed="${estadoPanel === 'ALQUILADO'}"><span class="flota-mini-ico">${icon('car')}</span><span><small>Alquilados</small><b>${d.alquilados}</b><em>Actualmente en uso</em></span></button>
-        <button type="button" class="card flota-mini tono-orange ${estadoPanel === 'MANTENIMIENTO' ? 'act' : ''}" data-flota-estado="MANTENIMIENTO" aria-pressed="${estadoPanel === 'MANTENIMIENTO'}"><span class="flota-mini-ico">${icon('pulse')}</span><span><small>Mantenimiento</small><b>${d.mantenimiento}</b><em>Temporalmente no disponibles</em></span></button>
-        <button type="button" class="card flota-mini tono-coral ${estadoPanel === 'FUERA_DE_SERVICIO' ? 'act' : ''}" data-flota-estado="FUERA_DE_SERVICIO" aria-pressed="${estadoPanel === 'FUERA_DE_SERVICIO'}"><span class="flota-mini-ico">${icon('alert')}</span><span><small>Fuera de servicio</small><b>${d.fuera}</b><em>Requieren atención</em></span></button>
-        <button type="button" class="card flota-mini tono-gray ${estadoPanel === 'INACTIVO' ? 'act' : ''}" data-flota-estado="INACTIVO" aria-pressed="${estadoPanel === 'INACTIVO'}"><span class="flota-mini-ico">${icon('ban')}</span><span><small>Inactivos</small><b>${d.inactivos}</b><em>Vehículos desactivados</em></span></button>`;
-    } catch (_) { caja.innerHTML = ''; }
-  }
-
-  $('#flotaResumen', c).addEventListener('click', e => {
-    const b = e.target.closest('[data-flota-estado]');
-    if (!b) return;
-    const estado = b.dataset.flotaEstado;
-    location.hash = estadoPanel === estado ? '#/flota' : `#/flota?estado=${estado}`;
   });
 
   const nuevaBusqueda = debounce(() => l.recargar(true));
@@ -3559,29 +2379,22 @@ async function vFlota(c, ctx) {
     filtros.categoriaId = e.target.value;
     l.recargar(true);
   };
-  $('[data-nuevo-veh]').onclick = () => editarVehiculo(null, categorias, () => { l.recargar(); actualizarResumenFlota(); });
+  $('#inacVeh', c).onchange = e => {
+    filtros.incluirInactivos = e.target.checked;
+    l.recargar(true);
+  };
+
+  $('[data-nuevo-veh]').onclick = () => editarVehiculo(null, categorias, () => l.recargar());
+
   $('#lista', c).addEventListener('click', async e => {
     const b = e.target.closest('[data-acc]');
     if (!b) return;
     const v = l.nodos().find(x => x.id === +b.dataset.id);
     if (!v) return;
 
-    if (b.dataset.acc === 'ver') return detalleVehiculo(v, () => { l.recargar(); actualizarResumenFlota(); });
-    if (b.dataset.acc === 'historial') return historialVehiculo(v);
-    if (b.dataset.acc === 'editar') return editarVehiculo(v, categorias, () => { l.recargar(); actualizarResumenFlota(); });
-    if (b.dataset.acc === 'estado') return estadoVehiculo(v, () => { l.recargar(); actualizarResumenFlota(); });
+    if (b.dataset.acc === 'editar') return editarVehiculo(v, categorias, () => l.recargar());
+    if (b.dataset.acc === 'estado') return estadoVehiculo(v, () => l.recargar());
     if (b.dataset.acc === 'foto') return fotoVehiculo(v, () => l.recargar());
-    if (b.dataset.acc === 'reactivar') {
-      const ok = await UI.confirmar('Reactivar vehículo', `El <b>${esc(v.marca)} ${esc(v.modelo)}</b> (${esc(v.placa)}) volverá a estar disponible para la operación.`, { boton: 'Reactivar' });
-      if (!ok) return;
-      try {
-        await Api.reactivarVehiculo(v.id);
-        UI.toast('Vehículo reactivado.');
-        l.recargar();
-        actualizarResumenFlota();
-      } catch (err) { avisarError(err); }
-      return;
-    }
 
     const ok = await UI.confirmar('Desactivar vehículo',
       `El <b>${esc(v.marca)} ${esc(v.modelo)}</b> (${esc(v.placa)}) dejará de aparecer en el catálogo. No es posible si tiene alquileres activos o futuros.`,
@@ -3592,7 +2405,6 @@ async function vFlota(c, ctx) {
       await Api.desactivarVehiculo(v.id);
       UI.toast('Vehículo desactivado.');
       l.recargar();
-      actualizarResumenFlota();
     } catch (err) {
       avisarError(err);
     }
@@ -3603,237 +2415,60 @@ async function vFlota(c, ctx) {
     if (ctx.vigente()) pintarCategorias();
   } catch (e) { /* el filtro queda vacío */ }
 
-  actualizarResumenFlota();
   await l.recargar(true);
-
-  const editarId = +ctx.q.get('editar');
-  if (editarId) {
-    try {
-      const veh = await Api.vehiculo(editarId);
-      if (ctx.vigente() && veh) editarVehiculo(veh, categorias, () => { cambiarQuery('flota', {}); l.recargar(); actualizarResumenFlota(); });
-    } catch (_) { /* si no existe, se mantiene el listado */ }
-  }
 }
-
-const COLORES_VEH = ['Blanco', 'Negro', 'Gris', 'Plateado', 'Rojo', 'Azul', 'Verde', 'Beige', 'Marrón', 'Amarillo', 'Naranja', 'Otro'];
-const TRANSMISIONES_VEH = [{ valor: 'AUTOMATICA', texto: 'Automática' }, { valor: 'MANUAL', texto: 'Manual' }];
-const ESTADOS_INICIALES = ['DISPONIBLE', 'MANTENIMIENTO', 'FUERA_DE_SERVICIO'];
-const ICO_IMAGEN = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="m21 15-4.5-4.5L6 21"/></svg>';
 
 function editarVehiculo(v, categorias, alGuardar) {
   const tope = new Date().getFullYear() + 1;
-  const nuevo = !v;
-  const extra = !!Api.VEHICULO_EXTRA; // color, transmisión, capacidad y observaciones
-  let archivo = null;
-  let urlPrev = null;
 
   const m = UI.modal({
-    titulo: nuevo ? 'Agregar nuevo vehículo' : 'Editar vehículo',
-    ancho: 760,
-    alCerrar: () => { if (urlPrev) URL.revokeObjectURL(urlPrev); },
+    titulo: v ? 'Editar vehículo' : 'Nuevo vehículo',
     cuerpo: `
-      <form class="form vh" id="fv" novalidate>
-        <div class="vh-grid">
-          ${UI.campo({ name: 'placa', label: 'Placa', value: v ? v.placa : '', requerido: true, placeholder: 'A123456', clase: 'c3', attrs: 'data-mascara="placa" maxlength="12"' })}
-          ${UI.campo({ name: 'categoriaId', label: 'Categoría', tipo: 'select', requerido: true, value: v ? v.categoriaId : '', clase: 'c3', opciones: [{ valor: '', texto: 'Selecciona una categoría…' }].concat(categorias.filter(x => x.activo !== false).map(x => ({ valor: x.id, texto: x.nombre }))) })}
-          ${UI.campo({ name: 'marca', label: 'Marca', value: v ? v.marca : '', requerido: true, placeholder: 'Ej. Toyota', clase: 'c3' })}
-          ${UI.campo({ name: 'modelo', label: 'Modelo', value: v ? v.modelo : '', requerido: true, placeholder: 'Ej. Corolla', clase: 'c3' })}
-          ${UI.campo({ name: 'anio', label: 'Año', tipo: 'number', value: v ? v.anio : '', requerido: true, placeholder: 'Ej. 2023', clase: extra ? 'c2' : 'c3', attrs: `min="1950" max="${tope}" step="1"` })}
-          ${extra ? `
-            ${UI.campo({ name: 'color', label: 'Color', tipo: 'select', requerido: nuevo, value: v && v.color || '', clase: 'c2', opciones: [{ valor: '', texto: 'Selecciona un color…' }].concat(COLORES_VEH.map(x => ({ valor: x, texto: x }))) })}
-            ${UI.campo({ name: 'transmision', label: 'Transmisión', tipo: 'select', requerido: nuevo, value: v && v.transmision || '', clase: 'c2', opciones: [{ valor: '', texto: 'Selecciona…' }].concat(TRANSMISIONES_VEH) })}
-            ${UI.campo({ name: 'capacidad', label: 'Capacidad de pasajeros', tipo: 'number', requerido: nuevo, value: v && v.capacidad || '', placeholder: 'Ej. 5', clase: 'c3', attrs: 'min="1" max="60" step="1"' })}` : ''}
-          ${UI.campo({ name: 'precioDia', label: 'Precio por día (RD$)', tipo: 'number', value: v ? v.precioDia : '', requerido: true, placeholder: 'Ej. 2500.00', clase: 'c3', attrs: 'min="0.01" step="0.01"' })}
-          ${nuevo ? `
-            ${UI.campo({ name: 'estado', label: 'Estado inicial', tipo: 'select', requerido: true, value: 'DISPONIBLE', clase: 'c3', opciones: ESTADOS_INICIALES.map(x => ({ valor: x, texto: etq(x) })) })}
-            <div class="c3"></div>` : ''}
-
-          <div class="campo ${extra ? 'c3' : 'c6'}">
-            <label>Foto del vehículo${nuevo ? ' <i>*</i>' : ''}</label>
-            <div class="dz" id="dz" role="button" tabindex="0" aria-label="Seleccionar foto del vehículo">
-              <div class="dz-prev" id="dzPrev"></div>
-              <div class="dz-txt">
-                ${ICO_IMAGEN}
-                <b>Arrastra una imagen aquí</b>
-                <span>o haz clic para seleccionar</span>
-                <small>JPG, PNG (máx. 5 MB)</small>
-              </div>
-            </div>
-            <input type="file" id="vhFoto" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden>
-            <span class="err" id="errFoto"></span>
-          </div>
-
-          ${extra ? `
-            <div class="campo c3">
-              <label for="vhObs">Observaciones</label>
-              <div class="vh-obs">
-                <textarea id="vhObs" name="observaciones" maxlength="500" placeholder="Información adicional del vehículo...">${esc(v && v.observaciones || '')}</textarea>
-                <span class="vh-cont" id="vhCont">0/500</span>
-              </div>
-            </div>` : ''}
+      <form class="form" id="fv" novalidate>
+        <div class="grid2">
+          ${UI.campo({ name: 'placa', label: 'Placa', value: v ? v.placa : '', requerido: true, placeholder: 'A123456', attrs: 'data-mascara="placa" maxlength="12"' })}
+          ${UI.campo({ name: 'categoriaId', label: 'Categoría', tipo: 'select', requerido: true, value: v ? v.categoriaId : '', opciones: [{ valor: '', texto: 'Selecciona…' }].concat(categorias.map(x => ({ valor: x.id, texto: x.nombre }))) })}
+          ${UI.campo({ name: 'marca', label: 'Marca', value: v ? v.marca : '', requerido: true })}
+          ${UI.campo({ name: 'modelo', label: 'Modelo', value: v ? v.modelo : '', requerido: true })}
+          ${UI.campo({ name: 'anio', label: 'Año', tipo: 'number', value: v ? v.anio : '', requerido: true, attrs: `min="1950" max="${tope}" step="1"` })}
+          ${UI.campo({ name: 'precioDia', label: 'Precio por día (RD$)', tipo: 'number', value: v ? v.precioDia : '', requerido: true, attrs: 'min="0.01" step="0.01"' })}
         </div>
-
         ${formErr}
-        <div class="modal-acc vh-acc">
+        <div class="modal-acc">
           <button class="btn ghost" type="button" data-cerrar>Cancelar</button>
-          <button class="btn" type="submit">${icon('car')} ${nuevo ? 'Guardar vehículo' : 'Guardar cambios'}</button>
+          <button class="btn" type="submit">${v ? 'Guardar cambios' : 'Crear vehículo'}</button>
         </div>
       </form>`
   });
 
   const f = $('#fv', m.el);
 
-  // Subtítulo bajo el título
-  const h3 = $('.modal-h h3', m.el);
-  if (h3) {
-    const cab = document.createElement('div');
-    h3.replaceWith(cab);
-    cab.append(h3);
-    cab.insertAdjacentHTML('beforeend', `<p class="modal-sub">${nuevo ? 'Completa la información del vehículo para incluirlo en la flota.' : 'Actualiza los datos del vehículo.'}</p>`);
-  }
-
-  // Iconos dentro de los campos
-  const prefijo = (nombre, html) => {
-    const el = f.elements[nombre];
-    if (!el) return;
-    const w = document.createElement('div');
-    w.className = 'con-pref';
-    el.replaceWith(w);
-    w.insertAdjacentHTML('afterbegin', `<span class="pref">${html}</span>`);
-    w.appendChild(el);
-    return w;
-  };
-
-  prefijo('capacidad', icon('users'));
-  prefijo('precioDia', '$');
-
-  if (nuevo) {
-    const w = prefijo('estado', '<i class="pe pe-DISPONIBLE"></i>');
-    f.estado.onchange = () => { $('.pe', w).className = 'pe pe-' + f.estado.value; };
-  }
-
-  // Contador de observaciones
-  if (extra) {
-    const t = $('#vhObs', f);
-    const cont = $('#vhCont', f);
-    const cuenta = () => { cont.textContent = `${t.value.length}/500`; };
-    t.addEventListener('input', cuenta);
-    cuenta();
-  }
-
-  // Foto: clic, teclado o arrastrar y soltar
-  const dz = $('#dz', f);
-  const inputFoto = $('#vhFoto', f);
-  const errFoto = $('#errFoto', f);
-
-  const pintarFoto = src => {
-    $('#dzPrev', f).innerHTML = src ? `<img src="${esc(src)}" alt="Vista previa">` : '';
-    dz.classList.toggle('tiene', !!src);
-  };
-
-  if (v && v.fotoUrl) pintarFoto(Api.media(v.fotoUrl));
-
-  function elegirFoto(file) {
-    errFoto.textContent = '';
-    if (!file) return;
-
-    if (!/\.(jpe?g|png|webp)$/i.test(file.name)) { errFoto.textContent = 'Formato no permitido. Usa JPG, PNG o WEBP.'; return; }
-    if (file.size > 5 * 1024 * 1024) { errFoto.textContent = 'La imagen supera 5 MB.'; return; }
-
-    if (urlPrev) URL.revokeObjectURL(urlPrev);
-    urlPrev = URL.createObjectURL(file);
-    archivo = file;
-    pintarFoto(urlPrev);
-  }
-
-  dz.onclick = () => inputFoto.click();
-  dz.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputFoto.click(); } };
-  inputFoto.onchange = () => { elegirFoto(inputFoto.files[0]); inputFoto.value = ''; };
-
-  ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('sobre'); }));
-  ['dragleave', 'dragend'].forEach(ev => dz.addEventListener(ev, () => dz.classList.remove('sobre')));
-  dz.addEventListener('drop', e => {
-    e.preventDefault();
-    dz.classList.remove('sobre');
-    elegirFoto(e.dataTransfer && e.dataTransfer.files[0]);
-  });
-
   f.onsubmit = async e => {
     e.preventDefault();
     UI.limpiarErrores(f);
-    errFoto.textContent = '';
 
     const d = UI.datos(f);
-    const placa = (d.placa || '').toUpperCase().replace(/[\s-]/g, '');
+    const placa = d.placa.toUpperCase().replace(/[\s-]/g, '');
     const anio = +d.anio;
     const precio = +d.precioDia;
-    const cap = d.capacidad ? +d.capacidad : null;
 
     if (!placa) return UI.errorCampo(f, 'placa', 'La placa es obligatoria.');
     if (!d.categoriaId) return UI.errorCampo(f, 'categoriaId', 'Selecciona una categoría.');
     if (!d.marca) return UI.errorCampo(f, 'marca', 'La marca es obligatoria.');
     if (!d.modelo) return UI.errorCampo(f, 'modelo', 'El modelo es obligatorio.');
     if (!(Number.isInteger(anio) && anio >= 1950 && anio <= tope)) return UI.errorCampo(f, 'anio', `El año debe estar entre 1950 y ${tope}.`);
-
-    if (extra) {
-      if (nuevo && !d.color) return UI.errorCampo(f, 'color', 'Selecciona un color.');
-      if (nuevo && !d.transmision) return UI.errorCampo(f, 'transmision', 'Selecciona la transmisión.');
-      if ((nuevo || cap != null) && !(Number.isInteger(cap) && cap >= 1 && cap <= 60)) return UI.errorCampo(f, 'capacidad', 'Indica la capacidad (1 a 60 pasajeros).');
-    }
-
     if (!(precio > 0)) return UI.errorCampo(f, 'precioDia', 'El precio debe ser mayor que 0.');
 
-    if (nuevo && !archivo) {
-      errFoto.textContent = 'Selecciona una foto del vehículo.';
-      return dz.focus();
-    }
-
     const input = { placa, categoriaId: +d.categoriaId, marca: d.marca, modelo: d.modelo, anio, precioDia: precio };
-
-    if (extra) {
-      Object.assign(input, {
-        color: d.color || null,
-        transmision: d.transmision || null,
-        capacidad: cap,
-        observaciones: ($('#vhObs', f).value || '').trim() || null
-      });
-    }
-
     const btn = $('[type=submit]', f);
     UI.ocupado(btn, true);
 
-    const avisos = [];
-
     try {
-      let id;
-
-      if (v) {
-        await Api.actualizarVehiculo(v.id, input);
-        id = v.id;
-      } else {
-        const creado = await Api.crearVehiculo(input);
-        id = creado.id;
-
-        if (d.estado && d.estado !== 'DISPONIBLE') {
-          try {
-            await Api.cambiarEstadoVehiculo({ vehiculoId: id, estado: d.estado, mantenimientoHasta: null });
-          } catch (e2) {
-            avisos.push('no se pudo fijar el estado inicial');
-          }
-        }
-      }
-
-      if (archivo) {
-        try {
-          await Api.subirFotoVehiculo(id, archivo);
-        } catch (e3) {
-          avisos.push('no se pudo subir la foto (puedes hacerlo desde la flota)');
-        }
-      }
+      if (v) await Api.actualizarVehiculo(v.id, input);
+      else await Api.crearVehiculo(input);
 
       m.cerrar();
       UI.toast(v ? 'Vehículo actualizado.' : 'Vehículo creado.');
-      if (avisos.length) UI.toast('Atención: ' + avisos.join(' y ') + '.', 'warn');
       alGuardar();
     } catch (err) {
       UI.ocupado(btn, false);
@@ -3999,425 +2634,43 @@ function nuevaCategoria(alGuardar) {
 }
 
 
-function editarCategoria(cat, alGuardar) {
-  const m = UI.modal({
-    titulo: 'Editar categoría', ancho: 440,
-    cuerpo: `<form class="form" id="fec" novalidate>
-      ${UI.campo({ name:'nombre', label:'Nombre', value:cat.nombre })}
-      ${formErr}
-      <div class="modal-acc"><button class="btn ghost" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar cambios</button></div>
-    </form>`
-  });
-  const f=$('#fec',m.el);
-  f.onsubmit=async e=>{ e.preventDefault(); UI.limpiarErrores(f); const nombre=UI.datos(f).nombre?.trim();
-    if(!nombre) return UI.errorCampo(f,'nombre','Escribe el nombre de la categoría.');
-    const btn=$('[type=submit]',f); UI.ocupado(btn,true);
-    try { const actualizada=await Api.actualizarCategoria(cat.id,nombre); m.cerrar(); UI.toast('Categoría actualizada.'); alGuardar(actualizada||{...cat,nombre}); }
-    catch(err){ UI.ocupado(btn,false); errorEnForm(f,err,{CATEGORIA_DUPLICADA:'nombre'}); }
-  };
-}
-
-async function desactivarCategoria(cat, alGuardar) {
-  const ok=await UI.confirmar('Desactivar categoría', `La categoría <b>${esc(cat.nombre)}</b> dejará de estar disponible para nuevos vehículos. Los vehículos históricos conservarán su categoría.`, {boton:'Desactivar', peligro:true});
-  if(!ok) return;
-  try { await Api.desactivarCategoria(cat.id); UI.toast('Categoría desactivada.'); alGuardar(); }
-  catch(err){ avisarError(err); }
-}
-
-
-/* =========================================================
-   REPORTES
-========================================================= */
-
-const isoFechaLocal = d => {
-  const x = new Date(d);
-  const y = x.getFullYear(), m = String(x.getMonth()+1).padStart(2,'0'), dia = String(x.getDate()).padStart(2,'0');
-  return `${y}-${m}-${dia}`;
-};
-
-function descargarCsv(nombre, filas) {
-  const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
-  const csv = filas.map(f => f.map(q).join(',')).join('\r\n');
-  const blob = new Blob(['\ufeff'+csv], { type:'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download=nombre; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 1500);
-}
-
-async function vReportes(c, ctx) {
-  const ahora = new Date();
-  const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
-  const estado = { desde: isoFechaLocal(inicioMes), hasta: hoy(), facturas:[], alquileres:[], vehiculos:[], clientes:[] };
-
-  ctx.acciones(`<button class="btn ghost" type="button" data-exportar>${icon('download')} Exportar CSV</button>`);
-  c.innerHTML = `
-    <div class="card rep-filtros">
-      <label><span>Desde</span><input type="date" id="repDesde" value="${estado.desde}"></label>
-      <label><span>Hasta</span><input type="date" id="repHasta" value="${estado.hasta}"></label>
-      <button class="btn" type="button" id="repAplicar">${icon('pulse')} Actualizar reporte</button>
-      <button class="btn ghost" type="button" id="repMes">Mes actual</button>
-    </div>
-    <div class="rep-resumen" id="repResumen">${Array.from({length:4},()=>'<div class="card rep-mini"><span class="skeleton"></span></div>').join('')}</div>
-    <div class="rep-grid">
-      <section class="card rep-card"><div class="rep-card-h"><div><h3>Ingresos por tipo</h3><p>Distribución de facturación del período.</p></div></div><div id="repTipos"></div></section>
-      <section class="card rep-card"><div class="rep-card-h"><div><h3>Estado de alquileres</h3><p>Situación operativa de los alquileres del período.</p></div></div><div id="repEstados"></div></section>
-      <section class="card rep-card rep-ancha"><div class="rep-card-h"><div><h3>Vehículos con mayor actividad</h3><p>Ranking por cantidad de alquileres.</p></div></div><div id="repVehiculos"></div></section>
-      <section class="card rep-card rep-ancha"><div class="rep-card-h"><div><h3>Actividad reciente</h3><p>Facturas emitidas dentro del período seleccionado.</p></div></div><div id="repActividad"></div></section>
-    </div>`;
-
-  const rangoOk=()=>{
-    const d=$('#repDesde',c).value, h=$('#repHasta',c).value;
-    if(!d||!h||d>h){ UI.toast('Revisa el rango de fechas.','warn'); return false; }
-    estado.desde=d; estado.hasta=h; return true;
-  };
-  const dentro=(iso)=> iso && String(iso).slice(0,10)>=estado.desde && String(iso).slice(0,10)<=estado.hasta;
-  const suma=a=>Math.round(a.reduce((t,x)=>t+Number(x||0),0)*100)/100;
-
-  async function cargar() {
-    $('#repResumen',c).innerHTML=Array.from({length:4},()=>'<div class="card rep-mini"><span class="skeleton"></span></div>').join('');
-    try {
-      const [fac, alq, veh, cli] = await Promise.all([
-        panelTodas(p=>Api.facturas({desde:estado.desde,hasta:estado.hasta,...p})),
-        panelTodas(p=>Api.alquileres({...p})),
-        panelTodas(p=>Api.vehiculos({incluirInactivos:true,...p})),
-        panelTodas(p=>Api.clientes({incluirInactivos:true,...p}))
-      ]);
-      if(!ctx.vigente())return;
-      estado.facturas=fac.nodes;
-      estado.alquileres=alq.nodes.filter(a=>dentro(a.fechaInicio)||dentro(a.fechaCreacion));
-      estado.vehiculos=veh.nodes; estado.clientes=cli.nodes;
-      pintar();
-    } catch(err){ avisarError(err); }
-  }
-
-  function pintar() {
-    const f=estado.facturas, a=estado.alquileres;
-    const total=suma(f.map(x=>(x.total != null ? x.total : x.monto)));
-    const positivos=suma(f.filter(x=>Number(x.total != null ? x.total : x.monto)>0).map(x=>(x.total != null ? x.total : x.monto)));
-    const creditos=Math.abs(suma(f.filter(x=>Number(x.total != null ? x.total : x.monto)<0).map(x=>(x.total != null ? x.total : x.monto))));
-    const clientesN=new Set(a.map(x=>x.clienteId)).size;
-    $('#repResumen',c).innerHTML=`
-      <div class="card rep-mini tono-blue"><span class="rep-mini-ico">${icon('receipt')}</span><span><small>Facturado neto</small><b>${fmt.dinero(total)}</b><em>${f.length} documento(s)</em></span></div>
-      <div class="card rep-mini tono-green"><span class="rep-mini-ico">${icon('calendar')}</span><span><small>Alquileres</small><b>${a.length}</b><em>${clientesN} cliente(s)</em></span></div>
-      <div class="card rep-mini tono-orange"><span class="rep-mini-ico">${icon('wallet')}</span><span><small>Facturación positiva</small><b>${fmt.dinero(positivos)}</b><em>Antes de notas de crédito</em></span></div>
-      <div class="card rep-mini tono-purple"><span class="rep-mini-ico">${icon('undo')}</span><span><small>Notas de crédito</small><b>${fmt.dinero(creditos)}</b><em>Créditos emitidos</em></span></div>`;
-
-    const tipos={}; f.forEach(x=>{const k=etq(x.tipo||'OTRO'); tipos[k]=(tipos[k]||0)+Number((x.total != null ? x.total : x.monto)||0)});
-    const maxTipo=Math.max(1,...Object.values(tipos).map(Math.abs));
-    $('#repTipos',c).innerHTML=Object.keys(tipos).length?`<div class="rep-barras">${Object.entries(tipos).sort((x,y)=>Math.abs(y[1])-Math.abs(x[1])).map(([k,v])=>`<div><div class="rep-bar-label"><span>${esc(k)}</span><b>${fmt.dinero(v)}</b></div><i><span style="width:${Math.max(3,Math.abs(v)/maxTipo*100)}%"></span></i></div>`).join('')}</div>`:UI.vacio('No hay facturas en este período.','receipt');
-
-    const estados={}; a.forEach(x=>{const e=estadoOperativoAlquiler(x); const k=e.texto; if(!estados[k]) estados[k]={n:0,clave:e.clave}; estados[k].n+=1;});
-    const maxE=Math.max(1,...Object.values(estados).map(x=>x.n));
-    const claseEstadoReporte = clave => ({activo:'activo',reserva:'reserva','por-devolver':'por-devolver',vencido:'vencido',completado:'completado',cancelado:'cancelado'}[clave] || 'neutro');
-    $('#repEstados',c).innerHTML=Object.keys(estados).length?`<div class="rep-barras rep-barras-estados">${Object.entries(estados).sort((x,y)=>y[1].n-x[1].n).map(([k,o])=>`<div class="rep-estado rep-estado-${claseEstadoReporte(o.clave)}"><div class="rep-bar-label"><span>${esc(k)}</span><b>${o.n}</b></div><i><span style="width:${Math.max(5,o.n/maxE*100)}%"></span></i></div>`).join('')}</div>`:UI.vacio('No hay alquileres en este período.','calendar');
-
-    const ranking={}; a.forEach(x=>{const k=x.vehiculoId; if(!ranking[k])ranking[k]={nombre:x.vehiculo,placa:x.placa,n:0,monto:0}; ranking[k].n++; ranking[k].monto+=Number(x.montoTotal||x.montoBase||0)});
-    const top=Object.values(ranking).sort((x,y)=>y.n-x.n||y.monto-x.monto).slice(0,8);
-    $('#repVehiculos',c).innerHTML=top.length?`<div class="tabla-wrap"><table class="tabla"><thead><tr><th>#</th><th>Vehículo</th><th>Placa</th><th class="num">Alquileres</th><th class="num">Monto relacionado</th></tr></thead><tbody>${top.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.nombre)}</b></td><td>${esc(x.placa)}</td><td class="num">${x.n}</td><td class="num">${fmt.dinero(x.monto)}</td></tr>`).join('')}</tbody></table></div>`:UI.vacio('No hay actividad de vehículos en este período.','car');
-
-    $('#repActividad',c).innerHTML=f.length?`<div class="tabla-wrap"><table class="tabla"><thead><tr><th>No.</th><th>Fecha</th><th>Tipo</th><th>Cliente</th><th>Vehículo</th><th class="num">Monto</th></tr></thead><tbody>${f.slice(0,15).map(x=>`<tr><td><a href="#/factura/${x.id}">#${String(x.id).padStart(4,'0')}</a></td><td>${fmt.fechaHora(x.fechaEmision)}</td><td>${badge(x.tipo)}</td><td>${esc(x.clienteNombre)}</td><td>${esc(x.vehiculo)}</td><td class="num ${Number(x.total != null ? x.total : x.monto)<0?'negativo':''}">${fmt.dinero(x.total != null ? x.total : x.monto)}</td></tr>`).join('')}</tbody></table></div>`:UI.vacio('No hay actividad financiera en este período.','receipt');
-  }
-
-  $('#repAplicar',c).onclick=()=>{if(rangoOk())cargar()};
-  $('#repMes',c).onclick=()=>{$('#repDesde',c).value=isoFechaLocal(inicioMes);$('#repHasta',c).value=hoy();rangoOk();cargar()};
-  $('[data-exportar]').onclick=()=>{
-    if(!estado.facturas.length&&!estado.alquileres.length)return UI.toast('No hay datos para exportar.','warn');
-    const filas=[['AUTOGO - REPORTE',`${estado.desde} a ${estado.hasta}`],[],['FACTURAS'],['No.','Fecha','Tipo','Cliente','Vehículo','Método','Monto'],...estado.facturas.map(x=>[x.id,x.fechaEmision,etq(x.tipo),x.clienteNombre,x.vehiculo,metodoTxt(x.metodoPago),(x.total != null ? x.total : x.monto)]),[],['ALQUILERES'],['No.','Cliente','Vehículo','Salida','Entrega','Estado','Monto'],...estado.alquileres.map(x=>[x.id,x.clienteNombre,x.vehiculo,x.fechaInicio,x.fechaDevolucion||x.fechaFinPactada,estadoOperativoAlquiler(x).texto,x.montoTotal])];
-    descargarCsv(`AutoGo_Reporte_${estado.desde}_${estado.hasta}.csv`,filas);
-  };
-  await cargar();
-}
-
-/* =========================================================
-   CONFIGURACIÓN
-========================================================= */
-
-async function vConfiguracion(c, ctx) {
-  const puedeEditarConfig = puede('configuracion.editar');
-  let categorias = [];
-  await cargarConfiguracionBackend({ forzar: true });
-  try { historialConfigCache = await Api.historialConfiguracion() || []; } catch (_) { historialConfigCache = []; }
-  let fin = leerConfigFinanciera();
-  let sis = leerConfigSistema();
-  let seccion = 'general';
-
-  const disabled = puedeEditarConfig ? '' : ' disabled';
-  c.innerHTML = `
-    <div class="config-shell">
-      <nav class="card config-tabs" aria-label="Secciones de configuración">
-        <button class="config-tab act" type="button" data-config-tab="general">${icon('home')}<span>General</span></button>
-        <button class="config-tab" type="button" data-config-tab="vehiculos">${icon('car')}<span>Vehículos</span></button>
-        <button class="config-tab" type="button" data-config-tab="facturacion">${icon('receipt')}<span>Facturación</span></button>
-        <button class="config-tab" type="button" data-config-tab="wallet">${icon('wallet')}<span>Wallet GO</span></button>
-        <button class="config-tab" type="button" data-config-tab="notificaciones">${icon('bell')}<span>Notificaciones</span></button>
-      </nav>
-
-      <div class="config-contenido">
-        <section class="card config-card config-panel" data-config-panel="general">
-          <div class="config-card-h"><div><span class="config-card-ico">${icon('home')}</span><div><h3>Datos generales de AutoGo</h3><p>Información institucional utilizada en facturas y documentos del sistema.</p></div></div></div>
-          <form class="form config-form" id="configGeneralForm" novalidate>
-            <div class="config-fin-grid">
-              ${UI.campo({name:'nombreComercial',label:'Nombre comercial',value:sis.nombreComercial,attrs:disabled})}
-              ${UI.campo({name:'rnc',label:'RNC',value:sis.rnc,placeholder:'Ej.: 1-31-00000-0',attrs:disabled})}
-              ${UI.campo({name:'telefono',label:'Teléfono',value:sis.telefono,attrs:disabled})}
-              ${UI.campo({name:'correo',label:'Correo',tipo:'email',value:sis.correo,attrs:disabled})}
-            </div>
-            ${UI.campo({name:'direccion',label:'Dirección',value:sis.direccion,attrs:disabled})}
-            ${puedeEditarConfig ? `<div class="config-fin-acciones"><button class="btn" type="submit">${icon('check')} Guardar datos</button></div>` : '<div class="info-banda">Solo el Superadministrador puede modificar esta configuración.</div>'}
-          </form>
-        </section>
-
-        <section class="card config-card config-panel" data-config-panel="vehiculos" hidden>
-          <div class="config-card-h"><div><span class="config-card-ico">${icon('car')}</span><div><h3>Vehículos y mantenimiento</h3><p>Categorías de la flota y comportamiento posterior a una devolución.</p></div></div>${puedeEditarConfig ? `<button class="btn sm" type="button" data-config-nueva-cat>${icon('plus')} Nueva categoría</button>`:''}</div>
-          <div class="config-subtitulo">Categorías de vehículos</div>
-          <div class="categorias-lista" id="configCategorias"><span class="skeleton" style="height:44px"></span></div>
-          <form class="form config-inline-form" id="configVehForm" novalidate>
-            ${UI.campo({name:'diasMantenimientoPostDevolucion',label:'Días de mantenimiento después de una devolución',tipo:'number',value:sis.diasMantenimientoPostDevolucion,attrs:`min="0" max="30" step="1"${disabled}`,ayuda:'0 = sin mantenimiento automático. Se aplica a devoluciones nuevas.'})}
-            ${puedeEditarConfig ? `<button class="btn" type="submit">${icon('check')} Guardar</button>`:''}
-          </form>
-        </section>
-
-        <section class="card config-card config-panel" data-config-panel="facturacion" hidden>
-          <div class="config-card-h"><div><span class="config-card-ico config-card-ico-fin">${icon('receipt')}</span><div><h3>Facturación</h3><p>Impuestos, retención y recargo por mora aplicables a operaciones nuevas.</p></div></div></div>
-          <form class="form config-fin-form" id="configFinForm" novalidate>
-            <div class="config-fin-grid">
-              ${UI.campo({name:'impuestoPct',label:'Impuesto (%)',tipo:'number',value:fin.impuestoPct,attrs:`min="0" max="100" step="0.01"${disabled}`})}
-              ${UI.campo({name:'retencionPct',label:'Retención (%)',tipo:'number',value:fin.retencionPct,attrs:`min="0" max="100" step="0.01"${disabled}`})}
-              ${UI.campo({name:'recargoMoraPct',label:'Recargo por mora (%)',tipo:'number',value:fin.recargoMoraPct,attrs:`min="0" max="100" step="0.01"${disabled}`})}
-            </div>
-            <div class="config-fin-resumen" id="configFinResumen"></div>
-            ${puedeEditarConfig ? `<div class="config-fin-acciones"><button class="btn" type="submit">${icon('check')} Guardar parámetros</button></div>`:''}
-          </form>
-          <div class="config-subtitulo config-hist-title">Historial de cambios financieros</div>
-          <div id="configHistFin" class="config-historial"></div>
-        </section>
-
-        <section class="card config-card config-panel" data-config-panel="wallet" hidden>
-          <div class="config-card-h"><div><span class="config-card-ico">${icon('wallet')}</span><div><h3>Wallet GO</h3><p>Controla los retiros. El uso del saldo en nuevos alquileres continúa disponible.</p></div></div></div>
-          <form class="form config-form" id="configWalletForm" novalidate>
-            <div class="config-fin-grid">
-              ${UI.campo({name:'retiroWalletClientePct',label:'Cliente recibe al retirar (%)',tipo:'number',value:fin.retiroWalletClientePct,attrs:`min="0" max="100" step="0.01"${disabled}`})}
-              <label class="campo config-switch"><span>Permitir retiros de Wallet GO</span><span class="switch-line"><input type="checkbox" name="permitirRetirosWallet" ${sis.permitirRetirosWallet?'checked':''}${disabled}><b>${sis.permitirRetirosWallet?'Activado':'Desactivado'}</b></span><small>Si se desactiva, el saldo solo podrá utilizarse en futuros alquileres.</small></label>
-            </div>
-            <div class="config-fin-resumen" id="configWalletResumen"></div>
-            ${puedeEditarConfig ? `<div class="config-fin-acciones"><button class="btn" type="submit">${icon('check')} Guardar Wallet GO</button></div>`:''}
-          </form>
-        </section>
-
-        <section class="card config-card config-panel" data-config-panel="notificaciones" hidden>
-          <div class="config-card-h"><div><span class="config-card-ico">${icon('bell')}</span><div><h3>Notificaciones</h3><p>Define con cuánta anticipación AutoGo avisa sobre devoluciones próximas.</p></div></div></div>
-          <form class="form config-inline-form" id="configNotifForm" novalidate>
-            ${UI.campo({name:'diasAvisoVencimiento',label:'Avisar devolución próxima con',tipo:'number',value:sis.diasAvisoVencimiento,attrs:`min="0" max="30" step="1"${disabled}`,ayuda:'Cantidad de días antes de la fecha pactada de entrega.'})}
-            ${puedeEditarConfig ? `<button class="btn" type="submit">${icon('check')} Guardar</button>`:''}
-          </form>
-        </section>
-      </div>
-    </div>`;
-
-  const activar = nombre => {
-    seccion = nombre;
-    $$('.config-tab',c).forEach(b=>{ const on=b.dataset.configTab===nombre; b.classList.toggle('act',on); b.setAttribute('aria-selected',on); });
-    $$('.config-panel',c).forEach(p=>p.hidden=p.dataset.configPanel!==nombre);
-  };
-  c.addEventListener('click',e=>{ const b=e.target.closest('[data-config-tab]'); if(b) activar(b.dataset.configTab); });
-
-  const lista = $('#configCategorias',c);
-  const pintarCategorias=()=>{ lista.innerHTML=categorias.length?categorias.filter(cat=>cat.activo!==false).map(cat=>`<div class="categoria-item"><div><span class="categoria-dot"></span><b>${esc(cat.nombre)}</b><small>ID ${esc(cat.id)}</small></div>${puedeEditarConfig?`<div class="acciones"><button class="icon-btn" type="button" data-cat-editar="${cat.id}" title="Editar" aria-label="Editar categoría">${icon('edit')}</button><button class="icon-btn" type="button" data-cat-baja="${cat.id}" title="Desactivar" aria-label="Desactivar categoría">${icon('ban')}</button></div>`:''}</div>`).join(''):UI.vacio('No hay categorías registradas.','tag'); };
-  const recargarCategorias=async()=>{categorias=await Api.categorias();if(ctx.vigente())pintarCategorias();};
-  try { await recargarCategorias(); } catch(_){ lista.innerHTML=UI.vacio('No se pudieron cargar las categorías.','alert'); }
-  $('[data-config-nueva-cat]',c)?.addEventListener('click',()=>nuevaCategoria(()=>recargarCategorias()));
-  lista.addEventListener('click',e=>{const be=e.target.closest('[data-cat-editar]'),bd=e.target.closest('[data-cat-baja]'); if(be){const cat=categorias.find(x=>x.id===+be.dataset.catEditar);if(cat)editarCategoria(cat,()=>recargarCategorias());} if(bd){const cat=categorias.find(x=>x.id===+bd.dataset.catBaja);if(cat)desactivarCategoria(cat,()=>recargarCategorias());}});
-
-  const guardarSisParcial = async cambios => { sis={...sis,...cambios}; await guardarConfiguracionBackend(cambios); sis=leerConfigSistema(); fin=leerConfigFinanciera(); UI.toast('Configuración guardada.','ok'); };
-  const fg=$('#configGeneralForm',c); if(fg&&puedeEditarConfig) fg.onsubmit=async e=>{e.preventDefault(); const d=UI.datos(fg); try{await guardarSisParcial({nombreComercial:d.nombreComercial,rnc:d.rnc,telefono:d.telefono,correo:d.correo,direccion:d.direccion});}catch(err){avisarError(err);}};
-  const fv=$('#configVehForm',c); if(fv&&puedeEditarConfig) fv.onsubmit=async e=>{e.preventDefault(); try{await guardarSisParcial({diasMantenimientoPostDevolucion:Number(fv.diasMantenimientoPostDevolucion.value)||0});}catch(err){avisarError(err);}};
-  const fn=$('#configNotifForm',c); if(fn&&puedeEditarConfig) fn.onsubmit=async e=>{e.preventDefault(); try{await guardarSisParcial({diasAvisoVencimiento:Number(fn.diasAvisoVencimiento.value)||0}); notificacionesCache=null; cargarNotificaciones();}catch(err){avisarError(err);}};
-
-  const ffin=$('#configFinForm',c), resumenFin=$('#configFinResumen',c);
-  const valoresFin=()=>({impuestoPct:Number(ffin.impuestoPct.value)||0,retencionPct:Number(ffin.retencionPct.value)||0,recargoMoraPct:Number(ffin.recargoMoraPct.value)||0,retiroWalletClientePct:fin.retiroWalletClientePct});
-  const pintarResumenFin=()=>{const x=valoresFin(); resumenFin.innerHTML=`<div><span>Impuesto</span><b>${x.impuestoPct.toFixed(2)} %</b></div><div><span>Retención</span><b>${x.retencionPct.toFixed(2)} %</b></div><div><span>Mora adicional</span><b>${x.recargoMoraPct.toFixed(2)} %</b></div>`;};
-  $$('input[type="number"]',ffin).forEach(i=>i.addEventListener('input',pintarResumenFin)); pintarResumenFin();
-  const pintarHistorialFin=()=>{const caja=$('#configHistFin',c),hist=leerHistorialConfigFinanciera(),nombres={impuestoPct:'Impuesto',retencionPct:'Retención',recargoMoraPct:'Mora',retiroWalletClientePct:'Retiro Wallet'}; const parse=v=>{if(!v)return{};if(typeof v==='object')return v;try{return JSON.parse(v)}catch(_){return{}}}; caja.innerHTML=hist.length?hist.slice(0,12).map(h=>{const ant=parse(h.anterior||h.anteriorJson),nue=parse(h.nueva||h.nuevoJson),cambios=h.cambios||Object.keys(nue).filter(k=>ant[k]!==nue[k]);return `<div class="config-hist-item"><div><b>${fmt.fechaHora(h.fecha)}</b><small>${esc(h.usuario||'Administrador')}</small></div><div class="config-hist-cambios">${cambios.map(k=>`<span>${nombres[k]||k}: <s>${Number(ant[k]||0).toFixed(2)}%</s> → <b>${Number(nue[k]||0).toFixed(2)}%</b></span>`).join('')}</div></div>`}).join(''):`<div class="vacio-mini">Aún no hay cambios registrados.</div>`;}; pintarHistorialFin();
-  if(puedeEditarConfig) ffin.onsubmit=async e=>{e.preventDefault();const x=valoresFin();for(const [k,v] of Object.entries(x)){if(v<0||v>100)return UI.toast('Los porcentajes deben estar entre 0 y 100 %.','warn');}try{await guardarConfiguracionBackend(x);fin=leerConfigFinanciera();try{historialConfigCache=await Api.historialConfiguracion()||[]}catch(_){}pintarHistorialFin();UI.toast('Parámetros de facturación guardados.','ok');}catch(err){avisarError(err);}};
-
-  const fw=$('#configWalletForm',c),rw=$('#configWalletResumen',c);
-  const pintarWallet=()=>{const pct=Number(fw.retiroWalletClientePct.value)||0, activo=fw.permitirRetirosWallet.checked; rw.innerHTML=`<div><span>Retiros</span><b>${activo?'Permitidos':'Deshabilitados'}</b></div><div><span>Distribución</span><b>Cliente ${pct.toFixed(2)} % · AutoGo ${(100-pct).toFixed(2)} %</b></div>`; const txt=fw.querySelector('.switch-line b');if(txt)txt.textContent=activo?'Activado':'Desactivado';};
-  fw?.addEventListener('input',pintarWallet); pintarWallet();
-  if(fw&&puedeEditarConfig) fw.onsubmit=async e=>{e.preventDefault();const pct=Number(fw.retiroWalletClientePct.value)||0;if(pct<0||pct>100)return UI.toast('El porcentaje debe estar entre 0 y 100 %.','warn');try{await guardarConfiguracionBackend({retiroWalletClientePct:pct,permitirRetirosWallet:fw.permitirRetirosWallet.checked});fin=leerConfigFinanciera();sis=leerConfigSistema();try{historialConfigCache=await Api.historialConfiguracion()||[]}catch(_){}pintarHistorialFin();pintarWallet();UI.toast('Configuración de Wallet GO guardada.','ok');}catch(err){avisarError(err);}};
-}
-
-
 /* =========================================================
    CLIENTES
 ========================================================= */
 
-async function resumenClientes() {
-  const r = await Api.clientes({ incluirInactivos: true, first: 200 });
-  const lista = r.nodes || [];
-  return {
-    total: lista.length,
-    activos: lista.filter(x => x.activo !== false).length,
-    portal: lista.filter(x => x.activo !== false && x.tieneCuenta).length,
-    mostrador: lista.filter(x => x.activo !== false && !x.tieneCuenta).length,
-    inactivos: lista.filter(x => x.activo === false).length
-  };
-}
-
-async function panelClientesFiltro({ filtro = 'todos', texto = '', first = 12, after = null, last = null, before = null }) {
-  const r = await Api.clientes({ texto: texto || null, incluirInactivos: true, first: 200 });
-  let lista = r.nodes || [];
-  if (filtro === 'activos') lista = lista.filter(x => x.activo !== false);
-  else if (filtro === 'portal') lista = lista.filter(x => x.activo !== false && x.tieneCuenta);
-  else if (filtro === 'mostrador') lista = lista.filter(x => x.activo !== false && !x.tieneCuenta);
-  else if (filtro === 'inactivos') lista = lista.filter(x => x.activo === false);
-  else lista = lista.filter(x => x.activo !== false);
-
-  const cantidad = last || first;
-  const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
-  const nodes = lista.slice(inicio, inicio + cantidad);
-  return {
-    nodes,
-    totalCount: lista.length,
-    pageInfo: {
-      hasNextPage: inicio + cantidad < lista.length,
-      endCursor: String(inicio + cantidad),
-      hasPreviousPage: inicio > 0,
-      startCursor: String(inicio)
-    }
-  };
-}
-
-async function detalleCliente(x) {
-  const m = UI.modal({
-    titulo: 'Detalle del cliente',
-    ancho: 760,
-    cuerpo: `<div class="historial-veh-cargando"><span class="skeleton"></span><p>Cargando información del cliente…</p></div>`
-  });
-
-  try {
-    const [cl, alq] = await Promise.all([
-      Api.cliente(x.id),
-      Api.alquileres({ clienteId: x.id, first: 100 })
-    ]);
-    const lista = [...(alq.nodes || [])].sort((a,b) => String(b.fechaCreacion || b.fechaInicio).localeCompare(String(a.fechaCreacion || a.fechaInicio)));
-    const activos = lista.filter(a => estadoOperativoAlquiler(a).clave === 'activo').length;
-    const reservas = lista.filter(a => estadoOperativoAlquiler(a).clave === 'reserva').length;
-    const porDevolver = lista.filter(a => estadoOperativoAlquiler(a).clave === 'por_devolver').length;
-    const vencidos = lista.filter(a => estadoOperativoAlquiler(a).clave === 'vencido').length;
-    const completados = lista.filter(a => a.estado === 'COMPLETADO').length;
-
-    m.cuerpo.innerHTML = `
-      <div class="detalle-cliente-head">
-        <div class="detalle-cliente-avatar">${UI.avatar(cl.nombre, 'lg')}</div>
-        <div class="detalle-cliente-identidad">
-          <span class="eyebrow">CLIENTE #${cl.id}</span>
-          <h3>${esc(cl.nombre)}</h3>
-          <p>${esc(cl.cedula)}</p>
-          <div class="badges">
-            ${cl.activo !== false ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'neutro')}
-            ${cl.tieneCuenta ? badge(null, 'Portal', 'info') : badge(null, 'Mostrador', 'neutro')}
-          </div>
-        </div>
-      </div>
-
-      <div class="detalle-cliente-grid">
-        <div><small>Teléfono</small><b>${esc(cl.telefono || '—')}</b></div>
-        <div><small>Correo</small><b>${esc(cl.correo || '—')}</b></div>
-        <div><small>Licencia de conducir</small><b>${esc(cl.licenciaConducir || 'No registrada')}</b></div>
-        <div><small>Tipo de cliente</small><b>${cl.tieneCuenta ? 'Portal' : 'Mostrador'}</b></div>
-      </div>
-
-      <div class="cliente-resumen-modal cliente-resumen-modal-6">
-        <div><small>Alquileres</small><b>${lista.length}</b></div>
-        <div><small>Activos</small><b>${activos}</b></div>
-        <div><small>Reservas</small><b>${reservas}</b></div>
-        <div><small>Por devolver</small><b>${porDevolver}</b></div>
-        <div><small>Vencidos</small><b>${vencidos}</b></div>
-        <div><small>Completados</small><b>${completados}</b></div>
-      </div>
-
-      <section class="cliente-historial-seccion">
-        <div class="seccion-titulo"><div><span class="eyebrow">Actividad</span><h4>Alquileres recientes</h4></div>${soloSi('alquileres.ver', `<a class="btn ghost sm" href="#/alquileres?cliente=${cl.id}&nombre=${encodeURIComponent(cl.nombre)}" data-cerrar>Ver todos</a>`)}</div>
-        <div class="cliente-historial-lista">
-          ${lista.length ? lista.slice(0, 6).map(a => `
-            <article class="cliente-historial-item">
-              <div class="cliente-historial-main"><b>#${a.id} · ${esc(a.vehiculo)}</b><span>${esc(a.placa)} · ${fmt.fecha(a.fechaInicio)} → ${fmt.fecha(a.fechaDevolucion || a.fechaFinPactada)}</span></div>
-              <div class="cliente-historial-fin">${estadoAlquiler(a)}<b>${fmt.dinero(a.montoTotal)}</b></div>
-            </article>`).join('') : UI.vacio('Este cliente todavía no tiene alquileres registrados.', 'calendar')}
-        </div>
-      </section>
-
-      <div class="modal-acc">
-        ${cl.activo !== false ? soloSi('alquileres.crear', `<a class="btn ghost" href="#/nuevo-alquiler?cliente=${cl.id}" data-cerrar>${icon('plusCircle')} Nuevo alquiler</a>`) : ''}
-        ${soloSi('clientes.editar', `<button class="btn ghost" type="button" data-editar-cliente>${icon('edit')} Editar</button>`)}
-        <button class="btn" type="button" data-cerrar>Cerrar</button>
-      </div>`;
-
-    const editar = $('[data-editar-cliente]', m.el);
-    if (editar) editar.onclick = () => {
-      m.cerrar();
-      editarCliente(cl, () => { location.hash = '#/clientes'; });
-    };
-  } catch (err) {
-    m.cuerpo.innerHTML = `<div class="vacio"><h4>No se pudo cargar el cliente</h4><p>${esc(err.message || 'Inténtalo de nuevo.')}</p></div>`;
-  }
-}
-
 async function vClientes(c, ctx) {
-  let filtro = ['todos','activos','portal','mostrador','inactivos'].includes(ctx.q.get('filtro')) ? ctx.q.get('filtro') : 'todos';
-  const filtros = { texto: '' };
+  const filtros = { texto: '', incluirInactivos: false };
 
-  ctx.acciones(soloSi('clientes.crear', `<button class="btn" type="button" data-nuevo-cli>${icon('plus')} Nuevo cliente</button>`));
+  ctx.acciones(`<button class="btn" type="button" data-nuevo-cli>${icon('plus')} Nuevo cliente</button>`);
 
   c.innerHTML = `
-    <div class="clientes-resumen" id="clientesResumen">
-      ${Array.from({length:4}, () => '<div class="card cliente-mini"><span class="skeleton"></span></div>').join('')}
-    </div>
-
-    <div class="herramientas cliente-herramientas">
-      <div class="segmentos" role="tablist" aria-label="Filtrar clientes">
-        <button type="button" data-cf="todos">Todos</button>
-        <button type="button" data-cf="activos">Activos</button>
-        <button type="button" data-cf="portal">Portal</button>
-        <button type="button" data-cf="mostrador">Mostrador</button>
-        <button type="button" data-cf="inactivos">Inactivos</button>
-      </div>
-    </div>
-
-    <div class="card cliente-filtros">
-      <div class="buscar">${icon('search')}<input type="search" id="qCli" placeholder="Buscar por nombre, cédula o correo" aria-label="Buscar cliente" autocomplete="off"></div>
-      <button class="btn ghost sm" type="button" id="limpiarCli">Limpiar</button>
+    <div class="herramientas">
+      <div class="buscar">${icon('search')}<input type="search" id="qCli" placeholder="Buscar por nombre, cédula o correo" aria-label="Buscar cliente"></div>
+      <label class="check"><input type="checkbox" id="inacCli"> Incluir inactivos</label>
     </div>
     <div class="card" id="lista"></div>`;
-
-  const marcar = () => $$('[data-cf]', c).forEach(b => {
-    b.classList.toggle('act', b.dataset.cf === filtro);
-    b.setAttribute('aria-selected', b.dataset.cf === filtro);
-  });
 
   const l = listado({
     cont: $('#lista', c),
     vigente: ctx.vigente,
-    cargar: pag => panelClientesFiltro({ filtro, texto: filtros.texto, ...pag }),
+    cargar: pag => Api.clientes({ texto: filtros.texto || null, incluirInactivos: filtros.incluirInactivos, ...pag }),
     pintar: r => (r.nodes.length ? `
       <div class="tabla-wrap">
-        <table class="tabla tabla-clientes">
-          <thead><tr><th>Cliente</th><th>Cédula</th><th>Teléfono</th><th>Licencia</th><th>Cuenta</th><th>Estado</th><th></th></tr></thead>
+        <table class="tabla">
+          <thead><tr><th>Cliente</th><th>Cédula</th><th>Teléfono</th><th>Cuenta</th><th>Estado</th><th></th></tr></thead>
           <tbody>${r.nodes.map(x => `
-            <tr class="${x.activo !== false ? '' : 'inactivo fila-cliente-inactivo'}">
-              <td><div class="cliente-celda">${UI.avatar(x.nombre, 'sm')}
+            <tr class="${x.activo ? '' : 'inactivo'}">
+              <td><div style="display:flex;align-items:center;gap:12px">${UI.avatar(x.nombre, 'sm')}
                 <div class="principal"><b>${esc(x.nombre)}</b><small>${esc(x.correo || 'Sin correo')}</small></div></div></td>
               <td class="nowrap">${esc(x.cedula)}</td>
               <td class="nowrap">${esc(x.telefono || '—')}</td>
-              <td>${x.licenciaConducir ? `<span class="cliente-licencia">${esc(x.licenciaConducir)}</span>` : badge(null, 'Pendiente', 'warn')}</td>
               <td>${x.tieneCuenta ? badge(null, 'Portal', 'info') : badge(null, 'Mostrador', 'neutro')}</td>
-              <td>${x.activo !== false ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'neutro')}</td>
+              <td>${x.activo ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'neutro')}</td>
               <td><div class="acciones">
-                <button class="icon-btn" type="button" data-acc="ver" data-id="${x.id}" title="Ver detalle" aria-label="Ver detalle">${icon('eye')}</button>
-                ${soloSi('clientes.editar', `<button class="icon-btn" type="button" data-acc="editar" data-id="${x.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>`)}
+                <button class="icon-btn" type="button" data-acc="editar" data-id="${x.id}" title="Editar" aria-label="Editar">${icon('edit')}</button>
                 <a class="icon-btn" href="#/alquileres?cliente=${x.id}&nombre=${encodeURIComponent(x.nombre)}" title="Ver alquileres" aria-label="Ver alquileres">${icon('calendar')}</a>
-                ${soloSi('alquileres.crear', `<a class="icon-btn" href="#/nuevo-alquiler?cliente=${x.id}" title="Nuevo alquiler" aria-label="Nuevo alquiler"${x.activo !== false ? '' : ' hidden'}>${icon('plusCircle')}</a>`)}
-                ${soloSi('clientes.editar', `<button class="icon-btn" type="button" data-acc="baja" data-id="${x.id}" title="Desactivar" aria-label="Desactivar"${x.activo !== false ? '' : ' disabled'}>${icon('ban')}</button>`)}
+                <a class="icon-btn" href="#/nuevo-alquiler?cliente=${x.id}" title="Nuevo alquiler" aria-label="Nuevo alquiler"${x.activo ? '' : ' hidden'}>${icon('plusCircle')}</a>
+                <button class="icon-btn" type="button" data-acc="baja" data-id="${x.id}" title="Desactivar" aria-label="Desactivar"${x.activo ? '' : ' disabled'}>${icon('ban')}</button>
               </div></td>
             </tr>`).join('')}
           </tbody>
@@ -4425,44 +2678,18 @@ async function vClientes(c, ctx) {
       </div>` : UI.vacio('No hay clientes que coincidan con la búsqueda.', 'users'))
   });
 
-  async function actualizarResumenClientes() {
-    const caja = $('#clientesResumen', c);
-    try {
-      const d = await resumenClientes();
-      if (!ctx.vigente()) return;
-      caja.innerHTML = `
-        <button type="button" class="card cliente-mini tono-blue" data-cr="activos"><span class="cliente-mini-ico">${icon('users')}</span><span><small>Activos</small><b>${d.activos}</b><em>Clientes habilitados</em></span></button>
-        <button type="button" class="card cliente-mini tono-purple" data-cr="portal"><span class="cliente-mini-ico">${icon('user')}</span><span><small>Portal</small><b>${d.portal}</b><em>Con cuenta en línea</em></span></button>
-        <button type="button" class="card cliente-mini tono-green" data-cr="mostrador"><span class="cliente-mini-ico">${icon('check')}</span><span><small>Mostrador</small><b>${d.mostrador}</b><em>Registro presencial</em></span></button>
-        <button type="button" class="card cliente-mini tono-gray" data-cr="inactivos"><span class="cliente-mini-ico">${icon('ban')}</span><span><small>Inactivos</small><b>${d.inactivos}</b><em>Sin acceso operativo</em></span></button>`;
-      $$('[data-cr]', caja).forEach(b => b.classList.toggle('activa', b.dataset.cr === filtro));
-    } catch (_) { caja.innerHTML = ''; }
-  }
+  const nuevaBusqueda = debounce(() => l.recargar(true));
 
-  const recargar = () => { l.recargar(true); actualizarResumenClientes(); };
-  const nuevaBusqueda = debounce(() => l.recargar(true), 220);
-
-  $('#qCli', c).addEventListener('input', e => { filtros.texto = e.target.value.trim(); nuevaBusqueda(); });
-  $('#limpiarCli', c).onclick = () => { filtros.texto = ''; $('#qCli', c).value = ''; l.recargar(true); };
-
-  $('[data-nuevo-cli]')?.addEventListener('click', () => editarCliente(null, () => recargar()));
-
-  c.addEventListener('click', e => {
-    const f = e.target.closest('[data-cf]');
-    if (f) {
-      filtro = f.dataset.cf;
-      marcar();
-      history.replaceState(null, '', '#/clientes' + (filtro !== 'todos' ? '?filtro=' + filtro : ''));
-      l.recargar(true); actualizarResumenClientes(); return;
-    }
-    const r = e.target.closest('[data-cr]');
-    if (r) {
-      filtro = filtro === r.dataset.cr ? 'todos' : r.dataset.cr;
-      marcar();
-      history.replaceState(null, '', '#/clientes' + (filtro !== 'todos' ? '?filtro=' + filtro : ''));
-      l.recargar(true); actualizarResumenClientes();
-    }
+  $('#qCli', c).addEventListener('input', e => {
+    filtros.texto = e.target.value.trim();
+    nuevaBusqueda();
   });
+  $('#inacCli', c).onchange = e => {
+    filtros.incluirInactivos = e.target.checked;
+    l.recargar(true);
+  };
+
+  $('[data-nuevo-cli]').onclick = () => editarCliente(null, () => l.recargar());
 
   $('#lista', c).addEventListener('click', async e => {
     const b = e.target.closest('[data-acc]');
@@ -4470,8 +2697,7 @@ async function vClientes(c, ctx) {
     const x = l.nodos().find(y => y.id === +b.dataset.id);
     if (!x) return;
 
-    if (b.dataset.acc === 'ver') return detalleCliente(x);
-    if (b.dataset.acc === 'editar') return editarCliente(x, () => recargar());
+    if (b.dataset.acc === 'editar') return editarCliente(x, () => l.recargar());
 
     const ok = await UI.confirmar('Desactivar cliente',
       `<b>${esc(x.nombre)}</b> quedará inactivo${x.tieneCuenta ? ' y su cuenta del portal se desactivará' : ''}. No es posible si tiene alquileres activos.`,
@@ -4481,12 +2707,13 @@ async function vClientes(c, ctx) {
     try {
       await Api.desactivarCliente(x.id);
       UI.toast('Cliente desactivado.');
-      recargar();
-    } catch (err) { avisarError(err); }
+      l.recargar();
+    } catch (err) {
+      avisarError(err);
+    }
   });
 
-  marcar();
-  await Promise.all([l.recargar(true), actualizarResumenClientes()]);
+  await l.recargar(true);
 }
 
 function editarCliente(x, alGuardar) {
@@ -4549,77 +2776,53 @@ function editarCliente(x, alGuardar) {
 ========================================================= */
 
 async function vFacturas(c, ctx) {
-  let tipo = ['todos','alquileres','moras','creditos'].includes(ctx.q.get('tipo')) ? ctx.q.get('tipo') : 'todos';
   const filtros = { desde: ctx.q.get('desde') || '', hasta: ctx.q.get('hasta') || '' };
 
   c.innerHTML = `
-    <div class="fact-resumen" id="factResumen">
-      ${Array.from({length:4},()=>'<div class="card fact-mini"><span class="skeleton"></span></div>').join('')}
-    </div>
-    <form class="card fact-filtros" id="ff" novalidate>
+    <form class="herramientas con-campos" id="ff" novalidate>
       ${UI.campo({ name: 'desde', label: 'Desde', tipo: 'date', value: filtros.desde })}
       ${UI.campo({ name: 'hasta', label: 'Hasta', tipo: 'date', value: filtros.hasta })}
-      <button class="btn ghost" type="button" data-limpiar>Limpiar fechas</button>
+      <button class="btn ghost" type="button" data-limpiar>Limpiar</button>
     </form>
     <div class="card" id="lista"></div>`;
 
   const f = $('#ff', c);
 
-  const cargarTodas = () => panelTodas(p => Api.facturas({ desde: filtros.desde || null, hasta: filtros.hasta || null, ...p }));
-  const coincide = x => tipo === 'todos' ||
-    (tipo === 'alquileres' && x.tipo === 'ALQUILER') ||
-    (tipo === 'moras' && x.tipo === 'MORA') ||
-    (tipo === 'creditos' && Number(x.total != null ? x.total : x.monto) < 0);
-
-  const cargarFiltradas = async ({ first=15, after=null, last=null, before=null }) => {
-    const r = await cargarTodas();
-    const lista = r.nodes.filter(coincide);
-    const cantidad = last || first;
-    const inicio = before !== null ? Math.max(0, Number(before)-cantidad) : Number(after)||0;
-    const nodes = lista.slice(inicio, inicio+cantidad);
-    return {nodes,totalCount:lista.length,pageInfo:{hasNextPage:inicio+cantidad<lista.length,endCursor:String(inicio+cantidad),hasPreviousPage:inicio>0,startCursor:String(inicio)}};
-  };
-
   const l = listado({
-    cont: $('#lista', c), vigente: ctx.vigente, porPagina: 15,
-    cargar: cargarFiltradas,
-    pintar: r => r.nodes.length ? tablaFacturas(r.nodes,true) : UI.vacio('No hay documentos que coincidan con los filtros.','receipt')
+    cont: $('#lista', c),
+    vigente: ctx.vigente,
+    porPagina: 15,
+    cargar: pag => Api.facturas({ desde: filtros.desde || null, hasta: filtros.hasta || null, ...pag }),
+    pintar: r => (r.nodes.length ? tablaFacturas(r.nodes, true) : UI.vacio('No hay facturas en ese período.', 'receipt'))
   });
-
-  async function pintarResumen(){
-    const caja=$('#factResumen',c);
-    try{
-      const {nodes}=await cargarTodas();
-      if(!ctx.vigente()) return;
-      const alq=nodes.filter(x=>x.tipo==='ALQUILER');
-      const mora=nodes.filter(x=>x.tipo==='MORA');
-      const cred=nodes.filter(x=>Number(x.total != null ? x.total : x.monto)<0);
-      const neto=nodes.reduce((t,x)=>t+Number((x.total != null ? x.total : x.monto)||0),0);
-      const suma=a=>a.reduce((t,x)=>t+Math.abs(Number((x.total != null ? x.total : x.monto)||0)),0);
-      caja.innerHTML=`
-        <button type="button" class="card fact-mini tono-blue ${tipo==='todos'?'act':''}" data-fact-tipo="todos"><span class="fact-mini-ico">${icon('receipt')}</span><span><small>Facturado</small><b>${fmt.dinero(neto)}</b><em>${nodes.length} documento(s)</em></span></button>
-        <button type="button" class="card fact-mini tono-green ${tipo==='alquileres'?'act':''}" data-fact-tipo="alquileres"><span class="fact-mini-ico">${icon('car')}</span><span><small>Alquileres</small><b>${fmt.dinero(suma(alq))}</b><em>${alq.length} factura(s)</em></span></button>
-        <button type="button" class="card fact-mini tono-orange ${tipo==='moras'?'act':''}" data-fact-tipo="moras"><span class="fact-mini-ico">${icon('alert')}</span><span><small>Moras</small><b>${fmt.dinero(suma(mora))}</b><em>${mora.length} cargo(s)</em></span></button>
-        <button type="button" class="card fact-mini tono-purple ${tipo==='creditos'?'act':''}" data-fact-tipo="creditos"><span class="fact-mini-ico">${icon('wallet')}</span><span><small>Notas de crédito</small><b>${fmt.dinero(suma(cred))}</b><em>${cred.length} crédito(s)</em></span></button>`;
-    }catch(_){caja.innerHTML='';}
-  }
 
   const aplicar = () => {
     UI.limpiarErrores(f);
-    filtros.desde=f.desde.value; filtros.hasta=f.hasta.value;
-    if(filtros.desde&&filtros.hasta&&filtros.hasta<filtros.desde) return UI.errorCampo(f,'hasta','Debe ser igual o posterior a "Desde".');
-    cambiarQuery('facturas',{...filtros,tipo:tipo==='todos'?'':tipo});
-    l.recargar(true); pintarResumen();
+    filtros.desde = f.desde.value;
+    filtros.hasta = f.hasta.value;
+
+    if (filtros.desde && filtros.hasta && filtros.hasta < filtros.desde) {
+      return UI.errorCampo(f, 'hasta', 'Debe ser igual o posterior a "Desde".');
+    }
+
+    cambiarQuery('facturas', filtros);
+    l.recargar(true);
   };
-  f.desde.onchange=aplicar; f.hasta.onchange=aplicar; f.onsubmit=e=>{e.preventDefault();aplicar();};
-  $('[data-limpiar]',f).onclick=()=>{f.desde.value='';f.hasta.value='';aplicar();};
-  c.addEventListener('click',e=>{
-    const b=e.target.closest('[data-fact-tipo]'); if(!b)return;
-    const nuevo=b.dataset.factTipo; tipo=tipo===nuevo&&nuevo!=='todos'?'todos':nuevo;
-    cambiarQuery('facturas',{...filtros,tipo:tipo==='todos'?'':tipo});
-    l.recargar(true); pintarResumen();
-  });
-  await Promise.all([l.recargar(true),pintarResumen()]);
+
+  f.desde.onchange = aplicar;
+  f.hasta.onchange = aplicar;
+  f.onsubmit = e => {
+    e.preventDefault();
+    aplicar();
+  };
+
+  $('[data-limpiar]', f).onclick = () => {
+    f.desde.value = '';
+    f.hasta.value = '';
+    aplicar();
+  };
+
+  await l.recargar(true);
 }
 
 
@@ -4627,7 +2830,7 @@ async function vFacturas(c, ctx) {
    ADMINISTRADORES
 ========================================================= */
 
-function vAdministradoresBasico(c) {
+function vAdministradores(c) {
   const generar = () => {
     const letras = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
     const nums = '23456789';
@@ -4645,6 +2848,10 @@ function vAdministradoresBasico(c) {
         <form class="form" id="fa" novalidate>
           ${UI.campo({ name: 'nombre', label: 'Nombre completo', requerido: true })}
           ${UI.campo({ name: 'correo', label: 'Correo electrónico', tipo: 'email', requerido: true, attrs: 'autocomplete="off"' })}
+          ${UI.campo({ name: 'rol', label: 'Perfil', tipo: 'select', requerido: true, value: 'OPERADOR', opciones: [
+            { valor: 'OPERADOR', texto: 'Operador (acceso de mostrador: alquileres, flota, clientes, facturas)' },
+            { valor: 'ADMINISTRADOR', texto: 'Superadministrador (acceso total, incluye Administradores)' }
+          ] })}
           <div class="campo" data-campo="passwordTemporal">
             <label for="pt">Contraseña temporal <i>*</i></label>
             <div style="display:flex;gap:10px">
@@ -4671,7 +2878,12 @@ function vAdministradoresBasico(c) {
           <div class="item"><span class="avatar sm">3</span><div><b>Primer inicio de sesión</b><small>El sistema le pedirá cambiarla antes de continuar.</small></div></div>
         </div>
       </section>
-    </div>`;
+    </div>
+
+    <section class="card" style="margin-top:16px">
+      <div class="card-h"><h3>Cuentas de personal</h3></div>
+      <div id="listaAdmins"></div>
+    </section>`;
 
   const f = $('#fa', c);
 
@@ -4695,7 +2907,7 @@ function vAdministradoresBasico(c) {
     UI.ocupado(btn, true);
 
     try {
-      const u = await Api.crearAdministrador({ nombre: d.nombre, correo: d.correo, passwordTemporal: d.passwordTemporal });
+      const u = await Api.crearAdministrador({ nombre: d.nombre, correo: d.correo, passwordTemporal: d.passwordTemporal, rol: d.rol });
       $('#ok', c).innerHTML = `
         <div class="form-ok">${icon('check')}
           <div><b>${esc(u.nombre)}</b> ya puede entrar con <b>${esc(u.correo)}</b>.
@@ -4703,409 +2915,119 @@ function vAdministradoresBasico(c) {
         </div>`;
       f.reset();
       f.passwordTemporal.type = 'password';
+      cargarAdmins();
     } catch (err) {
       errorEnForm(f, err, { CORREO_DUPLICADO: 'correo' });
     } finally {
       UI.ocupado(btn, false);
     }
   };
+
+  async function cargarAdmins() {
+    const cont = $('#listaAdmins', c);
+    try {
+      const admins = await Api.administradores();
+      cont.innerHTML = admins.length ? `
+        <div class="tabla-wrap">
+          <table class="tabla">
+            <thead><tr><th>Nombre</th><th>Correo</th><th>Perfil</th><th>Contraseña</th><th>Último acceso</th></tr></thead>
+            <tbody>${admins.map(u => `
+              <tr>
+                <td class="principal">${esc(u.nombre)}</td>
+                <td>${esc(u.correo)}</td>
+                <td>${badge(u.rol)}</td>
+                <td>${u.debeCambiarPassword ? badge(null, 'Temporal; debe cambiarla', 'warn') : badge(null, 'Definitiva', 'ok')}</td>
+                <td>${fmt.fechaHora(u.ultimoAccesoUtc)}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : UI.vacio('Aún no hay cuentas de personal registradas.', 'shield');
+    } catch (err) {
+      cont.innerHTML = '';
+      avisarError(err);
+    }
+  }
+
+  cargarAdmins();
 }
 
 
 /* =========================================================
-   ADMINISTRADORES (gestión completa: lista, rol y estado)
+   CONFIGURACIÓN
 ========================================================= */
 
-const PERFILES_ADM = ['Superadministrador', 'Administrador', 'Operador', 'Consulta'];
-const SLUG_PERFIL = { 'Superadministrador': 'super', 'Administrador': 'admin', 'Operador': 'oper', 'Consulta': 'consulta' };
-
-const svgAdm = d => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
-const ICO_ADM = {
-  userPlus: svgAdm('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>'),
-  key: svgAdm('<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/>'),
-  trash: svgAdm('<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/>'),
-  refresh: svgAdm('<path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7L21 16"/><path d="M16 16h5v5"/>'),
-  bulb: svgAdm('<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>'),
-  shieldOk: svgAdm('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>'),
-  file: svgAdm('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>'),
-  copy: svgAdm('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>')
-};
-
-function claveTemporal() {
-  const letras = 'abcdefghjkmnpqrstuvwxyz';
-  const nums = '23456789';
-  const simb = '#@$%&*!?';
-  const r = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
-  const pick = s => s[r(s.length)];
-  const p = [pick(letras), pick(letras.toUpperCase()), pick(nums), pick(nums), pick(simb)];
-
-  while (p.length < 10) p.push(pick(letras + letras.toUpperCase() + nums));
-
-  for (let i = p.length - 1; i > 0; i--) {
-    const j = r(i + 1);
-    [p[i], p[j]] = [p[j], p[i]];
-  }
-
-  return p.join('');
-}
-
-async function copiarTexto(t) {
-  try {
-    await navigator.clipboard.writeText(t);
-    UI.toast('Copiado al portapapeles.');
-  } catch (e) {
-    UI.toast('No se pudo copiar. Selecciónala y cópiala manualmente.', 'warn');
-  }
-}
-
-function prefijoCampo(f, nombre, html) {
-  const el = f.elements[nombre];
-  if (!el) return null;
-
-  const w = document.createElement('div');
-  w.className = 'con-pref';
-  el.replaceWith(w);
-  w.insertAdjacentHTML('afterbegin', `<span class="pref">${html}</span>`);
-  w.appendChild(el);
-
-  return w;
-}
-
-function modalClaveTemporal({ titulo, nombre, correo, clave, forzar = true }) {
-  const m = UI.modal({
-    titulo,
-    ancho: 460,
-    cuerpo: `
-      <div class="exito">
-        <div class="sello">${icon('check')}</div>
-        <h4>${esc(nombre)}</h4>
-        <p>Comparte esta contraseña temporal por un medio seguro.${forzar ? ' Deberá cambiarla al iniciar sesión.' : ''}</p>
-        <div class="clave-caja"><code>${esc(clave)}</code><button type="button" class="btn ghost sm" data-copiar>${ICO_ADM.copy} Copiar</button></div>
-        <small class="clave-correo">${esc(correo)}</small>
-        <div class="modal-acc"><button class="btn" type="button" data-cerrar>Listo</button></div>
-      </div>`
-  });
-
-  $('[data-copiar]', m.el).onclick = () => copiarTexto(clave);
-}
-
-const rolTag = p => `<span class="rol-tag rol-${SLUG_PERFIL[p] || 'admin'}">${esc(p || 'Administrador')}</span>`;
-const estadoAdm = a => (a.activo ? badge(null, 'Activo', 'ok') : badge(null, 'Inactivo', 'bad'));
-
-function verAdmin(a) {
-  UI.modal({
-    titulo: 'Detalle del administrador',
-    ancho: 480,
-    cuerpo: `
-      <div class="perfil-cab">
-        ${UI.avatar(a.nombre, 'lg')}
-        <div><h2>${esc(a.nombre)}</h2><p>${esc(a.correo)}</p></div>
-      </div>
-      <dl class="dl">
-        <dt>Rol</dt><dd>${rolTag(a.perfil)}</dd>
-        <dt>Estado</dt><dd>${estadoAdm(a)}</dd>
-        <dt>Último acceso</dt><dd>${a.ultimoAcceso ? fmt.fechaHora(a.ultimoAcceso) : 'Nunca'}</dd>
-        <dt>Cuenta creada</dt><dd>${a.fechaCreacion ? fmt.fechaLarga(a.fechaCreacion) : '—'}</dd>
-        <dt>Contraseña</dt><dd>${a.debeCambiarPassword ? 'Temporal: debe cambiarla' : 'Establecida por el usuario'}</dd>
-      </dl>
-      <div class="modal-acc"><button class="btn ghost" type="button" data-cerrar>Cerrar</button></div>`
-  });
-}
-
-function editarAdmin(a, alGuardar) {
-  const propia = a.id === usuario().id;
-
-  const m = UI.modal({
-    titulo: 'Editar administrador',
-    ancho: 480,
-    cuerpo: `
-      <form class="form" id="fe" novalidate>
-        ${UI.campo({ name: 'nombre', label: 'Nombre completo', value: a.nombre, requerido: true })}
-        ${UI.campo({ name: 'correo', label: 'Correo electrónico', value: a.correo, attrs: 'disabled', ayuda: 'El correo no se puede cambiar.' })}
-        ${UI.campo({ name: 'perfil', label: 'Rol', tipo: 'select', value: a.perfil || 'Administrador', opciones: PERFILES_ADM.map(x => ({ valor: x, texto: x })) })}
-        ${UI.campo({ name: 'activo', label: 'Estado', tipo: 'select', value: a.activo ? '1' : '0', attrs: propia ? 'disabled' : '', ayuda: propia ? 'No puedes desactivar tu propia cuenta.' : '', opciones: [{ valor: '1', texto: 'Activo' }, { valor: '0', texto: 'Inactivo' }] })}
-        ${formErr}
-        <div class="modal-acc">
-          <button class="btn ghost" type="button" data-cerrar>Cancelar</button>
-          <button class="btn" type="submit">Guardar cambios</button>
-        </div>
-      </form>`
-  });
-
-  const f = $('#fe', m.el);
-
-  f.onsubmit = async e => {
-    e.preventDefault();
-    UI.limpiarErrores(f);
-
-    const nombre = f.nombre.value.trim();
-    if (!nombre) return UI.errorCampo(f, 'nombre', 'El nombre es obligatorio.');
-
-    const btn = $('[type=submit]', f);
-    UI.ocupado(btn, true);
-
-    try {
-      await Api.actualizarAdministrador(a.id, {
-        nombre,
-        perfil: f.perfil.value,
-        activo: propia ? true : f.activo.value === '1'
-      });
-
-      m.cerrar();
-      UI.toast('Administrador actualizado.');
-      alGuardar();
-    } catch (err) {
-      UI.ocupado(btn, false);
-      errorEnForm(f, err);
-    }
-  };
-}
-
-async function restablecerClaveAdmin(a) {
-  const ok = await UI.confirmar(
-    'Restablecer contraseña',
-    `Se generará una contraseña temporal nueva para <b>${esc(a.nombre)}</b>. La anterior dejará de funcionar y deberá cambiarla al iniciar sesión.`,
-    { boton: 'Restablecer' }
-  );
-
-  if (!ok) return;
-
-  const clave = claveTemporal();
-
-  try {
-    await Api.restablecerClaveAdministrador(a.id, clave);
-    modalClaveTemporal({ titulo: 'Contraseña restablecida', nombre: a.nombre, correo: a.correo, clave });
-  } catch (e) {
-    avisarError(e);
-  }
-}
-
-async function eliminarAdmin(a, alCambiar) {
-  const ok = await UI.confirmar(
-    'Eliminar administrador',
-    `Se eliminará la cuenta de <b>${esc(a.nombre)}</b> (${esc(a.correo)}). Esta acción no se puede deshacer.`,
-    { boton: 'Eliminar', peligro: true }
-  );
-
-  if (!ok) return;
-
-  try {
-    await Api.eliminarAdministrador(a.id);
-    UI.toast('Administrador eliminado.');
-    alCambiar();
-  } catch (e) {
-    avisarError(e);
-  }
-}
-
-function vAdministradores(c, ctx) {
-  if (!Api.ADMIN_EXTRA) return vAdministradoresBasico(c);
-
-  const yo = usuario().id;
-  let lista = [];
-
-  const plano = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-
-  const buenas = [
-    [ICO_ADM.shieldOk, 'Usa contraseñas seguras', 'Genera contraseñas complejas y únicas para cada administrador.'],
-    [icon('users'), 'Asigna el rol adecuado', 'Identifica la función de cada persona dentro del equipo.'],
-    [icon('lock'), 'Forza el cambio de contraseña', 'Recomendado para nuevos administradores.'],
-    [icon('eye'), 'Revisa los accesos regularmente', 'Desactiva cuentas que ya no estén en uso.'],
-    [ICO_ADM.file, 'Controla el último acceso', 'Consulta cuándo entró cada cuenta por última vez en la lista.']
-  ];
+function vConfiguracion(c) {
+  let categorias = [];
 
   c.innerHTML = `
-    <div class="seccion">
-      <div class="adm-top">
-        <section class="card">
-          <div class="card-cab">
-            ${ICO_ADM.userPlus}
-            <div><h3>Crear nuevo administrador</h3><p>Completa la información para crear una nueva cuenta de administrador.</p></div>
-          </div>
-
-          <form class="adm-form" id="fa" novalidate>
-            <div class="adm-col">
-              ${UI.campo({ name: 'nombre', label: 'Nombre completo', requerido: true, placeholder: 'Ej. Juan Pérez Gómez', attrs: 'autocomplete="off"' })}
-              ${UI.campo({ name: 'correo', label: 'Correo electrónico', tipo: 'email', requerido: true, placeholder: 'ejemplo@correo.com', attrs: 'autocomplete="off"' })}
-              ${UI.campo({ name: 'perfil', label: 'Rol', tipo: 'select', requerido: true, value: 'Operador', ayuda: 'El rol determina qué módulos y acciones puede usar.', opciones: PERFILES_ADM.map(x => ({ valor: x, texto: x })) })}
-              <div class="rol-ayuda"><small><b>Superadministrador:</b> acceso total · <b>Administrador:</b> gestión general sin administradores ni cambios críticos · <b>Operador:</b> operación diaria · <b>Consulta:</b> solo lectura.</small></div>
-            </div>
-
-            <div class="adm-col">
-              <div class="campo" data-campo="passwordTemporal">
-                <label for="pt">Contraseña temporal <i>*</i></label>
-                <div class="pass-fila">
-                  <div class="con-pref"><span class="pref">${icon('lock')}</span><input id="pt" name="passwordTemporal" type="text" autocomplete="off" spellcheck="false"></div>
-                  <button class="btn ghost" type="button" data-generar>${ICO_ADM.refresh} Generar</button>
-                </div>
-                <small class="ayuda">Se generará una contraseña segura de forma automática.</small>
-                <small class="err"></small>
-              </div>
-
-              ${UI.campo({ name: 'activo', label: 'Estado', tipo: 'select', requerido: true, value: '1', ayuda: 'El administrador podrá acceder al sistema.', opciones: [{ valor: '1', texto: 'Activo' }, { valor: '0', texto: 'Inactivo' }] })}
-
-              <label class="adm-chk">
-                <input type="checkbox" name="forzarCambio" checked>
-                <b>Forzar cambio de contraseña al primer inicio</b>
-                <small>El usuario deberá establecer una nueva contraseña al iniciar sesión.</small>
-              </label>
-
-            </div>
-
-            ${formErr}
-            <div class="adm-btns">
-              <button class="btn ghost" type="button" data-limpiar>${ICO_ADM.trash} Limpiar</button>
-              <button class="btn" type="submit">${ICO_ADM.userPlus} Crear administrador</button>
-            </div>
-          </form>
-        </section>
-
-        <section class="card">
-          <div class="card-cab">
-            <span class="adm-bulb">${ICO_ADM.bulb}</span>
-            <div><h3>Buenas prácticas de acceso</h3><p>Recomendaciones para mantener la seguridad del sistema.</p></div>
-          </div>
-          <div class="adm-tips">
-            ${buenas.map(([ic, t, d]) => `
-              <div class="adm-tip"><span class="ico">${ic}</span><div><b>${t}</b><small>${d}</small></div></div>`).join('')}
-          </div>
-        </section>
-      </div>
+    <div class="dos-col">
+      <section class="card">
+        <div class="card-h"><h3>Parámetros generales</h3></div>
+        <form class="form" id="fp" novalidate>
+          ${UI.campo({ name: 'comisionWalletGo', label: 'Comisión Wallet GO (%)', tipo: 'number', requerido: true, attrs: 'min="0" max="100" step="0.01"' })}
+          ${formErr}
+          <div><button class="btn" type="submit">Guardar cambios</button></div>
+        </form>
+        <div id="okParam" style="margin-top:16px"></div>
+      </section>
 
       <section class="card">
-        <div class="card-h adm-lh">
-          <div class="card-cab">
-            ${icon('users')}
-            <div><h3>Administradores del sistema</h3><p>Lista de cuentas administrativas registradas.</p></div>
-          </div>
-          <div class="herramientas adm-filtros">
-            <div class="buscar">${icon('search')}<input type="search" id="fBuscar" placeholder="Buscar administrador..." aria-label="Buscar administrador" autocomplete="off"></div>
-            <select id="fRol" aria-label="Filtrar por rol">
-              <option value="">Todos los roles</option>
-              ${PERFILES_ADM.map(x => `<option value="${x}">${x}</option>`).join('')}
-            </select>
-          </div>
-        </div>
-        <div id="tablaAdm">${UI.cargando(5)}</div>
+        <div class="card-h"><h3>Categorías de vehículos</h3><button class="btn ghost" type="button" data-nueva-cat>${icon('tag')} Nueva categoría</button></div>
+        <div id="listaCat"></div>
       </section>
     </div>`;
 
-  const f = $('#fa', c);
-  const tabla = $('#tablaAdm', c);
+  const fp = $('#fp', c);
 
-  // Iconos dentro de los campos
-  prefijoCampo(f, 'nombre', icon('user'));
-  prefijoCampo(f, 'correo', icon('mail'));
-  prefijoCampo(f, 'perfil', icon('shield'));
-  const wEstado = prefijoCampo(f, 'activo', '<i class="pe pe-DISPONIBLE"></i>');
-  f.activo.onchange = () => { $('.pe', wEstado).className = 'pe ' + (f.activo.value === '1' ? 'pe-DISPONIBLE' : 'pe-FUERA_DE_SERVICIO'); };
-
-  const nuevaClave = () => { f.passwordTemporal.value = claveTemporal(); };
-  nuevaClave();
-  $('[data-generar]', f).onclick = nuevaClave;
-
-  const limpiar = () => {
-    f.reset();
-    UI.limpiarErrores(f);
-    f.activo.onchange();
-    nuevaClave();
-  };
-
-  $('[data-limpiar]', f).onclick = limpiar;
-
-  // Lista
-  function pintar() {
-    const t = plano($('#fBuscar', c).value);
-    const rol = $('#fRol', c).value;
-
-    const vis = lista
-      .filter(a => !rol || (a.perfil || 'Administrador') === rol)
-      .filter(a => !t || plano(`${a.nombre} ${a.correo}`).includes(t));
-
-    tabla.innerHTML = vis.length ? `
-      <div class="tabla-wrap">
-        <table class="tabla adm-tabla">
-          <thead><tr><th>Nombre</th><th>Correo electrónico</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th class="num">Acciones</th></tr></thead>
-          <tbody>${vis.map(a => `
-            <tr>
-              <td><div class="adm-nom">${UI.avatar(a.nombre, 'sm')}<b>${esc(a.nombre)}</b>${a.id === yo ? '<span class="pastilla">Tú</span>' : ''}</div></td>
-              <td>${esc(a.correo)}</td>
-              <td>${rolTag(a.perfil)}</td>
-              <td>${estadoAdm(a)}</td>
-              <td class="nowrap">${a.ultimoAcceso ? fmt.fechaHora(a.ultimoAcceso) : 'Nunca'}</td>
-              <td><div class="adm-acc">
-                <button class="ab ab-ver" type="button" data-ver="${a.id}" title="Ver detalle" aria-label="Ver detalle de ${esc(a.nombre)}">${icon('eye')}</button>
-                <button class="ab ab-edit" type="button" data-editar="${a.id}" title="Editar" aria-label="Editar a ${esc(a.nombre)}">${icon('edit')}</button>
-                <button class="ab ab-clave" type="button" data-clave="${a.id}" title="Restablecer contraseña" aria-label="Restablecer contraseña de ${esc(a.nombre)}"${a.id === yo ? ' disabled' : ''}>${ICO_ADM.key}</button>
-                <button class="ab ab-del" type="button" data-borrar="${a.id}" title="Eliminar" aria-label="Eliminar a ${esc(a.nombre)}"${a.id === yo ? ' disabled' : ''}>${ICO_ADM.trash}</button>
-              </div></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`
-      : UI.vacio(lista.length ? 'Ningún administrador coincide con la búsqueda.' : 'Todavía no hay administradores registrados.', 'users');
-  }
-
-  async function cargar() {
-    try {
-      lista = await Api.administradores();
-      if (ctx.vigente()) pintar();
-    } catch (e) {
-      if (ctx.vigente()) falloCarga(tabla, e, cargar);
-    }
-  }
-
-  $('#fBuscar', c).oninput = pintar;
-  $('#fRol', c).onchange = pintar;
-
-  tabla.addEventListener('click', e => {
-    const b = e.target.closest('[data-ver], [data-editar], [data-clave], [data-borrar]');
-    if (!b || b.disabled) return;
-
-    const a = lista.find(x => x.id === +(b.dataset.ver || b.dataset.editar || b.dataset.clave || b.dataset.borrar));
-    if (!a) return;
-
-    if (b.dataset.ver) verAdmin(a);
-    else if (b.dataset.editar) editarAdmin(a, cargar);
-    else if (b.dataset.clave) restablecerClaveAdmin(a);
-    else eliminarAdmin(a, cargar);
-  });
-
-  // Crear
-  f.onsubmit = async e => {
+  fp.onsubmit = async e => {
     e.preventDefault();
-    UI.limpiarErrores(f);
+    UI.limpiarErrores(fp);
+    $('#okParam', c).innerHTML = '';
 
-    const d = UI.datos(f);
-    if (!d.nombre) return UI.errorCampo(f, 'nombre', 'El nombre es obligatorio.');
-    if (!UI.correoValido(d.correo)) return UI.errorCampo(f, 'correo', 'Escribe un correo válido.');
-    if (!UI.passwordValida(d.passwordTemporal)) return UI.errorCampo(f, 'passwordTemporal', 'Mínimo 8 caracteres, con letras y números.');
+    const d = UI.datos(fp);
+    const valor = Number(d.comisionWalletGo);
+    if (!d.comisionWalletGo || Number.isNaN(valor) || valor < 0 || valor > 100)
+      return UI.errorCampo(fp, 'comisionWalletGo', 'Escribe un porcentaje entre 0 y 100.');
 
-    const forzar = f.forzarCambio.checked;
-    const btn = $('[type=submit]', f);
+    const btn = $('[type=submit]', fp);
     UI.ocupado(btn, true);
 
     try {
-      const u = await Api.crearAdministrador({
-        nombre: d.nombre,
-        correo: d.correo,
-        passwordTemporal: d.passwordTemporal,
-        perfil: d.perfil,
-        activo: d.activo === '1',
-        forzarCambio: forzar
-      });
-
-      modalClaveTemporal({ titulo: 'Administrador creado', nombre: u.nombre, correo: u.correo, clave: d.passwordTemporal, forzar });
-      limpiar();
-      cargar();
+      await Api.actualizarComisionWalletGo(valor);
+      $('#okParam', c).innerHTML = `<div class="form-ok">${icon('check')}<div>Parámetros actualizados correctamente.</div></div>`;
     } catch (err) {
-      errorEnForm(f, err, { CORREO_DUPLICADO: 'correo' });
+      errorEnForm(fp, err);
     } finally {
       UI.ocupado(btn, false);
     }
   };
 
-  return cargar();
+  const pintarCategorias = () => {
+    const cont = $('#listaCat', c);
+    cont.innerHTML = categorias.length ? `
+      <div class="lista">${categorias.map(x => `<div class="item"><span class="avatar sm">${icon('tag')}</span><div><b>${esc(x.nombre)}</b></div></div>`).join('')}</div>
+    ` : UI.vacio('Aún no hay categorías registradas.', 'tag');
+  };
+
+  $('[data-nueva-cat]', c).onclick = () => nuevaCategoria(cat => {
+    categorias.push(cat);
+    pintarCategorias();
+  });
+
+  (async () => {
+    try {
+      const p = await Api.parametros();
+      fp.comisionWalletGo.value = p.comisionWalletGo;
+    } catch (err) {
+      avisarError(err);
+    }
+    try {
+      categorias = await Api.categorias();
+      pintarCategorias();
+    } catch (err) {
+      avisarError(err);
+    }
+  })();
 }
 
 
@@ -5140,12 +3062,56 @@ document.addEventListener('error', e => {
 
 window.addEventListener('hashchange', render);
 
+/* Brillo "líquido" que sigue el cursor sobre los paneles glass (estilo iOS).
+   Un solo listener delegado; sólo mueve variables CSS (sin filtros ni blur). */
+(() => {
+  const SEL = '.glass, .card, .auth-panel, .aviso, .modal, .menu-usuario';
+  const CLASE = 'liquido-activo';
+  let objetivo = null, activo = null, x = 0, y = 0, pendiente = false, temporizador = null;
+
+  document.addEventListener('pointermove', e => {
+    objetivo = e.target.closest(SEL);
+    x = e.clientX; y = e.clientY;
+
+    // Al salir de la tarjeta (objetivo cambia o desaparece) el color se quita
+    // YA, sin depender de ningún temporizador: nunca debe quedarse pegado.
+    if (activo !== objetivo) {
+      if (activo) activo.classList.remove(CLASE);
+      activo = objetivo;
+      if (activo) activo.classList.add(CLASE);
+    }
+
+    clearTimeout(temporizador);
+    if (objetivo) {
+      const el = objetivo; // copia local: inmune a que "objetivo" cambie después
+      // Al dejar de mover el mouse (sin salir), el "agua" se asienta y vuelve a blanco.
+      temporizador = setTimeout(() => {
+        el.classList.remove(CLASE);
+        if (activo === el) activo = null;
+      }, 200);
+    }
+
+    if (objetivo && !pendiente) {
+      pendiente = true;
+      requestAnimationFrame(() => {
+        pendiente = false;
+        if (!objetivo) return;
+        const r = objetivo.getBoundingClientRect();
+        const px = ((x - r.left) / r.width) * 100;
+        const py = ((y - r.top) / r.height) * 100;
+        objetivo.style.setProperty('--mx', `${px}%`);
+        objetivo.style.setProperty('--my', `${py}%`);
+        objetivo.style.setProperty('--mxn', px);
+      });
+    }
+  }, { passive: true });
+})();
+
 // Aviso cuando el token vence con la página abierta
 setInterval(() => {
   if (haySesion && !Api.sesion()) {
     haySesion = false;
     pendientes = null;
-    notificacionesCache = null;
     UI.toast('Tu sesión expiró. Inicia sesión de nuevo.', 'warn');
     ir('login');
   }
@@ -5173,91 +3139,3 @@ setInterval(() => {
 
   render();
 })();
-
-async function panelTodas(cargar) {
-  const nodes = []; let after = null; const vistos = new Set();
-  do {
-    const r = await cargar({ first: 200, after });
-    nodes.push(...r.nodes);
-    if (!r.pageInfo.hasNextPage) break;
-    after = r.pageInfo.endCursor;
-    if (!after || vistos.has(after)) throw new Error('No se pudo completar la paginación.');
-    vistos.add(after);
-  } while (true);
-  return { nodes };
-}
-async function panelFlotaEstado(estado, { first = 12, after = null, last = null, before = null, ...filtros }) {
-  const r = await panelTodas(p => Api.vehiculos({ ...filtros, incluirInactivos: estado === 'INACTIVO', ...p }));
-  const lista = estado === 'INACTIVO'
-    ? r.nodes.filter(v => v.activo === false)
-    : r.nodes.filter(v => v.activo && v.estadoActual === estado);
-  const cantidad = last || first;
-  const inicio = before !== null ? Math.max(0, Number(before) - cantidad) : Number(after) || 0;
-  const nodes = lista.slice(inicio, inicio + cantidad);
-  return { nodes, totalCount: lista.length, pageInfo: { hasNextPage: inicio + cantidad < lista.length, endCursor: String(inicio + cantidad), hasPreviousPage: inicio > 0, startCursor: String(inicio) } };
-}
-async function panelFlotaDisponible(p) { return panelFlotaEstado('DISPONIBLE', p); }
-
-// Navegación y tema compartidos, sin controles duplicados en el menú lateral.
-// Automático: día 06:00–17:59 y noche 18:00–05:59, según la hora local del navegador.
-let ultimoPeriodoTema = window.AutoGoTema?.periodoActual?.() || ((new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'dia' : 'noche');
-
-function cambiarTemaManual() {
-  const actual = document.documentElement.getAttribute('data-tema') === 'noche' ? 'noche' : 'dia';
-  const nuevo = actual === 'noche' ? 'dia' : 'noche';
-  const periodo = window.AutoGoTema?.periodoActual?.() || ultimoPeriodoTema;
-  window.AutoGoTema?.aplicar?.(nuevo);
-  if (!window.AutoGoTema) {
-    if (nuevo === 'noche') document.documentElement.setAttribute('data-tema','noche');
-    else document.documentElement.removeAttribute('data-tema');
-  }
-  try {
-    localStorage.setItem('autogo-tema', nuevo);
-    localStorage.setItem('autogo-tema-periodo', periodo);
-  } catch (_) {}
-  pintarFijas();
-}
-
-function comprobarTemaAutomatico() {
-  const periodo = window.AutoGoTema?.periodoActual?.() || ((new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'dia' : 'noche');
-  if (periodo === ultimoPeriodoTema) return;
-  ultimoPeriodoTema = periodo;
-  try {
-    localStorage.removeItem('autogo-tema');
-    localStorage.removeItem('autogo-tema-periodo');
-  } catch (_) {}
-  if (window.AutoGoTema) window.AutoGoTema.aplicar(periodo);
-  else if (periodo === 'noche') document.documentElement.setAttribute('data-tema','noche');
-  else document.documentElement.removeAttribute('data-tema');
-  pintarFijas();
-}
-
-setInterval(comprobarTemaAutomatico, 60e3);
-window.addEventListener('focus', comprobarTemaAutomatico);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) comprobarTemaAutomatico(); });
-
-document.addEventListener('click', e => {
-  if (e.target.closest('[data-tema-global]')) {
-    cambiarTemaManual();
-  }
-  const nb = e.target.closest('[data-notificaciones]');
-  if (nb) { e.preventDefault(); e.stopPropagation(); abrirNotificaciones(nb); return; }
-  if (e.target.closest('[data-cerrar-notif]')) { cerrarNotificaciones(); return; }
-  const filtroN = e.target.closest('[data-filtro-notif]');
-  if (filtroN) { filtroNotificaciones = filtroN.dataset.filtroNotif; pintarListaNotificaciones(); return; }
-  if (e.target.closest('[data-marcar-todas]')) { marcarTodasNotificaciones(); return; }
-  const itemN = e.target.closest('[data-notif-id]');
-  if (itemN) { marcarNotificacion(itemN.dataset.notifId, true); return; }
-  const pending = e.target.closest('[data-modulo-pendiente]');
-  if (pending) UI.toast(pending.dataset.moduloPendiente + ': este módulo todavía no está implementado.', 'info');
-  if (e.target.closest('[data-menu-movil]')) {
-    const app = $('#app'); const abierto = app.classList.toggle('menu-abierto');
-    e.target.closest('[data-menu-movil]').setAttribute('aria-expanded', String(abierto));
-  }
-  if (e.target.closest('.nav-grupo summary') && innerWidth > 860 && !$('#app').classList.contains('expandida')) {
-    $('#app').classList.add('expandida');
-    $('#bMenu').setAttribute('aria-expanded','true');
-    try { localStorage.setItem('autogo.menu','1'); } catch (_) {}
-  }
-});
-document.addEventListener('keydown', e => { if(e.key === 'Escape') { cerrarNotificaciones(); $('#app')?.classList.remove('menu-abierto'); $('[data-menu-movil]')?.setAttribute('aria-expanded','false'); } });

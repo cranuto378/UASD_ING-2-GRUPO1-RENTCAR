@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "AutoGo.Api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "backend/src/AutoGo.Api", "--urls", "http://localhost:5180"],
+      "port": 5180
+    },
+    {
+      "name": "AutoGo.Frontend",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "C:\\Users\\DezGon\\AppData\\Local\\Temp\\claude\\9d921651669a4b3c\\853232eb-b9a9-4e00-a038-e49dbd7b26e4\\scratchpad\\staticserver", "--", "E:\\CODE-POPS\\AutoGo\\UASD_ING-2-GRUPO1-RENTCAR\\Frontend", "5500"],
+      "port": 5500
+    }
+  ]
+}

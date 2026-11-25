@@ -1,0 +1,544 @@
+/* Comportamiento responsive y desplazamiento */
+html,
+body {
+  max-width: 100%;
+}
+
+.main,
+.side,
+.tabla-wrap,
+.modal,
+.modal-bg,
+.segmentos,
+.herramientas,
+.auth,
+.auth-stage,
+.auth-panel {
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabla-wrap,
+.segmentos {
+  overscroll-behavior-inline: contain;
+}
+
+/* Tablet */
+@media (min-width: 861px) and (max-width: 1180px) {
+  html {
+    min-height: 100%;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body {
+    min-height: 100dvh;
+    height: auto;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: auto;
+    touch-action: pan-y;
+  }
+
+  #raiz {
+    min-height: 100dvh;
+    height: auto;
+    overflow: visible;
+  }
+
+  .app,
+  .app.expandida {
+    height: auto !important;
+    min-height: calc(100dvh - 32px) !important;
+    max-height: none !important;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    overflow: visible !important;
+    align-items: start;
+  }
+
+  .main {
+    min-height: 0;
+    height: auto !important;
+    overflow: visible !important;
+    overscroll-behavior: auto;
+    touch-action: pan-y;
+  }
+
+  .side {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+    height: calc(100dvh - 32px);
+    max-height: calc(100dvh - 32px);
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+
+  .tabla-wrap,
+  .adm-tabla-wrap,
+  .fact-tabla-wrap {
+    max-width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+  }
+
+  .segmentos {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    touch-action: pan-x;
+  }
+
+  .modal-bg {
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto !important;
+    touch-action: pan-y;
+  }
+}
+
+/* Teléfono */
+@media (max-width: 860px) {
+  html {
+    min-height: 100%;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body {
+    min-height: 100dvh;
+    height: auto;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: auto;
+    touch-action: pan-y;
+  }
+
+  body.shell-activa {
+    background-attachment: fixed;
+  }
+
+  body.menu-movil-abierto {
+    overflow: hidden !important;
+    touch-action: none;
+  }
+
+  #raiz {
+    min-height: 100dvh;
+    height: auto;
+    overflow: visible;
+  }
+
+  .app,
+  .app.expandida {
+    display: block !important;
+    width: 100%;
+    min-height: 100dvh !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .main {
+    width: 100%;
+    min-height: 100dvh;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 20px 18px 42px !important;
+    overscroll-behavior: auto;
+    touch-action: pan-y;
+  }
+
+  .topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) auto;
+    grid-template-areas:
+      "brand menu"
+      "title title"
+      "actions actions";
+    align-items: center;
+    gap: 14px 12px;
+    margin-bottom: 26px;
+    padding: 0 !important;
+  }
+
+  .topbar .marca {
+    grid-area: brand;
+    display: block !important;
+    width: auto !important;
+  }
+
+  .topbar .marca img {
+    height: 30px !important;
+    width: auto;
+  }
+
+  .topbar > div:not(.top-acc) {
+    grid-area: title;
+    min-width: 0;
+  }
+
+  .topbar h1 {
+    margin: 0;
+    font-size: clamp(24px, 7vw, 30px) !important;
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+  }
+
+  .topbar .sub {
+    margin-top: 7px;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .topbar .menu-movil {
+    grid-area: menu;
+    position: static !important;
+    display: inline-grid !important;
+    place-items: center;
+    justify-self: end;
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    border-radius: 16px !important;
+    z-index: 1 !important;
+    color: var(--txt) !important;
+    background: var(--glass-3) !important;
+    border: 1px solid var(--borde) !important;
+    box-shadow: 0 10px 26px rgba(30,52,84,.12), inset 0 1px 0 rgba(255,255,255,.24) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    backdrop-filter: blur(18px) saturate(130%);
+  }
+
+  .topbar .menu-movil .ic {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .topbar .top-acc {
+    grid-area: actions;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end !important;
+    gap: 8px;
+  }
+
+  .topbar .acc-fijas {
+    margin-left: auto;
+  }
+
+  .topbar .acc-fijas .icon-btn,
+  .topbar .top-acc .icon-btn {
+    --gear: 46px !important;
+    border-radius: 14px !important;
+  }
+
+  body.entorno-cliente .main.hero-on .topbar {
+    margin-bottom: 16px;
+  }
+
+  body.shell-activa .side {
+    position: fixed !important;
+    z-index: 90 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    width: min(310px, 86vw) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom)) !important;
+    border: 0 !important;
+    border-right: 1px solid var(--borde) !important;
+    border-radius: 0 24px 24px 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    transform: translate3d(-105%,0,0);
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform .24s ease, opacity .2s ease, visibility .2s ease;
+    box-shadow: 24px 0 60px rgba(12,24,45,.22) !important;
+  }
+
+  html:not([data-tema="noche"]) body.shell-activa .side {
+    background: rgba(239,246,254,.90) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(135%);
+    backdrop-filter: blur(30px) saturate(135%);
+  }
+
+  html[data-tema="noche"] body.shell-activa .side {
+    background: rgba(5,13,29,.94) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(125%);
+    backdrop-filter: blur(30px) saturate(125%);
+  }
+
+  body.shell-activa .app.menu-abierto .side {
+    transform: translate3d(0,0,0) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  body.shell-activa .side-top {
+    display: flex !important;
+    align-items: center;
+    margin-bottom: 14px !important;
+    min-height: 48px;
+  }
+
+  body.shell-activa .side-top #bMenu {
+    display: none !important;
+  }
+
+  body.shell-activa .side-logo {
+    display: block !important;
+  }
+
+  body.shell-activa .side-logo img {
+    height: 36px;
+  }
+
+  body.shell-activa .nav {
+    flex: 1 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 5px !important;
+    overflow: visible !important;
+  }
+
+  body.shell-activa .nav a,
+  body.shell-activa .nav-grupo summary {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    height: auto !important;
+    display: flex;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    padding: 11px 13px !important;
+    border-radius: 14px;
+    font-size: 13px !important;
+  }
+
+  body.shell-activa .nav a span,
+  body.shell-activa .app.expandida .nav a span,
+  body.shell-activa .nav-grupo summary span {
+    display: block !important;
+    opacity: 1 !important;
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  body.shell-activa .nav a.act::before {
+    display: block !important;
+    left: -16px;
+  }
+
+  body.shell-activa .nav-sub {
+    display: grid !important;
+    gap: 4px;
+    padding: 4px 0 4px 34px;
+  }
+
+  body.shell-activa .nav-sub a {
+    min-height: 38px;
+    padding: 8px 10px !important;
+  }
+
+  body.shell-activa .side-pie {
+    display: block !important;
+    margin-top: 12px;
+    padding-top: 14px;
+    flex: 0 0 auto;
+  }
+
+  body.shell-activa .yo div {
+    display: block !important;
+  }
+
+  body.shell-activa .side-cerrar-sesion {
+    width: 100%;
+  }
+
+  .menu-movil-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgba(12,23,42,.34);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .2s ease, visibility .2s ease;
+  }
+
+  body.menu-movil-abierto .menu-movil-backdrop {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  body.entorno-admin .panel-dashboard,
+  body.entorno-admin .seccion {
+    min-width: 0;
+  }
+
+  body.entorno-admin .kpis,
+  body.entorno-admin .panel-kpis,
+  body.entorno-admin .dashboard-kpis {
+    gap: 12px !important;
+  }
+
+  body.entorno-admin .card,
+  body.entorno-cliente .card {
+    border-radius: 20px !important;
+  }
+
+  body.entorno-admin .panel-kpi {
+    min-height: 150px;
+    padding: 16px 14px !important;
+  }
+
+  body.entorno-admin .kpis:not(.kpis-hero) {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+  }
+
+  body.entorno-admin .kpis:not(.kpis-hero) > :first-child:nth-last-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .grid2,
+  .dos-col,
+  .dash,
+  .perfil-grid,
+  .fac-cols,
+  .config-layout,
+  .registro-alquiler-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .tabla-wrap,
+  .adm-tabla-wrap,
+  .fact-tabla-wrap {
+    width: calc(100% + 8px);
+    max-width: 100%;
+    margin-inline: -4px;
+    padding-inline: 4px;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+  }
+
+  .segmentos {
+    max-width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    justify-content: flex-start;
+    touch-action: pan-x;
+  }
+
+  .segmentos button {
+    flex: 0 0 auto;
+  }
+
+  .modal-bg {
+    align-items: flex-end;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .modal {
+    width: min(100%, 720px);
+    max-height: calc(100dvh - 20px);
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+
+  .auth,
+  .auth-stage,
+  .auth-panel {
+    height: auto;
+    max-height: none;
+  }
+
+  .auth {
+    min-height: 100dvh;
+    overflow-y: visible;
+  }
+
+  .veh-grid,
+  .veh-grid-registro,
+  .accesos {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .main {
+    padding: 16px 14px 34px !important;
+  }
+
+  .topbar {
+    gap: 12px 10px;
+  }
+
+  .topbar h1 {
+    font-size: 25px !important;
+  }
+
+  body.entorno-admin .panel-kpi {
+    min-height: 142px;
+  }
+
+  body.entorno-admin .kpis:not(.kpis-hero) {
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  body.entorno-admin .kpis:not(.kpis-hero) {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.entorno-admin .kpis:not(.kpis-hero) > * {
+    grid-column: auto !important;
+  }
+}
