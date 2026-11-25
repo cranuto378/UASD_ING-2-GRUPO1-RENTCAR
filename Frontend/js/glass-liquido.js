@@ -9,7 +9,8 @@
     '.btn', '.icon-btn', '.nav a', '.chip', '.badge', '.pastilla',
     '.avatar', '.menu-usuario', '.campana', '.side-logo', '.demo-ico',
     '.demo-btn', '.filtro-activo a', '.modal-h .icon-btn', '.tab', '.kpi',
-    '.top-acc > *', '.acciones .icon-btn', '.tema-login'
+    '.top-acc > *', '.acciones .icon-btn', '.tema-login',
+    '.yo', '.side-cerrar-sesion', '.side-pie a', '.side-pie button'
   ].join(', ');
 
   function inyectarFiltroSvg() {
