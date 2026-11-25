@@ -1,6 +1,17 @@
 (() => {
   'use strict';
 
+  // Elementos pequeños y fijos de la interfaz: botones, íconos, chips, badges,
+  // navegación, avatar, pestañas de menú. Deliberadamente EXCLUIDOS: .card,
+  // .app, .side, .main, .lista, .modal (el contenedor grande), .grafico — son
+  // grandes y/o hacen scroll, y el filtro SVG + backdrop-filter ahí sí cuesta.
+  const SELECTOR = [
+    '.btn', '.icon-btn', '.nav a', '.chip', '.badge', '.pastilla',
+    '.avatar', '.menu-usuario', '.campana', '.side-logo', '.demo-ico',
+    '.demo-btn', '.filtro-activo a', '.modal-h .icon-btn', '.tab', '.kpi',
+    '.top-acc > *', '.acciones .icon-btn', '.tema-login'
+  ].join(', ');
+
   function inyectarFiltroSvg() {
     if (document.getElementById('lente-liquida')) return;
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -10,12 +21,27 @@
     svg.innerHTML = `
       <filter id="lente-liquida" x="-20%" y="-20%" width="140%" height="140%">
         <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="7" result="ruido"/>
-        <feDisplacementMap in="SourceGraphic" in2="ruido" scale="18" xChannelSelector="R" yChannelSelector="G"/>
+        <feDisplacementMap in="SourceGraphic" in2="ruido" scale="16" xChannelSelector="R" yChannelSelector="G"/>
       </filter>`;
     document.body.appendChild(svg);
   }
 
-  const SELECTOR = '.icon-btn.cuadro, .menu-usuario, .modal .modal-h .icon-btn, .top-acc .icon-btn, .demo-ico';
+  function etiquetar(raiz) {
+    const nodos = raiz.matches && raiz.matches(SELECTOR) ? [raiz] : [];
+    if (raiz.querySelectorAll) nodos.push(...raiz.querySelectorAll(SELECTOR));
+    for (const el of nodos) el.classList.add('glass-obj');
+  }
+
+  function observarCambios() {
+    etiquetar(document.body);
+    const obs = new MutationObserver(muts => {
+      for (const m of muts)
+        for (const nodo of m.addedNodes)
+          if (nodo.nodeType === 1) etiquetar(nodo);
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  }
+
   let activo = null;
   let rafId = null;
   let pendiente = null;
@@ -30,7 +56,7 @@
   }
 
   function onMove(e) {
-    const el = e.target.closest ? e.target.closest(SELECTOR) : null;
+    const el = e.target.closest ? e.target.closest('.glass-obj') : null;
 
     if (activo && activo !== el) {
       activo.classList.remove('liquido-activo');
@@ -62,6 +88,7 @@
 
   function iniciar() {
     inyectarFiltroSvg();
+    observarCambios();
     document.addEventListener('pointermove', onMove, { passive: true });
     document.addEventListener('pointerleave', onLeaveVentana, { passive: true });
     window.addEventListener('blur', onLeaveVentana);

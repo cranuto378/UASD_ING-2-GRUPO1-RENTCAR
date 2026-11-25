@@ -1,13 +1,10 @@
 /* Efecto "cristal líquido" (aqua glass, estilo iOS 26).
-   Sólo se aplica a elementos pequeños y fijos (botones redondos, menú de
-   usuario, avatar). Las tarjetas que hacen scroll NO lo usan: el filtro SVG
-   es costoso y degradaba el scroll cuando se aplicaba a elementos grandes. */
+   La clase .glass-obj la agrega glass-liquido.js a todos los elementos fijos
+   y pequeños de la interfaz (botones, íconos, chips, badges, nav, avatar...).
+   Las tarjetas que hacen scroll y los contenedores grandes NO la reciben:
+   el filtro SVG es costoso y degradaba el scroll si se aplicaba ahí. */
 
-.icon-btn.cuadro,
-.menu-usuario,
-.modal .modal-h .icon-btn,
-.top-acc .icon-btn,
-.demo-ico {
+.glass-obj {
   position: relative;
   --mx: 50%;
   --my: 50%;
@@ -15,11 +12,7 @@
   isolation: isolate;
 }
 
-.icon-btn.cuadro::before,
-.menu-usuario::before,
-.modal .modal-h .icon-btn::before,
-.top-acc .icon-btn::before,
-.demo-ico::before {
+.glass-obj::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -27,17 +20,13 @@
   pointer-events: none;
   opacity: 0;
   transition: opacity .35s ease;
-  background: radial-gradient(120px 120px at var(--mx) var(--my),
+  background: radial-gradient(90px 90px at var(--mx) var(--my),
     rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 60%);
   mix-blend-mode: screen;
   z-index: 2;
 }
 
-.icon-btn.cuadro::after,
-.menu-usuario::after,
-.modal .modal-h .icon-btn::after,
-.top-acc .icon-btn::after,
-.demo-ico::after {
+.glass-obj::after {
   content: '';
   position: absolute;
   inset: -1px;
@@ -45,7 +34,7 @@
   pointer-events: none;
   opacity: 0;
   transition: opacity .35s ease;
-  padding: 1.5px;
+  padding: 1.4px;
   background: repeating-conic-gradient(from calc(var(--mxn) * 360deg) at var(--mx) var(--my),
     rgba(255, 110, 196, .55) 0deg,
     rgba(255, 196, 110, .50) 45deg,
@@ -62,36 +51,21 @@
   z-index: 1;
 }
 
-.icon-btn.cuadro.liquido-activo::before,
-.menu-usuario.liquido-activo::before,
-.modal .modal-h .icon-btn.liquido-activo::before,
-.top-acc .icon-btn.liquido-activo::before,
-.demo-ico.liquido-activo::before,
-.icon-btn.cuadro.liquido-activo::after,
-.menu-usuario.liquido-activo::after,
-.modal .modal-h .icon-btn.liquido-activo::after,
-.top-acc .icon-btn.liquido-activo::after,
-.demo-ico.liquido-activo::after {
+.glass-obj.liquido-activo::before,
+.glass-obj.liquido-activo::after {
   opacity: 1;
 }
 
 @supports (backdrop-filter: url(#lente-liquida)) {
-  .icon-btn.cuadro.liquido-activo,
-  .menu-usuario.liquido-activo,
-  .modal .modal-h .icon-btn.liquido-activo,
-  .top-acc .icon-btn.liquido-activo,
-  .demo-ico.liquido-activo {
-    backdrop-filter: url(#lente-liquida) blur(6px) saturate(160%);
-    -webkit-backdrop-filter: blur(6px) saturate(160%);
+  .glass-obj.liquido-activo {
+    backdrop-filter: url(#lente-liquida) blur(5px) saturate(160%);
+    -webkit-backdrop-filter: blur(5px) saturate(160%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .icon-btn.cuadro::before, .icon-btn.cuadro::after,
-  .menu-usuario::before, .menu-usuario::after,
-  .modal .modal-h .icon-btn::before, .modal .modal-h .icon-btn::after,
-  .top-acc .icon-btn::before, .top-acc .icon-btn::after,
-  .demo-ico::before, .demo-ico::after {
+  .glass-obj::before,
+  .glass-obj::after {
     transition: none;
   }
 }
