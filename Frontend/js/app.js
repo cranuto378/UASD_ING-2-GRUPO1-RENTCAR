@@ -4720,7 +4720,11 @@ function vAdministradoresBasico(c) {
    ADMINISTRADORES (gestión completa: lista, rol y estado)
 ========================================================= */
 
-const PERFILES_ADM = ['Superadministrador', 'Administrador', 'Operador', 'Consulta'];
+// El backend hoy sólo persiste dos roles reales (Superadministrador y Operador).
+// "Administrador" y "Consulta" quedan listos del lado del frontend (PERMISOS_ROL ya
+// los define) para cuando el backend los implemente; por ahora no se ofrecen al crear
+// una cuenta para no prometer un nivel de acceso que no existe de verdad.
+const PERFILES_ADM = ['Superadministrador', 'Operador'];
 const SLUG_PERFIL = { 'Superadministrador': 'super', 'Administrador': 'admin', 'Operador': 'oper', 'Consulta': 'consulta' };
 
 const svgAdm = d => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;

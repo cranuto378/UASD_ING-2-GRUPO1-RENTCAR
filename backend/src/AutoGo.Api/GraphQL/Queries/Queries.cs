@@ -16,8 +16,20 @@ public sealed class CuentaQueries
 
     /// <summary>Cuentas de personal interno (Administradores y Operadores). Sólo Superadministrador.</summary>
     [Authorize(Policy = Politicas.Administrador)]
-    public Task<IReadOnlyList<UsuarioDto>> Administradores([Service] IAuthService auth, CancellationToken ct) =>
-        auth.ListarAdministradoresAsync(ct);
+    public async Task<IReadOnlyList<UsuarioDto>> Administradores(string? texto, string? perfil,
+        [Service] IAuthService auth, CancellationToken ct)
+    {
+        var lista = await auth.ListarAdministradoresAsync(ct);
+        if (!string.IsNullOrWhiteSpace(texto))
+        {
+            var t = texto.Trim();
+            lista = lista.Where(u => u.Nombre.Contains(t, StringComparison.OrdinalIgnoreCase)
+                || u.Correo.Contains(t, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        if (!string.IsNullOrWhiteSpace(perfil))
+            lista = lista.Where(u => string.Equals(u.Perfil, perfil, StringComparison.OrdinalIgnoreCase)).ToList();
+        return lista;
+    }
 }
 
 [ExtendObjectType(OperationTypeNames.Query)]

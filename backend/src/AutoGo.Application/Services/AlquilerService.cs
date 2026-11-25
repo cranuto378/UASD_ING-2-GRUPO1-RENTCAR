@@ -28,12 +28,13 @@ public sealed class AlquilerService(
     PoliticaTarifas tarifas,
     CalendarioLaboral calendario,
     ICurrentUser actual,
-    IClock clock) : IAlquilerService
+    IClock clock,
+    IConfigFinancieraProvider configFinanciera) : IAlquilerService
 {
     public async Task<IReadOnlyList<AlquilerDto>> ListarAsync(FiltroAlquileres filtro, CancellationToken ct = default)
     {
         var hoy = clock.Hoy;
-        return (await alquileres.ListarAsync(filtro, hoy, ct)).Select(a => a.ToDto(hoy)).ToList();
+        return (await alquileres.ListarAsync(filtro, hoy, ct)).Select(a => a.ToDto(hoy, configFinanciera.Actual)).ToList();
     }
 
     public async Task<IReadOnlyList<AlquilerDto>> ListarMiosAsync(CancellationToken ct = default)
@@ -43,7 +44,7 @@ public sealed class AlquilerService(
     }
 
     public async Task<AlquilerDto> ObtenerAsync(int id, CancellationToken ct = default) =>
-        (await CargarConAcceso(id, ct)).ToDto(clock.Hoy);
+        (await CargarConAcceso(id, ct)).ToDto(clock.Hoy, configFinanciera.Actual);
 
     public async Task<CotizacionDto> CotizarAsync(int vehiculoId, DateOnly fechaInicio, DateOnly fechaFin, CancellationToken ct = default)
     {
@@ -181,7 +182,7 @@ public sealed class AlquilerService(
         return alquiler;
     }
 
-    private async Task<AlquilerDto> ObtenerDto(int id, CancellationToken ct) => (await Cargar(id, ct)).ToDto(clock.Hoy);
+    private async Task<AlquilerDto> ObtenerDto(int id, CancellationToken ct) => (await Cargar(id, ct)).ToDto(clock.Hoy, configFinanciera.Actual);
 
     private async Task<Vehiculo> CargarVehiculo(int id, CancellationToken ct) =>
         await vehiculos.ObtenerPorIdAsync(id, clock.Hoy, ct) ?? throw new NotFoundException("Vehículo", id);

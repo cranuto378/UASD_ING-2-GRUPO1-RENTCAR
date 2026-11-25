@@ -1,4 +1,5 @@
 using AutoGo.Application.Common;
+using AutoGo.Application.Dtos;
 using AutoGo.Application.Services;
 using AutoGo.Domain.Services;
 
@@ -30,6 +31,7 @@ public static class ApplicationServices
         services.AddScoped<IFacturaService, FacturaService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IParametrosService, ParametrosService>();
+        services.AddSingleton<IConfigFinancieraProvider, ConfigFinancieraProviderTemporal>();
         return services;
     }
 }

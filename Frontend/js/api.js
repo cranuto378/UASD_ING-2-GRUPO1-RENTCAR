@@ -216,10 +216,21 @@ const Api = (() => {
         restablecerPassword(token: $token, passwordNueva: $passwordNueva)
       }`, { token, passwordNueva }),
 
+    // El backend hoy sólo acepta { nombre, correo, passwordTemporal, rol }. El formulario
+    // nuevo manda "perfil" (texto) y además "activo"/"forzarCambio", que el backend
+    // todavía no admite (siempre crea activo y con cambio de contraseña obligatorio).
     crearAdministrador: input => pedir('crearAdministrador',
       `mutation CrearAdministrador($input: CrearAdministradorInput!) {
         crearAdministrador(input: $input) { ${ADMIN_EXTRA ? ADMIN : USUARIO} }
-      }`, { input }),
+      }`, {
+        input: {
+          nombre: input.nombre,
+          correo: input.correo,
+          passwordTemporal: input.passwordTemporal,
+          rol: (input.rol || input.perfil || 'Operador').toUpperCase() === 'SUPERADMINISTRADOR'
+            ? 'ADMINISTRADOR' : 'OPERADOR'
+        }
+      }),
 
     administradores: ({ texto = null, perfil = null } = {}) => pedir('administradores',
       `query Administradores($texto: String, $perfil: String) {

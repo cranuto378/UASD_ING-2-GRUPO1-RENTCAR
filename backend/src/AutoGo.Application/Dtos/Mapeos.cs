@@ -16,14 +16,14 @@ internal static class Mapeos
         new(v.Id, v.Placa, v.CategoriaId, v.CategoriaNombre, v.Marca, v.Modelo, v.Anio, v.PrecioDia,
             v.EstadoOperativo, v.EstadoActual(hoy), v.MantenimientoHasta, v.FotoUrl, v.Activo);
 
-    public static AlquilerDto ToDto(this Alquiler a, DateOnly hoy) =>
+    public static AlquilerDto ToDto(this Alquiler a, DateOnly hoy, ConfigFinancieraDto configFinanciera) =>
         new(a.Id, a.ClienteId, a.ClienteNombre, a.ClienteCedula, a.VehiculoId, a.Placa, $"{a.Marca} {a.Modelo}",
             a.Canal, a.FechaInicio, a.FechaFinPactada, a.FechaDevolucion, a.PrecioDia, a.Dias, a.MontoBase,
             a.DiasMora, a.MontoMora, a.MontoTotal, a.TotalFacturado, a.Estado, a.EstaVencido(hoy), a.DiasRetraso(hoy),
-            a.Observaciones, a.FechaCreacion);
+            a.Observaciones, a.FechaCreacion, configFinanciera);
 
-    public static FacturaDto ToDto(this Factura f) =>
+    public static FacturaDto ToDto(this Factura f, ConfigFinancieraDto configFinanciera) =>
         new(f.Id, f.AlquilerId, f.Tipo, f.Concepto, f.Monto, f.MetodoPago, f.FechaEmision, f.ClienteId, f.ClienteNombre,
             f.ClienteCedula, f.ClienteTelefono, f.ClienteCorreo, f.VehiculoId, f.Placa, $"{f.Marca} {f.Modelo}",
-            f.CategoriaNombre, f.FechaInicio, f.FechaFinPactada, f.Dias, f.PrecioDia);
+            f.CategoriaNombre, f.FechaInicio, f.FechaFinPactada, f.Dias, f.PrecioDia, configFinanciera);
 }
