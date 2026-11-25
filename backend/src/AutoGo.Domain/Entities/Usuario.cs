@@ -17,15 +17,17 @@ public sealed class Usuario
     public int? ClienteId { get; private set; }
     /// <summary>Instante UTC del último inicio de sesión exitoso. Null = nunca ha iniciado sesión.</summary>
     public DateTime? UltimoAccesoUtc { get; private set; }
+    public DateTime FechaCreacion { get; private set; }
 
     private Usuario() { }
 
     public static Usuario Rehidratar(int id, string nombre, string correo, string? passwordHash, Rol rol,
-        bool debeCambiarPassword, bool activo, int? clienteId, DateTime? ultimoAccesoUtc = null) => new()
+        bool debeCambiarPassword, bool activo, int? clienteId, DateTime? ultimoAccesoUtc = null,
+        DateTime fechaCreacion = default) => new()
     {
         Id = id, Nombre = nombre, Correo = correo, PasswordHash = passwordHash, Rol = rol,
         DebeCambiarPassword = debeCambiarPassword, Activo = activo, ClienteId = clienteId,
-        UltimoAccesoUtc = ultimoAccesoUtc
+        UltimoAccesoUtc = ultimoAccesoUtc, FechaCreacion = fechaCreacion
     };
 
     public bool PuedeIniciarSesion => Activo && !string.IsNullOrEmpty(PasswordHash);

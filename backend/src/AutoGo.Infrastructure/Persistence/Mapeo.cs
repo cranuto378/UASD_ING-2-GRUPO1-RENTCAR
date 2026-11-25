@@ -8,7 +8,7 @@ internal static class Mapeo
     public static T ParseEnum<T>(string valor) where T : struct, System.Enum => System.Enum.Parse<T>(valor, ignoreCase: true);
 
     public static Usuario ToEntity(this UsuarioRow r) =>
-        Usuario.Rehidratar(r.Id, r.Nombre, r.Correo, r.PasswordHash, ParseEnum<Rol>(r.Rol), r.DebeCambiarPassword, r.Activo, r.ClienteId, r.UltimoAccesoUtc);
+        Usuario.Rehidratar(r.Id, r.Nombre, r.Correo, r.PasswordHash, ParseEnum<Rol>(r.Rol), r.DebeCambiarPassword, r.Activo, r.ClienteId, r.UltimoAccesoUtc, r.FechaCreacion);
 
     public static Cliente ToEntity(this ClienteRow r) =>
         Cliente.Rehidratar(r.Id, r.UsuarioId, r.Nombre, r.Cedula, r.Correo, r.Telefono, r.LicenciaConducir, r.Activo,

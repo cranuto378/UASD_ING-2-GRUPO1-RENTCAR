@@ -4,7 +4,19 @@ namespace AutoGo.Application.Dtos;
 
 // ---------- Salidas ----------
 public sealed record UsuarioDto(int Id, string Nombre, string Correo, Rol Rol, bool DebeCambiarPassword, int? ClienteId,
-    DateTime? UltimoAccesoUtc = null);
+    DateTime? UltimoAccesoUtc = null, bool Activo = true, DateTime FechaCreacion = default)
+{
+    /// <summary>Perfil legible para el frontend (separado de Rol por compatibilidad con su esquema de permisos).</summary>
+    public string? Perfil => Rol switch
+    {
+        Rol.Administrador => "Superadministrador",
+        Rol.Operador => "Operador",
+        _ => null
+    };
+
+    /// <summary>Alias de UltimoAccesoUtc con el nombre que espera el frontend.</summary>
+    public DateTime? UltimoAcceso => UltimoAccesoUtc;
+}
 
 public sealed record AuthResultadoDto(string Token, DateTime ExpiraEnUtc, UsuarioDto Usuario);
 
@@ -39,7 +51,11 @@ public sealed record OperacionAlquilerDto(AlquilerDto Alquiler, int? FacturaId);
 
 public sealed record DashboardDto(int TotalClientes, int TotalVehiculos, int VehiculosDisponibles,
     int VehiculosAlquilados, int VehiculosEnMantenimiento, int VehiculosFueraDeServicio, int AlquileresActivos,
-    int AlquileresVencidos, int PendientesDevolucion, decimal IngresosTotales, decimal IngresosMes);
+    int AlquileresVencidos, int PendientesDevolucion, decimal IngresosTotales, decimal IngresosMes)
+{
+    /// <summary>Ingresos de la comisión Wallet GO del mes. 0 hasta que el motor de Wallet GO esté implementado.</summary>
+    public decimal IngresosWalletMes => 0m;
+}
 
 // ---------- Entradas ----------
 public sealed record RegistroClienteInput(string Nombre, string Correo, string Password, string Cedula,

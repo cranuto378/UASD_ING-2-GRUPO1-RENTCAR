@@ -1,4 +1,4 @@
-/* ============================================================================
+﻿/* ============================================================================
 
   Este script es solo para azure, no ejecutarlo otra vez puesto que ya la tengo creada.
    ============================================================================ */
@@ -27,13 +27,13 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 /* ============================================================================
-   AutoGo - Sistema de Renta de Vehículos
+   AutoGo - Sistema de Renta de VehÃ­culos
    Script 01: Tablas (SQL Server 2019+ / Azure SQL Database)
    Se ejecuta DENTRO de la base destino (sqlcmd -d <base>); no crea ni cambia de base.
 
    Responsabilidad de la BD:
      - Persistir datos e integridad (PK, FK, UNIQUE, CHECK).
-     - Operaciones atómicas vía stored procedures (script 02).
+     - Operaciones atÃ³micas vÃ­a stored procedures (script 02).
    La BD NO calcula montos, NO decide estados de negocio y NO usa triggers:
    todas las reglas viven en la API (AutoGo.Domain / AutoGo.Application).
    ============================================================================ */
@@ -53,14 +53,14 @@ GO
 
 /* ---------------------------------------------------------------------------
    Usuarios: SOLO cuentas de acceso (administradores y clientes del portal).
-   Contraseñas almacenadas como hash BCrypt, nunca en texto plano.
+   ContraseÃ±as almacenadas como hash BCrypt, nunca en texto plano.
    --------------------------------------------------------------------------- */
 CREATE TABLE dbo.Usuarios
 (
     Id                  INT            IDENTITY(1,1) NOT NULL,
     Nombre              NVARCHAR(100)  NOT NULL,
     Correo              NVARCHAR(150)  NOT NULL,
-    PasswordHash        NVARCHAR(255)  NULL,          -- NULL = cuenta sin contraseña (debe recuperarla)
+    PasswordHash        NVARCHAR(255)  NULL,          -- NULL = cuenta sin contraseÃ±a (debe recuperarla)
     Rol                 NVARCHAR(20)   NOT NULL CONSTRAINT DF_Usuarios_Rol DEFAULT (N'Cliente'),
     DebeCambiarPassword BIT            NOT NULL CONSTRAINT DF_Usuarios_DebeCambiar DEFAULT (0),
     Activo              BIT            NOT NULL CONSTRAINT DF_Usuarios_Activo DEFAULT (1),
@@ -92,12 +92,12 @@ CREATE TABLE dbo.Clientes
     CONSTRAINT FK_Clientes_Usuarios FOREIGN KEY (UsuarioId) REFERENCES dbo.Usuarios (Id)
 );
 GO
--- Un usuario sólo puede estar vinculado a un cliente
+-- Un usuario sÃ³lo puede estar vinculado a un cliente
 CREATE UNIQUE INDEX UX_Clientes_UsuarioId ON dbo.Clientes (UsuarioId) WHERE UsuarioId IS NOT NULL;
 GO
 
 /* ---------------------------------------------------------------------------
-   Categorías de vehículo (antes texto libre: 'Economico', 'Sedán', 'SUV'...)
+   CategorÃ­as de vehÃ­culo (antes texto libre: 'Economico', 'SedÃ¡n', 'SUV'...)
    --------------------------------------------------------------------------- */
 CREATE TABLE dbo.Categorias
 (
@@ -110,7 +110,7 @@ CREATE TABLE dbo.Categorias
 GO
 
 /* ---------------------------------------------------------------------------
-   Parámetros generales editables desde Configuración. Fila única (Id = 1).
+   ParÃ¡metros generales editables desde ConfiguraciÃ³n. Fila Ãºnica (Id = 1).
    --------------------------------------------------------------------------- */
 CREATE TABLE dbo.ParametrosGenerales
 (
@@ -125,8 +125,8 @@ INSERT INTO dbo.ParametrosGenerales (Id, ComisionWalletGo) VALUES (1, 70.00);
 GO
 
 /* ---------------------------------------------------------------------------
-   Vehículos.
-   EstadoOperativo guarda sólo lo que NO se puede derivar:
+   VehÃ­culos.
+   EstadoOperativo guarda sÃ³lo lo que NO se puede derivar:
      Disponible | Mantenimiento | FueraDeServicio
    "Alquilado" NO se guarda: se deriva de los alquileres activos (evita que el
    estado quede desincronizado como pasaba en el sistema anterior).
@@ -156,7 +156,7 @@ GO
 
 /* ---------------------------------------------------------------------------
    Alquileres. Guarda una "foto" del precio al momento de alquilar (PrecioDia)
-   para que un cambio de tarifa futuro no altere alquileres históricos.
+   para que un cambio de tarifa futuro no altere alquileres histÃ³ricos.
    --------------------------------------------------------------------------- */
 CREATE TABLE dbo.Alquileres
 (
@@ -197,8 +197,8 @@ GO
 /* ---------------------------------------------------------------------------
    Facturas: documentos INMUTABLES. Nunca se actualizan.
      Alquiler -> cobro inicial
-     Mora     -> cargo por devolución tardía
-     Ajuste   -> diferencia por modificación / nota de crédito (monto negativo)
+     Mora     -> cargo por devoluciÃ³n tardÃ­a
+     Ajuste   -> diferencia por modificaciÃ³n / nota de crÃ©dito (monto negativo)
    --------------------------------------------------------------------------- */
 CREATE TABLE dbo.Facturas
 (
@@ -220,7 +220,7 @@ CREATE INDEX IX_Facturas_Alquiler ON dbo.Facturas (AlquilerId);
 GO
 
 /* ---------------------------------------------------------------------------
-   Tokens de recuperación de contraseña (se guarda el SHA-256, no el token).
+   Tokens de recuperaciÃ³n de contraseÃ±a (se guarda el SHA-256, no el token).
    --------------------------------------------------------------------------- */
 CREATE TABLE dbo.TokensRecuperacion
 (
@@ -247,19 +247,19 @@ GO
 
    Convenciones:
      - Prefijo usp_<Entidad>_<Accion>.
-     - Las fechas "de negocio" (@Hoy) las envía la API: la BD no decide qué día es.
-     - Los montos llegan YA calculados desde la API. La BD sólo persiste.
+     - Las fechas "de negocio" (@Hoy) las envÃ­a la API: la BD no decide quÃ© dÃ­a es.
+     - Los montos llegan YA calculados desde la API. La BD sÃ³lo persiste.
      - Errores controlados con THROW (la API los traduce a errores GraphQL):
          51000  NO_ENCONTRADO
-         51001  CONFLICTO_FECHAS   (vehículo ya comprometido en esas fechas)
-         51002  ESTADO_INVALIDO    (el registro cambió de estado; concurrencia)
+         51001  CONFLICTO_FECHAS   (vehÃ­culo ya comprometido en esas fechas)
+         51002  ESTADO_INVALIDO    (el registro cambiÃ³ de estado; concurrencia)
          51003  TOKEN_INVALIDO
    ============================================================================ */
 
 /* ============================================================================
-   Función: alquileres activos que chocan con un rango de fechas.
-   Invariante de datos: un vehículo no puede estar comprometido dos veces.
-   Un alquiler activo vencido (no devuelto) sigue ocupando el vehículo hasta @Hoy.
+   FunciÃ³n: alquileres activos que chocan con un rango de fechas.
+   Invariante de datos: un vehÃ­culo no puede estar comprometido dos veces.
+   Un alquiler activo vencido (no devuelto) sigue ocupando el vehÃ­culo hasta @Hoy.
    ============================================================================ */
 CREATE OR ALTER FUNCTION dbo.ufn_AlquileresEnConflicto
 (
@@ -282,7 +282,7 @@ RETURN
 GO
 
 /* ============================================================================
-   USUARIOS / AUTENTICACIÓN
+   USUARIOS / AUTENTICACIÃ“N
    ============================================================================ */
 CREATE OR ALTER PROCEDURE dbo.usp_Usuario_ObtenerPorCorreo
     @Correo NVARCHAR(150)
@@ -290,7 +290,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT u.Id, u.Nombre, u.Correo, u.PasswordHash, u.Rol, u.DebeCambiarPassword, u.Activo,
-           u.UltimoAccesoUtc, c.Id AS ClienteId
+           u.UltimoAccesoUtc, u.FechaCreacion, c.Id AS ClienteId
     FROM dbo.Usuarios u
     LEFT JOIN dbo.Clientes c ON c.UsuarioId = u.Id
     WHERE u.Correo = @Correo;
@@ -303,7 +303,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT u.Id, u.Nombre, u.Correo, u.PasswordHash, u.Rol, u.DebeCambiarPassword, u.Activo,
-           u.UltimoAccesoUtc, c.Id AS ClienteId
+           u.UltimoAccesoUtc, u.FechaCreacion, c.Id AS ClienteId
     FROM dbo.Usuarios u
     LEFT JOIN dbo.Clientes c ON c.UsuarioId = u.Id
     WHERE u.Id = @Id;
@@ -326,7 +326,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT u.Id, u.Nombre, u.Correo, u.PasswordHash, u.Rol, u.DebeCambiarPassword, u.Activo,
-           u.UltimoAccesoUtc, CAST(NULL AS INT) AS ClienteId
+           u.UltimoAccesoUtc, u.FechaCreacion, CAST(NULL AS INT) AS ClienteId
     FROM dbo.Usuarios u
     WHERE u.Rol IN (N'Administrador', N'Operador')
     ORDER BY u.Nombre;
@@ -350,7 +350,7 @@ GO
 
 /* Crea la cuenta de portal de un cliente. Si @ClienteIdExistente viene informado
    (el cliente ya fue registrado en mostrador) se vincula en lugar de duplicarlo.
-   La decisión de vincular o crear la toma la API. */
+   La decisiÃ³n de vincular o crear la toma la API. */
 CREATE OR ALTER PROCEDURE dbo.usp_Usuario_RegistrarCliente
     @ClienteIdExistente INT = NULL,
     @Nombre             NVARCHAR(100),
@@ -451,7 +451,7 @@ BEGIN
 END
 GO
 
-/* Consume el token y cambia la contraseña de forma atómica. */
+/* Consume el token y cambia la contraseÃ±a de forma atÃ³mica. */
 CREATE OR ALTER PROCEDURE dbo.usp_TokenRecuperacion_Consumir
     @TokenId      INT,
     @PasswordHash NVARCHAR(255),
@@ -472,7 +472,7 @@ BEGIN
            AND ExpiraEn > @AhoraUtc;
 
         IF @@ROWCOUNT = 0
-            THROW 51003, N'El token de recuperación no es válido o ya expiró.', 1;
+            THROW 51003, N'El token de recuperaciÃ³n no es vÃ¡lido o ya expirÃ³.', 1;
 
         UPDATE dbo.Usuarios
            SET PasswordHash = @PasswordHash,
@@ -563,7 +563,7 @@ BEGIN
 END
 GO
 
-/* Baja lógica: los clientes con historial no se borran físicamente. */
+/* Baja lÃ³gica: los clientes con historial no se borran fÃ­sicamente. */
 CREATE OR ALTER PROCEDURE dbo.usp_Cliente_Desactivar
     @Id INT
 AS
@@ -595,7 +595,7 @@ END
 GO
 
 /* ============================================================================
-   CATEGORÍAS
+   CATEGORÃAS
    ============================================================================ */
 CREATE OR ALTER PROCEDURE dbo.usp_Categoria_Listar
 AS
@@ -642,8 +642,8 @@ END
 GO
 
 /* ============================================================================
-   VEHÍCULOS
-   AlquilerActivoId: alquiler activo que ya comenzó (@Hoy). La API lo usa para
+   VEHÃCULOS
+   AlquilerActivoId: alquiler activo que ya comenzÃ³ (@Hoy). La API lo usa para
    derivar el estado "Alquilado".
    ============================================================================ */
 CREATE OR ALTER PROCEDURE dbo.usp_Vehiculo_Listar
@@ -704,8 +704,8 @@ BEGIN
 END
 GO
 
-/* Vehículos activos SIN alquileres en conflicto con el rango.
-   Si además están en mantenimiento / fuera de servicio lo decide la API
+/* VehÃ­culos activos SIN alquileres en conflicto con el rango.
+   Si ademÃ¡s estÃ¡n en mantenimiento / fuera de servicio lo decide la API
    (se devuelven EstadoOperativo y MantenimientoHasta para ello). */
 CREATE OR ALTER PROCEDURE dbo.usp_Vehiculo_ListarSinConflicto
     @FechaInicio DATE,
@@ -766,7 +766,7 @@ BEGIN
      WHERE Id = @Id;
 
     IF @@ROWCOUNT = 0
-        THROW 51000, N'Vehículo no encontrado.', 1;
+        THROW 51000, N'VehÃ­culo no encontrado.', 1;
 END
 GO
 
@@ -783,7 +783,7 @@ BEGIN
      WHERE Id = @Id;
 
     IF @@ROWCOUNT = 0
-        THROW 51000, N'Vehículo no encontrado.', 1;
+        THROW 51000, N'VehÃ­culo no encontrado.', 1;
 END
 GO
 
@@ -795,7 +795,7 @@ BEGIN
     SET NOCOUNT ON;
     UPDATE dbo.Vehiculos SET FotoUrl = @FotoUrl WHERE Id = @Id;
     IF @@ROWCOUNT = 0
-        THROW 51000, N'Vehículo no encontrado.', 1;
+        THROW 51000, N'VehÃ­culo no encontrado.', 1;
 END
 GO
 
@@ -806,7 +806,7 @@ BEGIN
     SET NOCOUNT ON;
     UPDATE dbo.Vehiculos SET Activo = 0 WHERE Id = @Id;
     IF @@ROWCOUNT = 0
-        THROW 51000, N'Vehículo no encontrado.', 1;
+        THROW 51000, N'VehÃ­culo no encontrado.', 1;
 END
 GO
 
@@ -859,8 +859,8 @@ BEGIN
 END
 GO
 
-/* Crea alquiler + factura inicial de forma atómica.
-   Bloquea el vehículo para evitar doble alquiler concurrente. */
+/* Crea alquiler + factura inicial de forma atÃ³mica.
+   Bloquea el vehÃ­culo para evitar doble alquiler concurrente. */
 CREATE OR ALTER PROCEDURE dbo.usp_Alquiler_Crear
     @ClienteId              INT,
     @VehiculoId             INT,
@@ -883,12 +883,12 @@ BEGIN
 
     BEGIN TRANSACTION;
 
-        -- Serializa operaciones sobre el mismo vehículo
+        -- Serializa operaciones sobre el mismo vehÃ­culo
         IF NOT EXISTS (SELECT 1 FROM dbo.Vehiculos WITH (UPDLOCK, HOLDLOCK) WHERE Id = @VehiculoId)
-            THROW 51000, N'Vehículo no encontrado.', 1;
+            THROW 51000, N'VehÃ­culo no encontrado.', 1;
 
         IF EXISTS (SELECT 1 FROM dbo.ufn_AlquileresEnConflicto(@VehiculoId, @FechaInicio, @FechaFinPactada, @Hoy, NULL))
-            THROW 51001, N'El vehículo ya está comprometido en ese rango de fechas.', 1;
+            THROW 51001, N'El vehÃ­culo ya estÃ¡ comprometido en ese rango de fechas.', 1;
 
         INSERT INTO dbo.Alquileres
             (ClienteId, VehiculoId, RegistradoPorUsuarioId, Canal, FechaInicio, FechaFinPactada,
@@ -908,8 +908,8 @@ BEGIN
 END
 GO
 
-/* Modifica un alquiler activo. Si cambia el monto, la API envía el ajuste
-   (positivo = cobro adicional, negativo = nota de crédito). */
+/* Modifica un alquiler activo. Si cambia el monto, la API envÃ­a el ajuste
+   (positivo = cobro adicional, negativo = nota de crÃ©dito). */
 CREATE OR ALTER PROCEDURE dbo.usp_Alquiler_Modificar
     @Id              INT,
     @VehiculoId      INT,
@@ -932,10 +932,10 @@ BEGIN
     BEGIN TRANSACTION;
 
         IF NOT EXISTS (SELECT 1 FROM dbo.Vehiculos WITH (UPDLOCK, HOLDLOCK) WHERE Id = @VehiculoId)
-            THROW 51000, N'Vehículo no encontrado.', 1;
+            THROW 51000, N'VehÃ­culo no encontrado.', 1;
 
         IF EXISTS (SELECT 1 FROM dbo.ufn_AlquileresEnConflicto(@VehiculoId, @FechaInicio, @FechaFinPactada, @Hoy, @Id))
-            THROW 51001, N'El vehículo ya está comprometido en ese rango de fechas.', 1;
+            THROW 51001, N'El vehÃ­culo ya estÃ¡ comprometido en ese rango de fechas.', 1;
 
         UPDATE dbo.Alquileres
            SET VehiculoId = @VehiculoId,
@@ -949,7 +949,7 @@ BEGIN
            AND Estado = N'Activo';
 
         IF @@ROWCOUNT = 0
-            THROW 51002, N'El alquiler no existe o ya no está activo.', 1;
+            THROW 51002, N'El alquiler no existe o ya no estÃ¡ activo.', 1;
 
         IF @MontoAjuste <> 0
         BEGIN
@@ -986,7 +986,7 @@ BEGIN
            AND Estado = N'Activo';
 
         IF @@ROWCOUNT = 0
-            THROW 51002, N'El alquiler no existe o ya no está activo.', 1;
+            THROW 51002, N'El alquiler no existe o ya no estÃ¡ activo.', 1;
 
         IF @MontoReembolso > 0
         BEGIN
@@ -1000,8 +1000,8 @@ BEGIN
 END
 GO
 
-/* Devolución: cierra el alquiler, factura la mora (si la API la calculó)
-   y envía el vehículo a mantenimiento hasta la fecha indicada por la API. */
+/* DevoluciÃ³n: cierra el alquiler, factura la mora (si la API la calculÃ³)
+   y envÃ­a el vehÃ­culo a mantenimiento hasta la fecha indicada por la API. */
 CREATE OR ALTER PROCEDURE dbo.usp_Alquiler_RegistrarDevolucion
     @Id                 INT,
     @FechaDevolucion    DATE,
@@ -1029,7 +1029,7 @@ BEGIN
            AND Estado = N'Activo';
 
         IF @@ROWCOUNT = 0
-            THROW 51002, N'El alquiler no existe o ya no está activo.', 1;
+            THROW 51002, N'El alquiler no existe o ya no estÃ¡ activo.', 1;
 
         IF @MontoMora > 0
         BEGIN

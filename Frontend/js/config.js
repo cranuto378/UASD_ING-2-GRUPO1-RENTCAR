@@ -1,11 +1,12 @@
-﻿/* =========================================================
-   CONFIGURACIÓN
-   API_URL: dirección base del backend (sin /graphql).
-   DEMO: false para usar datos locales sin backend.
-   También se activa con ?demo=1 y se desactiva con ?demo=0
+/* =========================================================
+   AUTOGO · CONFIGURACIÓN DE INTEGRACIÓN
+   LOCAL_DB: usa una base de datos local de demostración en el navegador.
+   Para conectar el backend real más adelante, cambia LOCAL_DB a false.
 ========================================================= */
 
 window.AUTOGO_CONFIG = {
   API_URL: 'http://localhost:5180',
-  DEMO: false
+  LOCAL_DB: false,
+  VEHICULO_EXTRA: false,
+  ADMIN_EXTRA: true
 };

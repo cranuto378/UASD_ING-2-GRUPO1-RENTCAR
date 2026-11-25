@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    CLIENTE GRAPHQL
    Un solo endpoint: POST {API_URL}/graphql
    Token en Authorization: Bearer <token>
@@ -9,18 +9,6 @@ const Api = (() => {
   const BASE = (cfg.API_URL || '').replace(/\/+$/, '');
   const CLAVE = 'autogo.sesion';
 
-  const params = new URLSearchParams(location.search);
-
-  if (params.has('demo')) {
-    try {
-      if (params.get('demo') === '0') localStorage.removeItem('autogo.demo');
-      else localStorage.setItem('autogo.demo', '1');
-    } catch (e) { /* almacenamiento no disponible */ }
-  }
-
-  const DEMO = !!cfg.DEMO || (() => {
-    try { return localStorage.getItem('autogo.demo') === '1'; } catch (e) { return false; }
-  })();
 
   class ApiError extends Error {
     constructor(code, message) {
@@ -88,15 +76,6 @@ const Api = (() => {
   /* Petición */
 
   async function pedir(op, query, variables = {}, archivo) {
-    if (DEMO) {
-      const vars = archivo ? { ...variables, [archivo.campo]: archivo.file } : variables;
-
-      try {
-        return await Demo.ejecutar(op, vars, actual && actual.token);
-      } catch (e) {
-        throw new ApiError(e.code || 'ERROR_INTERNO', e.message || 'Ocurrió un error inesperado.');
-      }
-    }
 
     const headers = {};
     let body;
@@ -156,17 +135,27 @@ const Api = (() => {
 
   /* Campos */
 
-  const USUARIO = 'id nombre correo rol debeCambiarPassword clienteId ultimoAccesoUtc';
+  const USUARIO = 'id nombre correo rol perfil debeCambiarPassword clienteId';
   const AUTH = `token expiraEnUtc usuario { ${USUARIO} }`;
-  const CATEGORIA = 'id nombre';
-  const VEHICULO = 'id placa categoriaId categoria marca modelo anio precioDia estadoOperativo estadoActual mantenimientoHasta fotoUrl activo';
-  const COTIZACION = 'vehiculoId fechaInicio fechaFin dias precioDia total';
+  const CATEGORIA = 'id nombre activo';
+  // Campos ampliados de vehículos requeridos por la interfaz final.
+  const VEHICULO_EXTRA = cfg.VEHICULO_EXTRA === true;
+
+  // Gestión completa de administradores y roles requerida por la interfaz final.
+  const ADMIN_EXTRA = cfg.ADMIN_EXTRA === true;
+  const ADMIN = 'id nombre correo rol perfil activo debeCambiarPassword ultimoAcceso fechaCreacion';
+  const VEHICULO = 'id placa categoriaId categoria marca modelo anio precioDia estadoOperativo estadoActual mantenimientoHasta fotoUrl activo' +
+    (VEHICULO_EXTRA ? ' color transmision capacidad observaciones' : '');
+  const FINANCIERA = 'impuestoPct retencionPct recargoMoraPct retiroWalletClientePct';
+  const COTIZACION = `vehiculoId fechaInicio fechaFin dias precioDia subtotal impuesto retencion total configFinanciera { ${FINANCIERA} }`;
   const CLIENTE = 'id nombre cedula correo telefono licenciaConducir activo tieneCuenta fechaCreacion';
-  const ALQUILER = 'id clienteId clienteNombre clienteCedula vehiculoId placa vehiculo canal fechaInicio fechaFinPactada fechaDevolucion precioDia dias montoBase diasMora montoMora montoTotal totalFacturado estado vencido diasRetraso observaciones fechaCreacion';
-  const OPERACION = `facturaId alquiler { ${ALQUILER} }`;
-  const DEVOLUCION = 'alquilerId fechaDevolucion diasMora montoMora montoBase montoTotal';
-  const FACTURA = 'id alquilerId tipo concepto monto metodoPago fechaEmision clienteId clienteNombre clienteCedula clienteTelefono clienteCorreo vehiculoId placa vehiculo categoria fechaInicio fechaFinPactada dias precioDia';
-  const DASHBOARD = 'totalClientes totalVehiculos vehiculosDisponibles vehiculosAlquilados vehiculosEnMantenimiento vehiculosFueraDeServicio alquileresActivos alquileresVencidos pendientesDevolucion ingresosTotales ingresosMes';
+  const ALQUILER = `id clienteId clienteNombre clienteCedula vehiculoId placa vehiculo canal fechaInicio fechaFinPactada fechaDevolucion precioDia dias montoBase impuestoAlquiler retencionAlquiler totalAlquiler diasMora subtotalMora recargoMora impuestoMora retencionMora montoMora diasNoUsados subtotalReembolso impuestoReembolso retencionReembolso creditoWallet montoTotal totalFacturado estado vencido diasRetraso observaciones fechaCreacion configFinanciera { ${FINANCIERA} }`;
+  const OPERACION = `facturaId creditoWallet diasNoUsados alquiler { ${ALQUILER} }`;
+  const DEVOLUCION = `alquilerId fechaDevolucion diasMora subtotalMora recargoMora impuestoMora retencionMora montoMora diasNoUsados subtotalReembolso impuestoReembolso retencionReembolso creditoWallet montoBase subtotalAlquiler impuestoAlquiler retencionAlquiler totalAlquiler montoTotal configFinanciera { ${FINANCIERA} }`;
+  const FACTURA = `id alquilerId tipo concepto monto subtotal impuesto retencion total desgloseModo metodoPago fechaEmision clienteId clienteNombre clienteCedula clienteTelefono clienteCorreo vehiculoId placa vehiculo categoria fechaInicio fechaFinPactada dias precioDia configFinanciera { ${FINANCIERA} }`;
+  const DASHBOARD = 'totalClientes totalVehiculos vehiculosDisponibles vehiculosAlquilados vehiculosEnMantenimiento vehiculosFueraDeServicio alquileresActivos alquileresVencidos pendientesDevolucion ingresosTotales ingresosMes ingresosWalletMes';
+  const WALLET = `saldo porcentajeRetiro movimientos { id tipo monto concepto fecha alquilerId configFinanciera { ${FINANCIERA} } }`;
+  const CONFIGURACION = `nombreComercial rnc telefono correo direccion diasMantenimientoPostDevolucion permitirRetirosWallet diasAvisoVencimiento impuestoPct retencionPct recargoMoraPct retiroWalletClientePct`;
 
   const conexion = campos =>
     `totalCount pageInfo { hasNextPage hasPreviousPage startCursor endCursor } nodes { ${campos} }`;
@@ -188,7 +177,8 @@ const Api = (() => {
 
 
   return {
-    DEMO,
+    VEHICULO_EXTRA,
+    ADMIN_EXTRA,
     ApiError,
     sesion,
     guardarSesion,
@@ -228,10 +218,26 @@ const Api = (() => {
 
     crearAdministrador: input => pedir('crearAdministrador',
       `mutation CrearAdministrador($input: CrearAdministradorInput!) {
-        crearAdministrador(input: $input) { ${USUARIO} }
+        crearAdministrador(input: $input) { ${ADMIN_EXTRA ? ADMIN : USUARIO} }
       }`, { input }),
 
-    administradores: () => pedir('administradores', `query Administradores { administradores { ${USUARIO} } }`),
+    administradores: ({ texto = null, perfil = null } = {}) => pedir('administradores',
+      `query Administradores($texto: String, $perfil: String) {
+        administradores(texto: $texto, perfil: $perfil) { ${ADMIN} }
+      }`, { texto, perfil }),
+
+    actualizarAdministrador: (id, input) => pedir('actualizarAdministrador',
+      `mutation ActualizarAdministrador($id: Int!, $input: ActualizarAdministradorInput!) {
+        actualizarAdministrador(id: $id, input: $input) { ${ADMIN} }
+      }`, { id, input }),
+
+    restablecerClaveAdministrador: (id, passwordTemporal) => pedir('restablecerClaveAdministrador',
+      `mutation RestablecerClaveAdmin($id: Int!, $passwordTemporal: String!) {
+        restablecerClaveAdministrador(id: $id, passwordTemporal: $passwordTemporal)
+      }`, { id, passwordTemporal }),
+
+    eliminarAdministrador: id => pedir('eliminarAdministrador',
+      `mutation EliminarAdministrador($id: Int!) { eliminarAdministrador(id: $id) }`, { id }),
 
 
     /* Catálogo y vehículos */
@@ -261,12 +267,11 @@ const Api = (() => {
     crearCategoria: nombre => pedir('crearCategoria',
       `mutation CrearCategoria($nombre: String!) { crearCategoria(nombre: $nombre) { ${CATEGORIA} } }`, { nombre }),
 
-    parametros: () => pedir('parametros', `query Parametros { parametros { comisionWalletGo } }`),
+    actualizarCategoria: (id, nombre) => pedir('actualizarCategoria',
+      `mutation ActualizarCategoria($id: Int!, $nombre: String!) { actualizarCategoria(id: $id, nombre: $nombre) { ${CATEGORIA} } }`, { id, nombre }),
 
-    actualizarComisionWalletGo: comisionWalletGo => pedir('actualizarComisionWalletGo',
-      `mutation ActualizarComisionWalletGo($comisionWalletGo: Decimal!) {
-        actualizarComisionWalletGo(comisionWalletGo: $comisionWalletGo) { comisionWalletGo }
-      }`, { comisionWalletGo }),
+    desactivarCategoria: id => pedir('desactivarCategoria',
+      `mutation DesactivarCategoria($id: Int!) { desactivarCategoria(id: $id) }`, { id }),
 
     crearVehiculo: input => pedir('crearVehiculo',
       `mutation CrearVehiculo($input: VehiculoInput!) { crearVehiculo(input: $input) { ${VEHICULO} } }`, { input }),
@@ -288,6 +293,9 @@ const Api = (() => {
 
     desactivarVehiculo: id => pedir('desactivarVehiculo',
       `mutation DesactivarVehiculo($id: Int!) { desactivarVehiculo(id: $id) }`, { id }),
+
+    reactivarVehiculo: id => pedir('reactivarVehiculo',
+      `mutation ReactivarVehiculo($id: Int!) { reactivarVehiculo(id: $id) { ${VEHICULO} } }`, { id }),
 
 
     /* Clientes */
@@ -329,7 +337,7 @@ const Api = (() => {
           alquileres(clienteId: $clienteId, vehiculoId: $vehiculoId, estado: $estado, soloVencidos: $soloVencidos, ${PAG_ARGS}, order: ${ORDEN_ALQUILER[orden] || ORDEN_ALQUILER.reciente}) {
             ${conexion(ALQUILER)}
           }
-        }`, { clienteId, vehiculoId, estado, soloVencidos, ...pagina(p), ...(DEMO ? { _orden: orden } : {}) }),
+        }`, { clienteId, vehiculoId, estado, soloVencidos, ...pagina(p) }),
 
     alquiler: id => pedir('alquiler',
       `query Alquiler($id: Int!) { alquiler(id: $id) { ${ALQUILER} } }`, { id }),
@@ -350,6 +358,10 @@ const Api = (() => {
     registrarDevolucion: input => pedir('registrarDevolucion',
       `mutation RegistrarDevolucion($input: DevolucionInput!) { registrarDevolucion(input: $input) { ${OPERACION} } }`, { input }),
 
+    subirFotoDevolucion: (alquilerId, file) => pedir('subirFotoDevolucion',
+      `mutation SubirFotoDevolucion($alquilerId: Int!, $foto: Upload!) { subirFotoDevolucion(alquilerId: $alquilerId, foto: $foto) }`,
+      { alquilerId }, { campo: 'foto', file }),
+
 
     /* Facturas y dashboard */
 
@@ -364,6 +376,28 @@ const Api = (() => {
 
     factura: id => pedir('factura',
       `query Factura($id: Int!) { factura(id: $id) { ${FACTURA} } }`, { id }),
+
+    /* Wallet GO */
+
+    miWallet: () => pedir('miWallet', `query MiWallet { miWallet { ${WALLET} } }`),
+
+    retirarWallet: () => pedir('retirarWallet',
+      `mutation RetirarWallet { retirarWallet { montoRetirado montoCliente montoEmpresa saldo porcentajeCliente configFinanciera { ${FINANCIERA} } } }`),
+
+    ingresosWallet: ({ desde = null, hasta = null } = {}) => pedir('ingresosWallet',
+      `query IngresosWallet($desde: LocalDate, $hasta: LocalDate) {
+        ingresosWallet(desde: $desde, hasta: $hasta) { id clienteNombre montoRetirado monto fecha }
+      }`, { desde, hasta }),
+
+    /* Configuración institucional: persistencia en backend */
+    configuracion: () => pedir('configuracion',
+      `query Configuracion { configuracion { ${CONFIGURACION} } }`),
+
+    actualizarConfiguracion: input => pedir('actualizarConfiguracion',
+      `mutation ActualizarConfiguracion($input: ConfiguracionInput!) { actualizarConfiguracion(input: $input) { ${CONFIGURACION} } }`, { input }),
+
+    historialConfiguracion: () => pedir('historialConfiguracion',
+      `query HistorialConfiguracion { historialConfiguracion { id fecha usuario cambios anteriorJson nuevoJson } }`),
 
     dashboard: () => pedir('dashboard', `query Dashboard { dashboard { ${DASHBOARD} } }`)
   };

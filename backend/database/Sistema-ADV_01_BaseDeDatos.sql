@@ -304,7 +304,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT u.Id, u.Nombre, u.Correo, u.PasswordHash, u.Rol, u.DebeCambiarPassword, u.Activo,
-           u.UltimoAccesoUtc, c.Id AS ClienteId
+           u.UltimoAccesoUtc, u.FechaCreacion, c.Id AS ClienteId
     FROM dbo.Usuarios u
     LEFT JOIN dbo.Clientes c ON c.UsuarioId = u.Id
     WHERE u.Correo = @Correo;
@@ -317,7 +317,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT u.Id, u.Nombre, u.Correo, u.PasswordHash, u.Rol, u.DebeCambiarPassword, u.Activo,
-           u.UltimoAccesoUtc, c.Id AS ClienteId
+           u.UltimoAccesoUtc, u.FechaCreacion, c.Id AS ClienteId
     FROM dbo.Usuarios u
     LEFT JOIN dbo.Clientes c ON c.UsuarioId = u.Id
     WHERE u.Id = @Id;
@@ -340,7 +340,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT u.Id, u.Nombre, u.Correo, u.PasswordHash, u.Rol, u.DebeCambiarPassword, u.Activo,
-           u.UltimoAccesoUtc, CAST(NULL AS INT) AS ClienteId
+           u.UltimoAccesoUtc, u.FechaCreacion, CAST(NULL AS INT) AS ClienteId
     FROM dbo.Usuarios u
     WHERE u.Rol IN (N'Administrador', N'Operador')
     ORDER BY u.Nombre;

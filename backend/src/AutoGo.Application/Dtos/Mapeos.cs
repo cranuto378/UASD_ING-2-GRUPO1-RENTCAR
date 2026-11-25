@@ -5,7 +5,7 @@ namespace AutoGo.Application.Dtos;
 internal static class Mapeos
 {
     public static UsuarioDto ToDto(this Usuario u) =>
-        new(u.Id, u.Nombre, u.Correo, u.Rol, u.DebeCambiarPassword, u.ClienteId, u.UltimoAccesoUtc);
+        new(u.Id, u.Nombre, u.Correo, u.Rol, u.DebeCambiarPassword, u.ClienteId, u.UltimoAccesoUtc, u.Activo, u.FechaCreacion);
 
     public static ClienteDto ToDto(this Cliente c) =>
         new(c.Id, c.Nombre, c.Cedula, c.Correo, c.Telefono, c.LicenciaConducir, c.Activo, c.TieneCuenta, c.FechaCreacion);
