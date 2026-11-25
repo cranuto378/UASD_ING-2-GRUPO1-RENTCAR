@@ -56,4 +56,11 @@ public sealed class UsuarioRepository(SpExecutor db) : IUsuarioRepository
 
     public async Task<IReadOnlyList<Usuario>> ListarAdministradoresAsync(CancellationToken ct = default) =>
         (await db.ListarAsync<UsuarioRow>("dbo.usp_Usuario_ListarAdministradores", null, ct)).Select(r => r.ToEntity()).ToList();
+
+    public Task ActualizarAdministradorAsync(int id, string nombre, Rol rol, bool activo, CancellationToken ct = default) =>
+        db.EjecutarAsync("dbo.usp_Usuario_ActualizarAdministrador",
+            new { Id = id, Nombre = nombre, Rol = rol.ToString(), Activo = activo }, ct);
+
+    public Task EliminarAdministradorAsync(int id, CancellationToken ct = default) =>
+        db.EjecutarAsync("dbo.usp_Usuario_EliminarAdministrador", new { Id = id }, ct);
 }

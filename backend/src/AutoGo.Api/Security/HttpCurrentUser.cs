@@ -19,6 +19,8 @@ public sealed class HttpCurrentUser(IHttpContextAccessor accessor) : ICurrentUse
 
     public int? ClienteId => Entero(ClaimsAutoGo.ClienteId);
 
+    public string? Nombre => Principal?.FindFirstValue(JwtRegisteredClaimNames.Name);
+
     private int? Entero(string claim) =>
         EstaAutenticado && int.TryParse(Principal!.FindFirstValue(claim), out var valor) ? valor : null;
 }

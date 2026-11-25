@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AutoGo.Application.Abstractions;
 using AutoGo.Application.Common;
 using AutoGo.Application.Dtos;
@@ -41,6 +42,41 @@ public sealed class ParametrosService(IParametrosRepository parametros) : IParam
         await parametros.ActualizarComisionWalletGoAsync(comisionWalletGo, ct);
         return await parametros.ObtenerAsync(ct);
     }
+}
+
+public interface IConfiguracionService
+{
+    Task<ConfiguracionDto> ObtenerAsync(CancellationToken ct = default);
+    Task<ConfiguracionDto> ActualizarAsync(ConfiguracionInput input, CancellationToken ct = default);
+    Task<IReadOnlyList<HistorialConfiguracionDto>> HistorialAsync(CancellationToken ct = default);
+}
+
+public sealed class ConfiguracionService(IParametrosRepository parametros, ICurrentUser actual) : IConfiguracionService
+{
+    public async Task<ConfiguracionDto> ObtenerAsync(CancellationToken ct = default) => (await parametros.ObtenerAsync(ct)).ToConfiguracionDto();
+
+    public async Task<ConfiguracionDto> ActualizarAsync(ConfiguracionInput input, CancellationToken ct = default)
+    {
+        foreach (var pct in new[] { input.ImpuestoPct, input.RetencionPct, input.RecargoMoraPct, input.RetiroWalletClientePct })
+            if (pct < 0 || pct > 100)
+                throw new Domain.Common.DomainException(Domain.Common.CodigosError.DatoInvalido, "Los porcentajes deben estar entre 0 y 100.");
+
+        var anterior = (await parametros.ObtenerAsync(ct)).ToConfiguracionDto();
+        var anteriorJson = JsonSerializer.Serialize(anterior);
+        var nuevoJson = JsonSerializer.Serialize(input);
+        var usuarioId = actual.UsuarioId ?? 0;
+        var usuario = actual.Nombre ?? $"Usuario #{usuarioId}";
+
+        await parametros.ActualizarConfiguracionAsync(input, usuarioId, usuario, "Configuración institucional actualizada",
+            anteriorJson, nuevoJson, ct);
+
+        return (await parametros.ObtenerAsync(ct)).ToConfiguracionDto();
+    }
+
+    public async Task<IReadOnlyList<HistorialConfiguracionDto>> HistorialAsync(CancellationToken ct = default) =>
+        (await parametros.ObtenerHistorialAsync(ct))
+        .Select(h => new HistorialConfiguracionDto(h.Id, h.Fecha, h.Usuario, h.Cambios, h.AnteriorJson, h.NuevoJson))
+        .ToList();
 }
 
 public interface IDashboardService

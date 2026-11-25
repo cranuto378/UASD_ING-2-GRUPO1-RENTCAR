@@ -1,4 +1,5 @@
 using AutoGo.Application.Abstractions;
+using AutoGo.Application.Dtos;
 using AutoGo.Domain.Entities;
 
 namespace AutoGo.Infrastructure.Persistence.Repositories;
@@ -31,13 +32,29 @@ public sealed class ParametrosRepository(SpExecutor db) : IParametrosRepository
 {
     public async Task<ParametrosGenerales> ObtenerAsync(CancellationToken ct = default)
     {
-        var r = await db.PrimeroAsync<ParametrosRow>("dbo.usp_Parametros_Obtener", null, ct)
-                 ?? new ParametrosRow { ComisionWalletGo = 70m };
-        return new ParametrosGenerales(r.ComisionWalletGo);
+        var r = await db.PrimeroAsync<ParametrosRow>("dbo.usp_Parametros_Obtener", null, ct) ?? new ParametrosRow();
+        return new ParametrosGenerales(r.ComisionWalletGo, r.NombreComercial, r.Rnc, r.Telefono, r.Correo, r.Direccion,
+            r.DiasMantenimientoPostDevolucion, r.PermitirRetirosWallet, r.DiasAvisoVencimiento, r.ImpuestoPct,
+            r.RetencionPct, r.RecargoMoraPct, r.RetiroWalletClientePct);
     }
 
     public Task ActualizarComisionWalletGoAsync(decimal comisionWalletGo, CancellationToken ct = default) =>
         db.EjecutarAsync("dbo.usp_Parametros_ActualizarComisionWalletGo", new { ComisionWalletGo = comisionWalletGo }, ct);
+
+    public Task ActualizarConfiguracionAsync(ConfiguracionInput input, int usuarioId, string usuario, string cambios,
+        string anteriorJson, string nuevoJson, CancellationToken ct = default) =>
+        db.EjecutarAsync("dbo.usp_Configuracion_Actualizar", new
+        {
+            input.NombreComercial, input.Rnc, input.Telefono, input.Correo, input.Direccion,
+            input.DiasMantenimientoPostDevolucion, input.PermitirRetirosWallet, input.DiasAvisoVencimiento,
+            input.ImpuestoPct, input.RetencionPct, input.RecargoMoraPct, input.RetiroWalletClientePct,
+            UsuarioId = usuarioId, Usuario = usuario, Cambios = cambios, AnteriorJson = anteriorJson, NuevoJson = nuevoJson
+        }, ct);
+
+    public async Task<IReadOnlyList<HistorialConfiguracion>> ObtenerHistorialAsync(CancellationToken ct = default) =>
+        (await db.ListarAsync<HistorialConfiguracionRow>("dbo.usp_Configuracion_Historial", null, ct))
+        .Select(r => new HistorialConfiguracion(r.Id, r.Fecha, r.Usuario, r.Cambios, r.AnteriorJson, r.NuevoJson))
+        .ToList();
 }
 
 public sealed class WalletRepository(SpExecutor db) : IWalletRepository

@@ -19,6 +19,9 @@ public interface IAuthService
     Task RestablecerPasswordAsync(string token, string passwordNueva, CancellationToken ct = default);
     Task<UsuarioDto> CrearAdministradorAsync(CrearAdministradorInput input, CancellationToken ct = default);
     Task<IReadOnlyList<UsuarioDto>> ListarAdministradoresAsync(CancellationToken ct = default);
+    Task<UsuarioDto> ActualizarAdministradorAsync(int id, ActualizarAdministradorInput input, CancellationToken ct = default);
+    Task<bool> RestablecerClaveAdministradorAsync(int id, string passwordTemporal, CancellationToken ct = default);
+    Task<bool> EliminarAdministradorAsync(int id, CancellationToken ct = default);
 }
 
 public sealed class AuthService(
@@ -138,6 +141,51 @@ public sealed class AuthService(
 
     public async Task<IReadOnlyList<UsuarioDto>> ListarAdministradoresAsync(CancellationToken ct = default) =>
         (await usuarios.ListarAdministradoresAsync(ct)).Select(u => u.ToDto()).ToList();
+
+    public async Task<UsuarioDto> ActualizarAdministradorAsync(int id, ActualizarAdministradorInput input, CancellationToken ct = default)
+    {
+        var usuario = await usuarios.ObtenerPorIdAsync(id, ct) ?? throw new NotFoundException("Usuario", id);
+        if (usuario.Rol is not (Rol.Administrador or Rol.Operador))
+            throw new NotFoundException("Usuario", id);
+
+        var nombre = string.IsNullOrWhiteSpace(input.Nombre)
+            ? throw new Domain.Common.DomainException(Domain.Common.CodigosError.DatoInvalido, "El nombre es obligatorio.")
+            : input.Nombre.Trim();
+        var rol = input.Perfil.Equals("Superadministrador", StringComparison.OrdinalIgnoreCase) ? Rol.Administrador : Rol.Operador;
+
+        if ((rol == Rol.Administrador || usuario.Rol == Rol.Administrador) && !actual.EsAdministrador)
+            throw new ForbiddenException("Sólo un Superadministrador puede modificar otra cuenta de Superadministrador.");
+        if (id == actual.UsuarioId && !input.Activo)
+            throw new Domain.Common.DomainException(Domain.Common.CodigosError.ReglaNegocio, "No puedes desactivar tu propia cuenta.");
+
+        await usuarios.ActualizarAdministradorAsync(id, nombre, rol, input.Activo, ct);
+        return (await usuarios.ObtenerPorIdAsync(id, ct) ?? throw new NotFoundException("Usuario", id)).ToDto();
+    }
+
+    public async Task<bool> RestablecerClaveAdministradorAsync(int id, string passwordTemporal, CancellationToken ct = default)
+    {
+        var usuario = await usuarios.ObtenerPorIdAsync(id, ct) ?? throw new NotFoundException("Usuario", id);
+        if (usuario.Rol is not (Rol.Administrador or Rol.Operador)) throw new NotFoundException("Usuario", id);
+        if (usuario.Rol == Rol.Administrador && !actual.EsAdministrador)
+            throw new ForbiddenException("Sólo un Superadministrador puede restablecer la clave de otro Superadministrador.");
+
+        PoliticaPassword.Validar(passwordTemporal);
+        await usuarios.ActualizarPasswordAsync(id, hasher.Hash(passwordTemporal), true, ct);
+        return true;
+    }
+
+    public async Task<bool> EliminarAdministradorAsync(int id, CancellationToken ct = default)
+    {
+        var usuario = await usuarios.ObtenerPorIdAsync(id, ct) ?? throw new NotFoundException("Usuario", id);
+        if (usuario.Rol is not (Rol.Administrador or Rol.Operador)) throw new NotFoundException("Usuario", id);
+        if (usuario.Rol == Rol.Administrador && !actual.EsAdministrador)
+            throw new ForbiddenException("Sólo un Superadministrador puede eliminar otra cuenta de Superadministrador.");
+        if (id == actual.UsuarioId)
+            throw new Domain.Common.DomainException(Domain.Common.CodigosError.ReglaNegocio, "No puedes eliminar tu propia cuenta.");
+
+        await usuarios.EliminarAdministradorAsync(id, ct);
+        return true;
+    }
 
     private async Task<Usuario> ObtenerActualAsync(CancellationToken ct)
     {

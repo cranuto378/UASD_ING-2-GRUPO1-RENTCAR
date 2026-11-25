@@ -109,6 +109,24 @@ internal sealed class FakeUsuarios : IUsuarioRepository
 
     public Task<IReadOnlyList<Usuario>> ListarAdministradoresAsync(CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Usuario>>(Datos.Where(u => u.Rol is Rol.Administrador or Rol.Operador).ToList());
+
+    public Task ActualizarAdministradorAsync(int id, string nombre, Rol rol, bool activo, CancellationToken ct = default)
+    {
+        var i = Datos.FindIndex(u => u.Id == id);
+        if (i >= 0)
+            Datos[i] = Usuario.Rehidratar(Datos[i].Id, nombre, Datos[i].Correo, Datos[i].PasswordHash,
+                rol, Datos[i].DebeCambiarPassword, activo, Datos[i].ClienteId, Datos[i].UltimoAccesoUtc, Datos[i].FechaCreacion);
+        return Task.CompletedTask;
+    }
+
+    public Task EliminarAdministradorAsync(int id, CancellationToken ct = default)
+    {
+        var i = Datos.FindIndex(u => u.Id == id);
+        if (i >= 0)
+            Datos[i] = Usuario.Rehidratar(Datos[i].Id, Datos[i].Nombre, Datos[i].Correo, Datos[i].PasswordHash,
+                Datos[i].Rol, Datos[i].DebeCambiarPassword, false, Datos[i].ClienteId, Datos[i].UltimoAccesoUtc, Datos[i].FechaCreacion);
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class FakeParametros : IParametrosRepository
@@ -116,13 +134,20 @@ internal sealed class FakeParametros : IParametrosRepository
     public decimal ComisionWalletGo { get; set; } = 70m;
 
     public Task<ParametrosGenerales> ObtenerAsync(CancellationToken ct = default) =>
-        Task.FromResult(new ParametrosGenerales(ComisionWalletGo));
+        Task.FromResult(new ParametrosGenerales(ComisionWalletGo, "AutoGo Rent a Car", null, null, null, null,
+            1, true, 2, 0m, 0m, 30m, 30m));
 
     public Task ActualizarComisionWalletGoAsync(decimal comisionWalletGo, CancellationToken ct = default)
     {
         ComisionWalletGo = comisionWalletGo;
         return Task.CompletedTask;
     }
+
+    public Task ActualizarConfiguracionAsync(ConfiguracionInput input, int usuarioId, string usuario, string cambios,
+        string anteriorJson, string nuevoJson, CancellationToken ct = default) => Task.CompletedTask;
+
+    public Task<IReadOnlyList<HistorialConfiguracion>> ObtenerHistorialAsync(CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<HistorialConfiguracion>>([]);
 }
 
 internal sealed class FakeClientes : IClienteRepository

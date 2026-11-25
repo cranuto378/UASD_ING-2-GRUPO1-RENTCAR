@@ -54,7 +54,7 @@ public sealed class VehiculoService(
     public async Task<VehiculoDto> CrearAsync(VehiculoInput input, CancellationToken ct = default)
     {
         var vehiculo = Vehiculo.Crear(input.Placa, input.CategoriaId, input.Marca, input.Modelo, input.Anio,
-            input.PrecioDia, clock.Hoy);
+            input.PrecioDia, clock.Hoy, input.Color, input.Transmision, input.Capacidad, input.Observaciones);
         await ValidarCategoria(vehiculo.CategoriaId, ct);
         if (await vehiculos.ExistePlacaAsync(vehiculo.Placa, null, ct))
             throw new ConflictException("PLACA_DUPLICADA", $"Ya existe un vehículo con la placa {vehiculo.Placa}.");
@@ -66,7 +66,8 @@ public sealed class VehiculoService(
     public async Task<VehiculoDto> ActualizarAsync(int id, VehiculoInput input, CancellationToken ct = default)
     {
         var vehiculo = await Cargar(id, ct);
-        vehiculo.Actualizar(input.Placa, input.CategoriaId, input.Marca, input.Modelo, input.Anio, input.PrecioDia, clock.Hoy);
+        vehiculo.Actualizar(input.Placa, input.CategoriaId, input.Marca, input.Modelo, input.Anio, input.PrecioDia, clock.Hoy,
+            input.Color, input.Transmision, input.Capacidad, input.Observaciones);
         await ValidarCategoria(vehiculo.CategoriaId, ct);
         if (await vehiculos.ExistePlacaAsync(vehiculo.Placa, id, ct))
             throw new ConflictException("PLACA_DUPLICADA", $"Ya existe otro vehículo con la placa {vehiculo.Placa}.");

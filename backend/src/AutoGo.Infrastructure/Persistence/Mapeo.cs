@@ -19,7 +19,7 @@ internal static class Mapeo
     public static Vehiculo ToEntity(this VehiculoRow r) =>
         Vehiculo.Rehidratar(r.Id, r.Placa, r.CategoriaId, r.CategoriaNombre, r.Marca, r.Modelo, r.Anio, r.PrecioDia,
             ParseEnum<EstadoOperativo>(r.EstadoOperativo), r.MantenimientoHasta.ToDateOnly(), r.FotoUrl, r.Activo,
-            r.AlquilerActivoId);
+            r.AlquilerActivoId, r.Color, r.Transmision, r.Capacidad, r.Observaciones);
 
     public static Alquiler ToEntity(this AlquilerRow r) =>
         Alquiler.Rehidratar(r.Id, r.ClienteId, r.ClienteNombre, r.ClienteCedula, r.VehiculoId, r.Placa, r.Marca,

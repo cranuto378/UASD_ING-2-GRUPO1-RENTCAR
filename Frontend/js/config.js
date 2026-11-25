@@ -7,6 +7,6 @@
 window.AUTOGO_CONFIG = {
   API_URL: 'http://localhost:5180',
   LOCAL_DB: false,
-  VEHICULO_EXTRA: false,
+  VEHICULO_EXTRA: true,
   ADMIN_EXTRA: true
 };

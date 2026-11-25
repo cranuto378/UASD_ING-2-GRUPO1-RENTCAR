@@ -27,7 +27,8 @@ public sealed record CategoriaDto(int Id, string Nombre);
 
 public sealed record VehiculoDto(int Id, string Placa, int CategoriaId, string Categoria, string Marca, string Modelo,
     int Anio, decimal PrecioDia, EstadoOperativo EstadoOperativo, EstadoVehiculo EstadoActual,
-    DateOnly? MantenimientoHasta, string? FotoUrl, bool Activo);
+    DateOnly? MantenimientoHasta, string? FotoUrl, bool Activo, string? Color = null, string? Transmision = null,
+    int? Capacidad = null, string? Observaciones = null);
 
 /// <summary>
 /// Porcentajes de impuesto/retención/mora/Wallet GO. Fase 2: constantes que reflejan
@@ -46,6 +47,26 @@ public sealed class ConfigFinancieraProviderTemporal : IConfigFinancieraProvider
 {
     public ConfigFinancieraDto Actual => new(0m, 0m, 30m, 30m);
 }
+
+/// <summary>Lee los porcentajes vigentes desde Configuración institucional (fila única en BD).</summary>
+public sealed class ConfigFinancieraProviderDb(Abstractions.IParametrosRepository parametros) : IConfigFinancieraProvider
+{
+    public ConfigFinancieraDto Actual
+    {
+        get
+        {
+            var p = parametros.ObtenerAsync().GetAwaiter().GetResult();
+            return new ConfigFinancieraDto(p.ImpuestoPct, p.RetencionPct, p.RecargoMoraPct, p.RetiroWalletClientePct);
+        }
+    }
+}
+
+public sealed record ConfiguracionDto(string NombreComercial, string? Rnc, string? Telefono, string? Correo,
+    string? Direccion, int DiasMantenimientoPostDevolucion, bool PermitirRetirosWallet, int DiasAvisoVencimiento,
+    decimal ImpuestoPct, decimal RetencionPct, decimal RecargoMoraPct, decimal RetiroWalletClientePct);
+
+public sealed record HistorialConfiguracionDto(int Id, DateTime Fecha, string Usuario, string Cambios,
+    string AnteriorJson, string NuevoJson);
 
 public sealed record AlquilerDto(int Id, int ClienteId, string ClienteNombre, string ClienteCedula, int VehiculoId,
     string Placa, string Vehiculo, CanalAlquiler Canal, DateOnly FechaInicio, DateOnly FechaFinPactada,
@@ -117,9 +138,12 @@ public sealed record RegistroClienteInput(string Nombre, string Correo, string P
 
 public sealed record CrearAdministradorInput(string Nombre, string Correo, string PasswordTemporal, Rol Rol = Rol.Operador);
 
+public sealed record ActualizarAdministradorInput(string Nombre, string Perfil, bool Activo);
+
 public sealed record ClienteInput(string Nombre, string Cedula, string? Correo, string? Telefono, string? LicenciaConducir);
 
-public sealed record VehiculoInput(string Placa, int CategoriaId, string Marca, string Modelo, int Anio, decimal PrecioDia);
+public sealed record VehiculoInput(string Placa, int CategoriaId, string Marca, string Modelo, int Anio, decimal PrecioDia,
+    string? Color = null, string? Transmision = null, int? Capacidad = null, string? Observaciones = null);
 
 public sealed record CambiarEstadoVehiculoInput(int VehiculoId, EstadoOperativo Estado, DateOnly? MantenimientoHasta);
 
@@ -130,3 +154,7 @@ public sealed record ModificarAlquilerInput(int AlquilerId, int VehiculoId, Date
     MetodoPago? MetodoPago);
 
 public sealed record DevolucionInput(int AlquilerId, DateOnly? FechaDevolucion, MetodoPago? MetodoPagoMora);
+
+public sealed record ConfiguracionInput(string NombreComercial, string? Rnc, string? Telefono, string? Correo,
+    string? Direccion, int DiasMantenimientoPostDevolucion, bool PermitirRetirosWallet, int DiasAvisoVencimiento,
+    decimal ImpuestoPct, decimal RetencionPct, decimal RecargoMoraPct, decimal RetiroWalletClientePct);

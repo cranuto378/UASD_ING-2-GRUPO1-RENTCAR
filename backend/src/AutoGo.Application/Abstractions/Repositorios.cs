@@ -1,3 +1,4 @@
+using AutoGo.Application.Dtos;
 using AutoGo.Domain.Entities;
 using AutoGo.Domain.Enums;
 
@@ -21,6 +22,8 @@ public interface IUsuarioRepository
     Task RegistrarAccesoAsync(int usuarioId, DateTime ahoraUtc, CancellationToken ct = default);
     /// <summary>Cuentas de personal interno (Administrador y Operador), para la pantalla Administradores.</summary>
     Task<IReadOnlyList<Usuario>> ListarAdministradoresAsync(CancellationToken ct = default);
+    Task ActualizarAdministradorAsync(int id, string nombre, Rol rol, bool activo, CancellationToken ct = default);
+    Task EliminarAdministradorAsync(int id, CancellationToken ct = default);
 }
 
 public interface IClienteRepository
@@ -97,8 +100,14 @@ public interface IDashboardRepository
         CancellationToken ct = default);
 }
 
-/// <summary>Parámetros generales editables desde Configuración (fila única).</summary>
-public sealed record ParametrosGenerales(decimal ComisionWalletGo);
+/// <summary>Parámetros generales / Configuración institucional editables (fila única).</summary>
+public sealed record ParametrosGenerales(decimal ComisionWalletGo, string NombreComercial, string? Rnc,
+    string? Telefono, string? Correo, string? Direccion, int DiasMantenimientoPostDevolucion,
+    bool PermitirRetirosWallet, int DiasAvisoVencimiento, decimal ImpuestoPct, decimal RetencionPct,
+    decimal RecargoMoraPct, decimal RetiroWalletClientePct);
+
+public sealed record HistorialConfiguracion(int Id, DateTime Fecha, string Usuario, string Cambios,
+    string AnteriorJson, string NuevoJson);
 
 public sealed record WalletMovimiento(int Id, string Tipo, decimal Monto, string Concepto, DateTime Fecha, int? AlquilerId);
 public sealed record WalletRetiro(int Id, string ClienteNombre, decimal Monto, DateTime Fecha);
@@ -116,4 +125,7 @@ public interface IParametrosRepository
 {
     Task<ParametrosGenerales> ObtenerAsync(CancellationToken ct = default);
     Task ActualizarComisionWalletGoAsync(decimal comisionWalletGo, CancellationToken ct = default);
+    Task ActualizarConfiguracionAsync(ConfiguracionInput input, int usuarioId, string usuario, string cambios,
+        string anteriorJson, string nuevoJson, CancellationToken ct = default);
+    Task<IReadOnlyList<HistorialConfiguracion>> ObtenerHistorialAsync(CancellationToken ct = default);
 }

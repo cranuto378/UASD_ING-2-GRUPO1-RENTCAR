@@ -62,6 +62,14 @@ public sealed class ConfiguracionQueries
     /// <summary>Parámetros generales (p. ej. comisión Wallet GO). Sólo Superadministrador.</summary>
     [Authorize(Policy = Politicas.Administrador)]
     public Task<ParametrosGenerales> Parametros([Service] IParametrosService s, CancellationToken ct) => s.ObtenerAsync(ct);
+
+    /// <summary>Configuración institucional (datos de la empresa, impuestos, Wallet GO, avisos). Pública para el portal.</summary>
+    public Task<ConfiguracionDto> Configuracion([Service] IConfiguracionService s, CancellationToken ct) => s.ObtenerAsync(ct);
+
+    /// <summary>Historial de cambios de Configuración institucional. Sólo Superadministrador.</summary>
+    [Authorize(Policy = Politicas.Administrador)]
+    public Task<IReadOnlyList<HistorialConfiguracionDto>> HistorialConfiguracion([Service] IConfiguracionService s,
+        CancellationToken ct) => s.HistorialAsync(ct);
 }
 
 [ExtendObjectType(OperationTypeNames.Query)]

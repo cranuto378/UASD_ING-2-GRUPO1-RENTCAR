@@ -31,7 +31,8 @@ public static class ApplicationServices
         services.AddScoped<IFacturaService, FacturaService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IParametrosService, ParametrosService>();
-        services.AddSingleton<IConfigFinancieraProvider, ConfigFinancieraProviderTemporal>();
+        services.AddScoped<IConfiguracionService, ConfiguracionService>();
+        services.AddScoped<IConfigFinancieraProvider, ConfigFinancieraProviderDb>();
         services.AddScoped<IWalletService, WalletService>();
         return services;
     }

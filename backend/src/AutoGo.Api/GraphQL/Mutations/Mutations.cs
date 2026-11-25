@@ -37,6 +37,18 @@ public sealed class CuentaMutations
     [Authorize(Policy = Politicas.Administrador)]
     public Task<UsuarioDto> CrearAdministrador(CrearAdministradorInput input, [Service] IAuthService s, CancellationToken ct) =>
         s.CrearAdministradorAsync(input, ct);
+
+    [Authorize(Policy = Politicas.Administrador)]
+    public Task<UsuarioDto> ActualizarAdministrador(int id, ActualizarAdministradorInput input, [Service] IAuthService s,
+        CancellationToken ct) => s.ActualizarAdministradorAsync(id, input, ct);
+
+    [Authorize(Policy = Politicas.Administrador)]
+    public Task<bool> RestablecerClaveAdministrador(int id, string passwordTemporal, [Service] IAuthService s,
+        CancellationToken ct) => s.RestablecerClaveAdministradorAsync(id, passwordTemporal, ct);
+
+    [Authorize(Policy = Politicas.Administrador)]
+    public Task<bool> EliminarAdministrador(int id, [Service] IAuthService s, CancellationToken ct) =>
+        s.EliminarAdministradorAsync(id, ct);
 }
 
 [ExtendObjectType(OperationTypeNames.Mutation)]
@@ -74,6 +86,14 @@ public sealed class CatalogoMutations
     [Authorize(Policy = Politicas.Administrador)]
     public Task<ParametrosGenerales> ActualizarComisionWalletGo(decimal comisionWalletGo, [Service] IParametrosService s,
         CancellationToken ct) => s.ActualizarComisionWalletGoAsync(comisionWalletGo, ct);
+}
+
+[ExtendObjectType(OperationTypeNames.Mutation)]
+public sealed class ConfiguracionMutations
+{
+    [Authorize(Policy = Politicas.Administrador)]
+    public Task<ConfiguracionDto> ActualizarConfiguracion(ConfiguracionInput input, [Service] IConfiguracionService s,
+        CancellationToken ct) => s.ActualizarAsync(input, ct);
 }
 
 [ExtendObjectType(OperationTypeNames.Mutation)]

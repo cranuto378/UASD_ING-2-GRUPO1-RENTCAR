@@ -16,6 +16,10 @@ public sealed class Vehiculo
     public DateOnly? MantenimientoHasta { get; private set; }
     public string? FotoUrl { get; private set; }
     public bool Activo { get; private set; }
+    public string? Color { get; private set; }
+    public string? Transmision { get; private set; }
+    public int? Capacidad { get; private set; }
+    public string? Observaciones { get; private set; }
 
     // Proyección de lectura (viene de la consulta, no se persiste desde aquí)
     public string CategoriaNombre { get; private set; } = string.Empty;
@@ -25,24 +29,29 @@ public sealed class Vehiculo
     private Vehiculo() { }
 
     public static Vehiculo Crear(string? placa, int categoriaId, string? marca, string? modelo, int anio,
-        decimal precioDia, DateOnly hoy)
+        decimal precioDia, DateOnly hoy, string? color = null, string? transmision = null, int? capacidad = null,
+        string? observaciones = null)
     {
         var v = new Vehiculo { EstadoOperativo = EstadoOperativo.Disponible, Activo = true };
-        v.AsignarDatos(placa, categoriaId, marca, modelo, anio, precioDia, hoy);
+        v.AsignarDatos(placa, categoriaId, marca, modelo, anio, precioDia, hoy, color, transmision, capacidad, observaciones);
         return v;
     }
 
     public static Vehiculo Rehidratar(int id, string placa, int categoriaId, string categoriaNombre, string marca,
         string modelo, int anio, decimal precioDia, EstadoOperativo estado, DateOnly? mantenimientoHasta,
-        string? fotoUrl, bool activo, int? alquilerActivoId) => new()
+        string? fotoUrl, bool activo, int? alquilerActivoId, string? color = null, string? transmision = null,
+        int? capacidad = null, string? observaciones = null) => new()
     {
         Id = id, Placa = placa, CategoriaId = categoriaId, CategoriaNombre = categoriaNombre, Marca = marca,
         Modelo = modelo, Anio = anio, PrecioDia = precioDia, EstadoOperativo = estado,
-        MantenimientoHasta = mantenimientoHasta, FotoUrl = fotoUrl, Activo = activo, AlquilerActivoId = alquilerActivoId
+        MantenimientoHasta = mantenimientoHasta, FotoUrl = fotoUrl, Activo = activo, AlquilerActivoId = alquilerActivoId,
+        Color = color, Transmision = transmision, Capacidad = capacidad, Observaciones = observaciones
     };
 
     public void Actualizar(string? placa, int categoriaId, string? marca, string? modelo, int anio,
-        decimal precioDia, DateOnly hoy) => AsignarDatos(placa, categoriaId, marca, modelo, anio, precioDia, hoy);
+        decimal precioDia, DateOnly hoy, string? color = null, string? transmision = null, int? capacidad = null,
+        string? observaciones = null) =>
+        AsignarDatos(placa, categoriaId, marca, modelo, anio, precioDia, hoy, color, transmision, capacidad, observaciones);
 
     public string Descripcion => $"{Marca} {Modelo}";
 
@@ -96,7 +105,7 @@ public sealed class Vehiculo
     private bool MantenimientoTerminado(DateOnly hoy) => MantenimientoHasta.HasValue && MantenimientoHasta.Value <= hoy;
 
     private void AsignarDatos(string? placa, int categoriaId, string? marca, string? modelo, int anio,
-        decimal precioDia, DateOnly hoy)
+        decimal precioDia, DateOnly hoy, string? color, string? transmision, int? capacidad, string? observaciones)
     {
         Placa = Guard.Requerido(placa, "placa", 10).ToUpperInvariant().Replace(" ", string.Empty).Replace("-", string.Empty);
         if (categoriaId <= 0)
@@ -110,5 +119,9 @@ public sealed class Vehiculo
         if (precioDia <= 0)
             throw new DomainException(CodigosError.DatoInvalido, "El precio por día debe ser mayor que cero.");
         PrecioDia = decimal.Round(precioDia, 2);
+        Color = string.IsNullOrWhiteSpace(color) ? null : color.Trim();
+        Transmision = string.IsNullOrWhiteSpace(transmision) ? null : transmision.Trim();
+        Capacidad = capacidad is > 0 ? capacidad : null;
+        Observaciones = string.IsNullOrWhiteSpace(observaciones) ? null : observaciones.Trim();
     }
 }

@@ -65,6 +65,10 @@ internal sealed class VehiculoRow
     public string? FotoUrl { get; set; }
     public bool Activo { get; set; }
     public int? AlquilerActivoId { get; set; }
+    public string? Color { get; set; }
+    public string? Transmision { get; set; }
+    public int? Capacidad { get; set; }
+    public string? Observaciones { get; set; }
 }
 
 internal sealed class AlquilerRow
@@ -138,6 +142,28 @@ internal sealed class ResumenRow
 internal sealed class ParametrosRow
 {
     public decimal ComisionWalletGo { get; set; }
+    public string NombreComercial { get; set; } = "AutoGo Rent a Car";
+    public string? Rnc { get; set; }
+    public string? Telefono { get; set; }
+    public string? Correo { get; set; }
+    public string? Direccion { get; set; }
+    public int DiasMantenimientoPostDevolucion { get; set; } = 1;
+    public bool PermitirRetirosWallet { get; set; } = true;
+    public int DiasAvisoVencimiento { get; set; } = 2;
+    public decimal ImpuestoPct { get; set; }
+    public decimal RetencionPct { get; set; }
+    public decimal RecargoMoraPct { get; set; } = 30m;
+    public decimal RetiroWalletClientePct { get; set; } = 30m;
+}
+
+internal sealed class HistorialConfiguracionRow
+{
+    public int Id { get; set; }
+    public DateTime Fecha { get; set; }
+    public string Usuario { get; set; } = "";
+    public string Cambios { get; set; } = "";
+    public string AnteriorJson { get; set; } = "";
+    public string NuevoJson { get; set; } = "";
 }
 
 internal sealed class WalletMovimientoRow

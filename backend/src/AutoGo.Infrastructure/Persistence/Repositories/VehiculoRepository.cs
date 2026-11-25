@@ -26,13 +26,15 @@ public sealed class VehiculoRepository(SpExecutor db) : IVehiculoRepository
     public Task<int> CrearAsync(Vehiculo v, CancellationToken ct = default) =>
         db.EscalarAsync<int>("dbo.usp_Vehiculo_Crear", new
         {
-            v.Placa, v.CategoriaId, v.Marca, v.Modelo, Anio = (short)v.Anio, v.PrecioDia, v.FotoUrl
+            v.Placa, v.CategoriaId, v.Marca, v.Modelo, Anio = (short)v.Anio, v.PrecioDia, v.FotoUrl,
+            v.Color, v.Transmision, v.Capacidad, v.Observaciones
         }, ct);
 
     public Task ActualizarAsync(Vehiculo v, CancellationToken ct = default) =>
         db.EjecutarAsync("dbo.usp_Vehiculo_Actualizar", new
         {
-            v.Id, v.Placa, v.CategoriaId, v.Marca, v.Modelo, Anio = (short)v.Anio, v.PrecioDia
+            v.Id, v.Placa, v.CategoriaId, v.Marca, v.Modelo, Anio = (short)v.Anio, v.PrecioDia,
+            v.Color, v.Transmision, v.Capacidad, v.Observaciones
         }, ct);
 
     public Task CambiarEstadoAsync(Vehiculo v, CancellationToken ct = default) =>

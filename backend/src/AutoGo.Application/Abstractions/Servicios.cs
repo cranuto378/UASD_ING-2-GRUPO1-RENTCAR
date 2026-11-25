@@ -44,6 +44,7 @@ public interface ICurrentUser
     int? UsuarioId { get; }
     Rol? Rol { get; }
     int? ClienteId { get; }
+    string? Nombre => null;
     bool EsAdministrador => Rol == Domain.Enums.Rol.Administrador;
     bool EsOperador => Rol == Domain.Enums.Rol.Operador;
     /// <summary>Personal interno (Administrador u Operador) con acceso operativo de mostrador.</summary>

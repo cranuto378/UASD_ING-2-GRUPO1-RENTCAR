@@ -38,6 +38,7 @@ builder.Services
     .AddTypeExtension<ClienteMutations>()
     .AddTypeExtension<AlquilerMutations>()
     .AddTypeExtension<WalletMutations>()
+    .AddTypeExtension<ConfiguracionMutations>()
     .AddType<UploadType>()
     .AddFiltering()
     .AddSorting()

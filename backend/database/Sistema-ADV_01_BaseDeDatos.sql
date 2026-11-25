@@ -128,14 +128,46 @@ GO
    --------------------------------------------------------------------------- */
 CREATE TABLE dbo.ParametrosGenerales
 (
-    Id               INT           NOT NULL,
-    ComisionWalletGo DECIMAL(5,2)  NOT NULL CONSTRAINT DF_Parametros_ComisionWalletGo DEFAULT (70.00),
+    Id                              INT           NOT NULL,
+    ComisionWalletGo                DECIMAL(5,2)  NOT NULL CONSTRAINT DF_Parametros_ComisionWalletGo DEFAULT (70.00),
+    NombreComercial                 NVARCHAR(200) NOT NULL CONSTRAINT DF_Parametros_NombreComercial DEFAULT (N'AutoGo Rent a Car'),
+    Rnc                              NVARCHAR(20)  NULL,
+    Telefono                        NVARCHAR(30)  NULL,
+    Correo                           NVARCHAR(150) NULL,
+    Direccion                       NVARCHAR(300) NULL,
+    DiasMantenimientoPostDevolucion INT           NOT NULL CONSTRAINT DF_Parametros_DiasMtto DEFAULT (1),
+    PermitirRetirosWallet           BIT           NOT NULL CONSTRAINT DF_Parametros_PermitirRetiros DEFAULT (1),
+    DiasAvisoVencimiento            INT           NOT NULL CONSTRAINT DF_Parametros_DiasAviso DEFAULT (2),
+    ImpuestoPct                     DECIMAL(5,2)  NOT NULL CONSTRAINT DF_Parametros_Impuesto DEFAULT (0.00),
+    RetencionPct                    DECIMAL(5,2)  NOT NULL CONSTRAINT DF_Parametros_Retencion DEFAULT (0.00),
+    RecargoMoraPct                  DECIMAL(5,2)  NOT NULL CONSTRAINT DF_Parametros_RecargoMora DEFAULT (30.00),
+    RetiroWalletClientePct          DECIMAL(5,2)  NOT NULL CONSTRAINT DF_Parametros_RetiroCliente DEFAULT (30.00),
     CONSTRAINT PK_ParametrosGenerales PRIMARY KEY (Id),
     CONSTRAINT CK_ParametrosGenerales_FilaUnica CHECK (Id = 1),
-    CONSTRAINT CK_ParametrosGenerales_Comision CHECK (ComisionWalletGo BETWEEN 0 AND 100)
+    CONSTRAINT CK_ParametrosGenerales_Comision CHECK (ComisionWalletGo BETWEEN 0 AND 100),
+    CONSTRAINT CK_ParametrosGenerales_Impuesto CHECK (ImpuestoPct BETWEEN 0 AND 100),
+    CONSTRAINT CK_ParametrosGenerales_Retencion CHECK (RetencionPct BETWEEN 0 AND 100),
+    CONSTRAINT CK_ParametrosGenerales_RecargoMora CHECK (RecargoMoraPct BETWEEN 0 AND 100),
+    CONSTRAINT CK_ParametrosGenerales_RetiroCliente CHECK (RetiroWalletClientePct BETWEEN 0 AND 100)
 );
 GO
 INSERT INTO dbo.ParametrosGenerales (Id, ComisionWalletGo) VALUES (1, 70.00);
+GO
+
+/* ---------------------------------------------------------------------------
+   Historial de cambios de Configuración institucional (auditoría).
+   --------------------------------------------------------------------------- */
+CREATE TABLE dbo.ConfiguracionHistorial
+(
+    Id            INT            IDENTITY(1,1) NOT NULL,
+    Fecha         DATETIME2(0)   NOT NULL CONSTRAINT DF_ConfigHist_Fecha DEFAULT (SYSUTCDATETIME()),
+    UsuarioId     INT            NOT NULL,
+    Usuario       NVARCHAR(200)  NOT NULL,
+    Cambios       NVARCHAR(500)  NOT NULL,
+    AnteriorJson  NVARCHAR(MAX)  NOT NULL,
+    NuevoJson     NVARCHAR(MAX)  NOT NULL,
+    CONSTRAINT PK_ConfiguracionHistorial PRIMARY KEY (Id)
+);
 GO
 
 /* ---------------------------------------------------------------------------
@@ -159,6 +191,10 @@ CREATE TABLE dbo.Vehiculos
     FotoUrl            NVARCHAR(300) NULL,
     Activo             BIT           NOT NULL CONSTRAINT DF_Vehiculos_Activo DEFAULT (1),
     FechaCreacion      DATETIME2(0)  NOT NULL CONSTRAINT DF_Vehiculos_FechaCreacion DEFAULT (SYSUTCDATETIME()),
+    Color              NVARCHAR(30)  NULL,
+    Transmision        NVARCHAR(20)  NULL,
+    Capacidad          INT           NULL,
+    Observaciones      NVARCHAR(500) NULL,
     CONSTRAINT PK_Vehiculos PRIMARY KEY (Id),
     CONSTRAINT UQ_Vehiculos_Placa UNIQUE (Placa),
     CONSTRAINT FK_Vehiculos_Categorias FOREIGN KEY (CategoriaId) REFERENCES dbo.Categorias (Id),
@@ -367,6 +403,27 @@ BEGIN
     FROM dbo.Usuarios u
     WHERE u.Rol IN (N'Administrador', N'Operador')
     ORDER BY u.Nombre;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Usuario_ActualizarAdministrador
+    @Id INT, @Nombre NVARCHAR(100), @Rol NVARCHAR(20), @Activo BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Usuarios
+       SET Nombre = @Nombre, Rol = @Rol, Activo = @Activo
+     WHERE Id = @Id AND Rol IN (N'Administrador', N'Operador');
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Usuario_EliminarAdministrador
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Usuarios SET Activo = 0
+     WHERE Id = @Id AND Rol IN (N'Administrador', N'Operador');
 END
 GO
 
@@ -665,7 +722,10 @@ CREATE OR ALTER PROCEDURE dbo.usp_Parametros_Obtener
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP (1) ComisionWalletGo FROM dbo.ParametrosGenerales ORDER BY Id;
+    SELECT TOP (1) ComisionWalletGo, NombreComercial, Rnc, Telefono, Correo, Direccion,
+           DiasMantenimientoPostDevolucion, PermitirRetirosWallet, DiasAvisoVencimiento,
+           ImpuestoPct, RetencionPct, RecargoMoraPct, RetiroWalletClientePct
+    FROM dbo.ParametrosGenerales ORDER BY Id;
 END
 GO
 
@@ -675,6 +735,42 @@ AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE dbo.ParametrosGenerales SET ComisionWalletGo = @ComisionWalletGo WHERE Id = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Configuracion_Actualizar
+    @NombreComercial NVARCHAR(200), @Rnc NVARCHAR(20) = NULL, @Telefono NVARCHAR(30) = NULL,
+    @Correo NVARCHAR(150) = NULL, @Direccion NVARCHAR(300) = NULL,
+    @DiasMantenimientoPostDevolucion INT, @PermitirRetirosWallet BIT, @DiasAvisoVencimiento INT,
+    @ImpuestoPct DECIMAL(5,2), @RetencionPct DECIMAL(5,2), @RecargoMoraPct DECIMAL(5,2), @RetiroWalletClientePct DECIMAL(5,2),
+    @UsuarioId INT, @Usuario NVARCHAR(200), @Cambios NVARCHAR(500), @AnteriorJson NVARCHAR(MAX), @NuevoJson NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRANSACTION;
+        UPDATE dbo.ParametrosGenerales
+           SET NombreComercial = @NombreComercial, Rnc = @Rnc, Telefono = @Telefono, Correo = @Correo,
+               Direccion = @Direccion, DiasMantenimientoPostDevolucion = @DiasMantenimientoPostDevolucion,
+               PermitirRetirosWallet = @PermitirRetirosWallet, DiasAvisoVencimiento = @DiasAvisoVencimiento,
+               ImpuestoPct = @ImpuestoPct, RetencionPct = @RetencionPct, RecargoMoraPct = @RecargoMoraPct,
+               RetiroWalletClientePct = @RetiroWalletClientePct,
+               ComisionWalletGo = 100 - @RetiroWalletClientePct
+         WHERE Id = 1;
+
+        INSERT INTO dbo.ConfiguracionHistorial (UsuarioId, Usuario, Cambios, AnteriorJson, NuevoJson)
+        VALUES (@UsuarioId, @Usuario, @Cambios, @AnteriorJson, @NuevoJson);
+    COMMIT TRANSACTION;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Configuracion_Historial
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP (100) Id, Fecha, Usuario, Cambios, AnteriorJson, NuevoJson
+    FROM dbo.ConfiguracionHistorial
+    ORDER BY Fecha DESC, Id DESC;
 END
 GO
 
@@ -693,7 +789,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT v.Id, v.Placa, v.CategoriaId, c.Nombre AS CategoriaNombre, v.Marca, v.Modelo, v.Anio,
            v.PrecioDia, v.EstadoOperativo, v.MantenimientoHasta, v.FotoUrl, v.Activo,
-           act.Id AS AlquilerActivoId
+           act.Id AS AlquilerActivoId, v.Color, v.Transmision, v.Capacidad, v.Observaciones
     FROM dbo.Vehiculos v
     JOIN dbo.Categorias c ON c.Id = v.CategoriaId
     OUTER APPLY (SELECT TOP (1) a.Id
@@ -718,7 +814,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT v.Id, v.Placa, v.CategoriaId, c.Nombre AS CategoriaNombre, v.Marca, v.Modelo, v.Anio,
            v.PrecioDia, v.EstadoOperativo, v.MantenimientoHasta, v.FotoUrl, v.Activo,
-           act.Id AS AlquilerActivoId
+           act.Id AS AlquilerActivoId, v.Color, v.Transmision, v.Capacidad, v.Observaciones
     FROM dbo.Vehiculos v
     JOIN dbo.Categorias c ON c.Id = v.CategoriaId
     OUTER APPLY (SELECT TOP (1) a.Id
@@ -754,7 +850,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT v.Id, v.Placa, v.CategoriaId, c.Nombre AS CategoriaNombre, v.Marca, v.Modelo, v.Anio,
            v.PrecioDia, v.EstadoOperativo, v.MantenimientoHasta, v.FotoUrl, v.Activo,
-           CAST(NULL AS INT) AS AlquilerActivoId
+           CAST(NULL AS INT) AS AlquilerActivoId, v.Color, v.Transmision, v.Capacidad, v.Observaciones
     FROM dbo.Vehiculos v
     JOIN dbo.Categorias c ON c.Id = v.CategoriaId
     WHERE v.Activo = 1
@@ -771,12 +867,16 @@ CREATE OR ALTER PROCEDURE dbo.usp_Vehiculo_Crear
     @Modelo      NVARCHAR(50),
     @Anio        SMALLINT,
     @PrecioDia   DECIMAL(10,2),
-    @FotoUrl     NVARCHAR(300) = NULL
+    @FotoUrl     NVARCHAR(300) = NULL,
+    @Color       NVARCHAR(30) = NULL,
+    @Transmision NVARCHAR(20) = NULL,
+    @Capacidad   INT = NULL,
+    @Observaciones NVARCHAR(500) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.Vehiculos (Placa, CategoriaId, Marca, Modelo, Anio, PrecioDia, FotoUrl)
-    VALUES (@Placa, @CategoriaId, @Marca, @Modelo, @Anio, @PrecioDia, @FotoUrl);
+    INSERT INTO dbo.Vehiculos (Placa, CategoriaId, Marca, Modelo, Anio, PrecioDia, FotoUrl, Color, Transmision, Capacidad, Observaciones)
+    VALUES (@Placa, @CategoriaId, @Marca, @Modelo, @Anio, @PrecioDia, @FotoUrl, @Color, @Transmision, @Capacidad, @Observaciones);
 
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
 END
@@ -789,7 +889,11 @@ CREATE OR ALTER PROCEDURE dbo.usp_Vehiculo_Actualizar
     @Marca       NVARCHAR(50),
     @Modelo      NVARCHAR(50),
     @Anio        SMALLINT,
-    @PrecioDia   DECIMAL(10,2)
+    @PrecioDia   DECIMAL(10,2),
+    @Color       NVARCHAR(30) = NULL,
+    @Transmision NVARCHAR(20) = NULL,
+    @Capacidad   INT = NULL,
+    @Observaciones NVARCHAR(500) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -799,7 +903,11 @@ BEGIN
            Marca = @Marca,
            Modelo = @Modelo,
            Anio = @Anio,
-           PrecioDia = @PrecioDia
+           PrecioDia = @PrecioDia,
+           Color = @Color,
+           Transmision = @Transmision,
+           Capacidad = @Capacidad,
+           Observaciones = @Observaciones
      WHERE Id = @Id;
 
     IF @@ROWCOUNT = 0
