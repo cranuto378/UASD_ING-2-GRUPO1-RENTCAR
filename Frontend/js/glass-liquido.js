@@ -13,20 +13,6 @@
     '.yo', '.side-cerrar-sesion', '.side-pie a', '.side-pie button'
   ].join(', ');
 
-  function inyectarFiltroSvg() {
-    if (document.getElementById('lente-liquida')) return;
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', '0');
-    svg.setAttribute('height', '0');
-    svg.style.position = 'absolute';
-    svg.innerHTML = `
-      <filter id="lente-liquida" x="-20%" y="-20%" width="140%" height="140%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="7" result="ruido"/>
-        <feDisplacementMap in="SourceGraphic" in2="ruido" scale="16" xChannelSelector="R" yChannelSelector="G"/>
-      </filter>`;
-    document.body.appendChild(svg);
-  }
-
   function etiquetar(raiz) {
     const nodos = raiz.matches && raiz.matches(SELECTOR) ? [raiz] : [];
     if (raiz.querySelectorAll) nodos.push(...raiz.querySelectorAll(SELECTOR));
@@ -58,7 +44,10 @@
     const my = ((y - r.top) / r.height) * 100;
     el.style.setProperty('--mx', `${mx}%`);
     el.style.setProperty('--my', `${my}%`);
-    el.style.setProperty('--mxn', String((mx / 100 + my / 100) / 2));
+    // Ángulo del degradado según la posición del cursor: gira el matiz del
+    // borde "aceite en agua" en vez de desplazar paradas de color fijas.
+    const ang = Math.atan2(my / 100 - 0.5, mx / 100 - 0.5) * (180 / Math.PI) + 180;
+    el.style.setProperty('--ang', `${ang}deg`);
   }
 
   function apagar(el) {
@@ -105,7 +94,6 @@
   }
 
   function iniciar() {
-    inyectarFiltroSvg();
     observarCambios();
     document.addEventListener('pointermove', onMove, { passive: true });
     document.addEventListener('pointerleave', onLeaveVentana, { passive: true });
