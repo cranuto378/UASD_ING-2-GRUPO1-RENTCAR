@@ -147,11 +147,11 @@ const Api = (() => {
   const VEHICULO = 'id placa categoriaId categoria marca modelo anio precioDia estadoOperativo estadoActual mantenimientoHasta fotoUrl activo' +
     (VEHICULO_EXTRA ? ' color transmision capacidad observaciones' : '');
   const FINANCIERA = 'impuestoPct retencionPct recargoMoraPct retiroWalletClientePct';
-  const COTIZACION = `vehiculoId fechaInicio fechaFin dias precioDia subtotal impuesto retencion total configFinanciera { ${FINANCIERA} }`;
+  const COTIZACION = 'vehiculoId fechaInicio fechaFin dias precioDia total';
   const CLIENTE = 'id nombre cedula correo telefono licenciaConducir activo tieneCuenta fechaCreacion';
   const ALQUILER = `id clienteId clienteNombre clienteCedula vehiculoId placa vehiculo canal fechaInicio fechaFinPactada fechaDevolucion precioDia dias montoBase impuestoAlquiler retencionAlquiler totalAlquiler diasMora subtotalMora recargoMora impuestoMora retencionMora montoMora diasNoUsados subtotalReembolso impuestoReembolso retencionReembolso creditoWallet montoTotal totalFacturado estado vencido diasRetraso observaciones fechaCreacion configFinanciera { ${FINANCIERA} }`;
   const OPERACION = `facturaId creditoWallet diasNoUsados alquiler { ${ALQUILER} }`;
-  const DEVOLUCION = `alquilerId fechaDevolucion diasMora subtotalMora recargoMora impuestoMora retencionMora montoMora diasNoUsados subtotalReembolso impuestoReembolso retencionReembolso creditoWallet montoBase subtotalAlquiler impuestoAlquiler retencionAlquiler totalAlquiler montoTotal configFinanciera { ${FINANCIERA} }`;
+  const DEVOLUCION = 'alquilerId fechaDevolucion diasMora montoMora montoBase montoTotal';
   const FACTURA = `id alquilerId tipo concepto monto subtotal impuesto retencion total desgloseModo metodoPago fechaEmision clienteId clienteNombre clienteCedula clienteTelefono clienteCorreo vehiculoId placa vehiculo categoria fechaInicio fechaFinPactada dias precioDia configFinanciera { ${FINANCIERA} }`;
   const DASHBOARD = 'totalClientes totalVehiculos vehiculosDisponibles vehiculosAlquilados vehiculosEnMantenimiento vehiculosFueraDeServicio alquileresActivos alquileresVencidos pendientesDevolucion ingresosTotales ingresosMes ingresosWalletMes';
   const WALLET = `saldo porcentajeRetiro movimientos { id tipo monto concepto fecha alquilerId configFinanciera { ${FINANCIERA} } }`;
