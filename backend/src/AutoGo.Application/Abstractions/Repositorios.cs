@@ -20,6 +20,13 @@ public interface IUsuarioRepository
     Task<TokenRecuperacion?> ObtenerTokenVigenteAsync(string tokenHash, DateTime ahoraUtc, CancellationToken ct = default);
     Task ConsumirTokenAsync(int tokenId, string passwordHash, DateTime ahoraUtc, CancellationToken ct = default);
     Task RegistrarAccesoAsync(int usuarioId, DateTime ahoraUtc, CancellationToken ct = default);
+    Task<bool> EstaBloqueadoAsync(int usuarioId, DateTime ahoraUtc, CancellationToken ct = default);
+    Task ActualizarBloqueoAsync(int usuarioId, int intentosFallidos, DateTime? bloqueadoHastaUtc, CancellationToken ct = default);
+    Task RegistrarIntentoLoginAsync(int? usuarioId, string? correo, bool exito, string? ipAddress = null,
+        string? userAgent = null, CancellationToken ct = default);
+    Task RegistrarAuditoriaAsync(int? usuarioId, string? usuarioNombre, string entidad, int? entidadId,
+        string accion, string? detalle = null, string? antesJson = null, string? despuesJson = null,
+        string? ipAddress = null, CancellationToken ct = default);
     /// <summary>Cuentas de personal interno (Administrador y Operador), para la pantalla Administradores.</summary>
     Task<IReadOnlyList<Usuario>> ListarAdministradoresAsync(CancellationToken ct = default);
     Task ActualizarAdministradorAsync(int id, string nombre, Rol rol, bool activo, CancellationToken ct = default);

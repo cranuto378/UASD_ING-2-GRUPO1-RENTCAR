@@ -1,0 +1,34 @@
+# Archivos locales y secretos
+appsettings.Local.json
+appsettings.Production.Local.json
+**/appsettings.Local.json
+**/appsettings.Production.Local.json
+
+# Directorios del entorno local
+.vs/
+.vs/**
+**/.vs/
+**/.vs/**
+
+# Archivos de pruebas temportal/locales
+/test_api.py
+/test_api_clean.py
+utputFormat
+*.tmp
+*.log
+
+# Archivos de publicación local
+*.pubxml.user
+*.publish.xml
+
+# Archivos de IDE
+*.user
+*.suo
+*.cache
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.pyc

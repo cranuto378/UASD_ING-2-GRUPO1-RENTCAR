@@ -15,6 +15,9 @@ internal sealed class UsuarioRow
     public int? ClienteId { get; set; }
     public DateTime? UltimoAccesoUtc { get; set; }
     public DateTime FechaCreacion { get; set; }
+    public int IntentosFallidos { get; set; }
+    public DateTime? BloqueadoHastaUtc { get; set; }
+    public DateTime? FechaUltimoCambioPassword { get; set; }
 }
 
 internal sealed class TokenRow
