@@ -260,10 +260,10 @@ const Api = (() => {
         vehiculosDisponibles(fechaInicio: $fechaInicio, fechaFin: $fechaFin, categoriaId: $categoriaId) { ${VEHICULO} }
       }`, { fechaInicio, fechaFin, categoriaId }),
 
-    cotizarAlquiler: (vehiculoId, fechaInicio, fechaFin) => pedir('cotizarAlquiler',
-      `query Cotizar($vehiculoId: Int!, $fechaInicio: LocalDate!, $fechaFin: LocalDate!) {
-        cotizarAlquiler(vehiculoId: $vehiculoId, fechaInicio: $fechaInicio, fechaFin: $fechaFin) { ${COTIZACION} }
-      }`, { vehiculoId, fechaInicio, fechaFin }),
+    cotizarAlquiler: (vehiculoId, fechaInicio, fechaFin, yaComenzo = false) => pedir('cotizarAlquiler',
+      `query Cotizar($vehiculoId: Int!, $fechaInicio: LocalDate!, $fechaFin: LocalDate!, $yaComenzo: Boolean!) {
+        cotizarAlquiler(vehiculoId: $vehiculoId, fechaInicio: $fechaInicio, fechaFin: $fechaFin, yaComenzo: $yaComenzo) { ${COTIZACION} }
+      }`, { vehiculoId, fechaInicio, fechaFin, yaComenzo }),
 
     vehiculo: id => pedir('vehiculo',
       `query Vehiculo($id: Int!) { vehiculo(id: $id) { ${VEHICULO} } }`, { id }),

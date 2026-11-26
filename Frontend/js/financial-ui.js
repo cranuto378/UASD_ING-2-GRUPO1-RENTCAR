@@ -91,7 +91,7 @@
 
   function quoteModification(alquiler, vehiculoId, inicio, fin) {
     if (cfg.LOCAL_DB === true) return quoteModificationLocal(alquiler, vehiculoId, inicio, fin);
-    return Api.cotizarAlquiler(vehiculoId, inicio, fin);
+    return Api.cotizarAlquiler(vehiculoId, inicio, fin, alquiler.fechaInicio <= today());
   }
 
   function setFormError(form, message) {

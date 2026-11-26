@@ -2604,7 +2604,7 @@ function modificarAlquiler(a, alCambiar) {
     }
 
     try {
-      const cot = await Api.cotizarAlquiler(+f.vehiculoId.value, ini, fin);
+      const cot = await Api.cotizarAlquiler(+f.vehiculoId.value, ini, fin, comenzo);
       $('[data-k=nuevo]', m.el).textContent = fmt.dinero(cot.total);
       $('[data-k=dias]', m.el).textContent = cot.dias;
     } catch (e) {

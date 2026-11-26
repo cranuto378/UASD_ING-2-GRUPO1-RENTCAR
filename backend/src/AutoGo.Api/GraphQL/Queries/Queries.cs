@@ -42,9 +42,11 @@ public sealed class CatalogoQueries
     public Task<IReadOnlyList<VehiculoDto>> VehiculosDisponibles(DateOnly fechaInicio, DateOnly fechaFin, int? categoriaId,
         [Service] IVehiculoService s, CancellationToken ct) => s.ListarDisponiblesAsync(fechaInicio, fechaFin, categoriaId, ct);
 
-    /// <summary>Público: precio calculado por la API (el frontend no debe replicar la regla de días/tarifa).</summary>
-    public Task<CotizacionDto> CotizarAlquiler(int vehiculoId, DateOnly fechaInicio, DateOnly fechaFin,
-        [Service] IAlquilerService s, CancellationToken ct) => s.CotizarAsync(vehiculoId, fechaInicio, fechaFin, ct);
+    /// <summary>Público: precio calculado por la API (el frontend no debe replicar la regla de días/tarifa).
+    /// yaComenzo: true cuando se cotiza la modificación de un alquiler que ya comenzó (la fecha de salida
+    /// queda fija en el pasado y sólo se valida la de entrega).</summary>
+    public Task<CotizacionDto> CotizarAlquiler(int vehiculoId, DateOnly fechaInicio, DateOnly fechaFin, bool yaComenzo = false,
+        [Service] IAlquilerService s = null!, CancellationToken ct = default) => s.CotizarAsync(vehiculoId, fechaInicio, fechaFin, yaComenzo, ct);
 
     [Authorize(Policy = Politicas.Staff)]
     [UsePaging(IncludeTotalCount = true, DefaultPageSize = 50, MaxPageSize = 200)]

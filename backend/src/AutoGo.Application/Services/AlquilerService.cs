@@ -13,7 +13,7 @@ public interface IAlquilerService
     Task<IReadOnlyList<AlquilerDto>> ListarAsync(FiltroAlquileres filtro, CancellationToken ct = default);
     Task<IReadOnlyList<AlquilerDto>> ListarMiosAsync(CancellationToken ct = default);
     Task<AlquilerDto> ObtenerAsync(int id, CancellationToken ct = default);
-    Task<CotizacionDto> CotizarAsync(int vehiculoId, DateOnly fechaInicio, DateOnly fechaFin, CancellationToken ct = default);
+    Task<CotizacionDto> CotizarAsync(int vehiculoId, DateOnly fechaInicio, DateOnly fechaFin, bool yaComenzo = false, CancellationToken ct = default);
     Task<CotizacionDevolucionDto> CotizarDevolucionAsync(int alquilerId, DateOnly? fechaDevolucion, CancellationToken ct = default);
     Task<OperacionAlquilerDto> CrearAsync(CrearAlquilerInput input, CancellationToken ct = default);
     Task<OperacionAlquilerDto> ModificarAsync(ModificarAlquilerInput input, CancellationToken ct = default);
@@ -47,9 +47,12 @@ public sealed class AlquilerService(
     public async Task<AlquilerDto> ObtenerAsync(int id, CancellationToken ct = default) =>
         (await CargarConAcceso(id, ct)).ToDto(clock.Hoy, configFinanciera.Actual);
 
-    public async Task<CotizacionDto> CotizarAsync(int vehiculoId, DateOnly fechaInicio, DateOnly fechaFin, CancellationToken ct = default)
+    public async Task<CotizacionDto> CotizarAsync(int vehiculoId, DateOnly fechaInicio, DateOnly fechaFin, bool yaComenzo = false, CancellationToken ct = default)
     {
-        tarifas.ValidarRango(fechaInicio, fechaFin, clock.Hoy);
+        // Al cotizar la modificación de un alquiler que ya comenzó, la fecha de salida
+        // queda fija en el pasado (sólo se permite cambiar la de entrega): no se valida contra "hoy".
+        if (yaComenzo) tarifas.ValidarRangoSinHoy(fechaInicio, fechaFin);
+        else tarifas.ValidarRango(fechaInicio, fechaFin, clock.Hoy);
         var vehiculo = await CargarVehiculo(vehiculoId, ct);
         var c = tarifas.Cotizar(vehiculo.PrecioDia, fechaInicio, fechaFin);
         return new CotizacionDto(vehiculo.Id, fechaInicio, fechaFin, c.Dias, c.PrecioDia, c.Total, configFinanciera.Actual);
