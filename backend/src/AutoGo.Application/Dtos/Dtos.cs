@@ -106,7 +106,12 @@ public sealed record FacturaDto(int Id, int AlquilerId, TipoFactura Tipo, string
 }
 
 public sealed record CotizacionDto(int VehiculoId, DateOnly FechaInicio, DateOnly FechaFin, int Dias,
-    decimal PrecioDia, decimal Total);
+    decimal PrecioDia, decimal Subtotal, ConfigFinancieraDto ConfigFinanciera)
+{
+    public decimal Impuesto => decimal.Round(Subtotal * ConfigFinanciera.ImpuestoPct / 100, 2);
+    public decimal Retencion => decimal.Round(Subtotal * ConfigFinanciera.RetencionPct / 100, 2);
+    public decimal Total => Subtotal + Impuesto;
+}
 
 public sealed record WalletMovimientoDto(int Id, string Tipo, decimal Monto, string Concepto, DateTime Fecha,
     int? AlquilerId, ConfigFinancieraDto ConfigFinanciera);
@@ -118,8 +123,27 @@ public sealed record RetiroWalletDto(decimal MontoRetirado, decimal MontoCliente
 
 public sealed record IngresoWalletDto(int Id, string ClienteNombre, decimal MontoRetirado, decimal Monto, DateTime Fecha);
 
-public sealed record CotizacionDevolucionDto(int AlquilerId, DateOnly FechaDevolucion, int DiasMora, decimal MontoMora,
-    decimal MontoBase, decimal MontoTotal);
+public sealed record CotizacionDevolucionDto(int AlquilerId, DateOnly FechaDevolucion, decimal PrecioDia,
+    int DiasMora, decimal MontoMora, decimal MontoBase, decimal MontoTotal, ConfigFinancieraDto ConfigFinanciera)
+{
+    public decimal SubtotalAlquiler => MontoBase;
+    public decimal ImpuestoAlquiler => decimal.Round(MontoBase * ConfigFinanciera.ImpuestoPct / 100, 2);
+    public decimal RetencionAlquiler => decimal.Round(MontoBase * ConfigFinanciera.RetencionPct / 100, 2);
+    public decimal TotalAlquiler => MontoBase + ImpuestoAlquiler;
+
+    public decimal SubtotalMora => decimal.Round(DiasMora * PrecioDia, 2);
+    public decimal RecargoMora => decimal.Round(SubtotalMora * ConfigFinanciera.RecargoMoraPct / 100, 2);
+    public decimal ImpuestoMora => decimal.Round((SubtotalMora + RecargoMora) * ConfigFinanciera.ImpuestoPct / 100, 2);
+    public decimal RetencionMora => decimal.Round((SubtotalMora + RecargoMora) * ConfigFinanciera.RetencionPct / 100, 2);
+
+    /// <summary>Reembolso por devolución anticipada: aún no se rastrea por separado del monto neto.</summary>
+    public int DiasNoUsados => 0;
+    public decimal SubtotalReembolso => 0m;
+    public decimal ImpuestoReembolso => 0m;
+    public decimal RetencionReembolso => 0m;
+    /// <summary>Crédito a Wallet GO del cliente. 0 hasta que la devolución anticipada esté implementada.</summary>
+    public decimal CreditoWallet => 0m;
+}
 
 /// <summary>Resultado de operaciones sobre alquileres que pueden emitir una factura.</summary>
 public sealed record OperacionAlquilerDto(AlquilerDto Alquiler, int? FacturaId);

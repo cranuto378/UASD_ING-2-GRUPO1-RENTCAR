@@ -52,7 +52,7 @@ public sealed class AlquilerService(
         tarifas.ValidarRango(fechaInicio, fechaFin, clock.Hoy);
         var vehiculo = await CargarVehiculo(vehiculoId, ct);
         var c = tarifas.Cotizar(vehiculo.PrecioDia, fechaInicio, fechaFin);
-        return new CotizacionDto(vehiculo.Id, fechaInicio, fechaFin, c.Dias, c.PrecioDia, c.Total);
+        return new CotizacionDto(vehiculo.Id, fechaInicio, fechaFin, c.Dias, c.PrecioDia, c.Total, configFinanciera.Actual);
     }
 
     public async Task<CotizacionDevolucionDto> CotizarDevolucionAsync(int alquilerId, DateOnly? fechaDevolucion, CancellationToken ct = default)
@@ -61,8 +61,8 @@ public sealed class AlquilerService(
         alquiler.AsegurarActivo();
         var fecha = fechaDevolucion ?? clock.Hoy;
         var mora = tarifas.CalcularMora(alquiler.PrecioDia, alquiler.FechaFinPactada, fecha);
-        return new CotizacionDevolucionDto(alquiler.Id, fecha, mora.Dias, mora.Monto, alquiler.MontoBase,
-            alquiler.MontoBase + mora.Monto);
+        return new CotizacionDevolucionDto(alquiler.Id, fecha, alquiler.PrecioDia, mora.Dias, mora.Monto,
+            alquiler.MontoBase, alquiler.MontoBase + mora.Monto, configFinanciera.Actual);
     }
 
     public async Task<OperacionAlquilerDto> CrearAsync(CrearAlquilerInput input, CancellationToken ct = default)
