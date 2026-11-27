@@ -30,7 +30,6 @@
   opacity: 0;
   transition: opacity .3s ease;
   background:
-    radial-gradient(65px 65px at var(--mx) var(--my), rgba(170, 210, 255, .75), rgba(170, 210, 255, 0) 72%),
     linear-gradient(135deg, rgba(255, 255, 255, .30), rgba(255, 255, 255, 0) 55%);
   z-index: 2;
 }

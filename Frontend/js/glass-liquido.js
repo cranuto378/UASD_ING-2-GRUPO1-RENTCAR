@@ -15,7 +15,10 @@
     // sin clase propia: se quedaban fuera del efecto por no matchear arriba.
     '.veh-datos-rapidos span', '.veh-seleccion-check',
     '.detalle-alq-meta span', '.devolucion-opciones span',
-    '.segmentos button', '.notif-filtros button'
+    '.segmentos button', '.notif-filtros button',
+    // Tarjeta de vehículo (catálogo público y "Registrar alquiler"; acotada,
+    // no hace scroll propio — a diferencia de .card en general, excluida arriba).
+    '.veh-card'
   ].join(', ');
 
   // Distorsión óptica real (lente de agua), SOLO sobre el único elemento

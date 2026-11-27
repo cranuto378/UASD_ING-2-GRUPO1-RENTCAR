@@ -7,6 +7,24 @@
   const cfg = window.AUTOGO_CONFIG || {};
   if (cfg.LOCAL_DB !== true) return;
 
+  // Si queda guardada una sesión del backend real (token que no empieza con
+  // "LOCAL-"), hay que descartarla ANTES de que arranque el resto de la app:
+  // si no, el usuario queda con un token inválido y ninguna pantalla carga
+  // (ni el menú, así que tampoco puede pulsar "Cerrar sesión" él mismo).
+  (function limpiarSesionIncompatible() {
+    try {
+      const SCLAVE = 'autogo.sesion';
+      [localStorage, sessionStorage].forEach(st => {
+        const raw = st.getItem(SCLAVE);
+        if (!raw) return;
+        try {
+          const s = JSON.parse(raw);
+          if (!s || !s.token || !String(s.token).startsWith('LOCAL-')) st.removeItem(SCLAVE);
+        } catch (e) { st.removeItem(SCLAVE); }
+      });
+    } catch (e) { /* sin almacenamiento disponible */ }
+  })();
+
   const KEY = 'autogo.localdb.v1';
   const VERSION = 1;
   const nativeFetch = window.fetch.bind(window);
@@ -71,14 +89,14 @@
     ];
 
     const vehiculos = [
-      { id:1, placa:'A123456', categoriaId:2, categoria:'Sedán', marca:'Toyota', modelo:'Corolla', anio:2024, precioDia:2800, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:carSvg('Toyota Corolla','#3e75b8','#293d68'), activo:true, color:'Gris', transmision:'Automática', capacidad:5, observaciones:'Sedán cómodo y eficiente.' },
-      { id:2, placa:'G456789', categoriaId:3, categoria:'SUV', marca:'Honda', modelo:'CR-V', anio:2025, precioDia:4200, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:carSvg('Honda CR-V','#596fb3','#2a345e'), activo:true, color:'Blanco', transmision:'Automática', capacidad:5, observaciones:'SUV familiar con amplio espacio.' },
-      { id:3, placa:'L884201', categoriaId:4, categoria:'Jeepeta', marca:'Hyundai', modelo:'Santa Fe', anio:2024, precioDia:4700, estadoOperativo:'ALQUILADO', estadoActual:'ALQUILADO', mantenimientoHasta:null, fotoUrl:carSvg('Hyundai Santa Fe','#527b94','#243f5d'), activo:true, color:'Azul', transmision:'Automática', capacidad:7, observaciones:'' },
-      { id:4, placa:'A781930', categoriaId:1, categoria:'Económico', marca:'Kia', modelo:'Picanto', anio:2023, precioDia:2200, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:carSvg('Kia Picanto','#6785b9','#364a72'), activo:true, color:'Rojo', transmision:'Automática', capacidad:5, observaciones:'Ideal para ciudad.' },
-      { id:5, placa:'G220481', categoriaId:5, categoria:'Premium', marca:'BMW', modelo:'X3', anio:2025, precioDia:7200, estadoOperativo:'MANTENIMIENTO', estadoActual:'MANTENIMIENTO', mantenimientoHasta:addDays(2), fotoUrl:carSvg('BMW X3','#465f8f','#252f52'), activo:true, color:'Negro', transmision:'Automática', capacidad:5, observaciones:'Mantenimiento preventivo.' },
-      { id:6, placa:'A667341', categoriaId:2, categoria:'Sedán', marca:'Nissan', modelo:'Sentra', anio:2024, precioDia:3000, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:carSvg('Nissan Sentra','#527f9c','#2b405d'), activo:true, color:'Plata', transmision:'Automática', capacidad:5, observaciones:'' },
-      { id:7, placa:'G912773', categoriaId:3, categoria:'SUV', marca:'Mazda', modelo:'CX-5', anio:2024, precioDia:4500, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:carSvg('Mazda CX-5','#665f9d','#303158'), activo:true, color:'Vino', transmision:'Automática', capacidad:5, observaciones:'' },
-      { id:8, placa:'A308194', categoriaId:1, categoria:'Económico', marca:'Chevrolet', modelo:'Spark', anio:2022, precioDia:2000, estadoOperativo:'FUERA_DE_SERVICIO', estadoActual:'FUERA_DE_SERVICIO', mantenimientoHasta:null, fotoUrl:carSvg('Chevrolet Spark','#677b91','#354351'), activo:true, color:'Blanco', transmision:'Automática', capacidad:5, observaciones:'Pendiente de reparación.' }
+      { id:1, placa:'A123456', categoriaId:2, categoria:'Sedán', marca:'Toyota', modelo:'Corolla', anio:2024, precioDia:2800, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:'https://commons.wikimedia.org/wiki/Special:FilePath/2024_Toyota_Corolla_LE.jpg?width=900', activo:true, color:'Gris', transmision:'Automática', capacidad:5, observaciones:'Sedán cómodo y eficiente.' },
+      { id:2, placa:'G456789', categoriaId:3, categoria:'SUV', marca:'Honda', modelo:'CR-V', anio:2025, precioDia:4200, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:'https://commons.wikimedia.org/wiki/Special:FilePath/2023_Honda_CR-V_EX-L_AWD,_front_right,_11-13-2022.jpg?width=900', activo:true, color:'Blanco', transmision:'Automática', capacidad:5, observaciones:'SUV familiar con amplio espacio.' },
+      { id:3, placa:'L884201', categoriaId:4, categoria:'Jeepeta', marca:'Hyundai', modelo:'Santa Fe', anio:2024, precioDia:4700, estadoOperativo:'ALQUILADO', estadoActual:'ALQUILADO', mantenimientoHasta:null, fotoUrl:'https://commons.wikimedia.org/wiki/Special:FilePath/2024_Hyundai_Santa_Fe.jpg?width=900', activo:true, color:'Azul', transmision:'Automática', capacidad:7, observaciones:'' },
+      { id:4, placa:'A781930', categoriaId:1, categoria:'Económico', marca:'Kia', modelo:'Picanto', anio:2023, precioDia:2200, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:'https://commons.wikimedia.org/wiki/Special:FilePath/2024_Kia_Picanto_2.jpg?width=900', activo:true, color:'Rojo', transmision:'Automática', capacidad:5, observaciones:'Ideal para ciudad.' },
+      { id:5, placa:'G220481', categoriaId:5, categoria:'Premium', marca:'BMW', modelo:'X3', anio:2025, precioDia:7200, estadoOperativo:'MANTENIMIENTO', estadoActual:'MANTENIMIENTO', mantenimientoHasta:addDays(2), fotoUrl:'https://commons.wikimedia.org/wiki/Special:FilePath/2024_BMW_X3_M50.jpg?width=900', activo:true, color:'Negro', transmision:'Automática', capacidad:5, observaciones:'Mantenimiento preventivo.' },
+      { id:6, placa:'A667341', categoriaId:2, categoria:'Sedán', marca:'Nissan', modelo:'Sentra', anio:2024, precioDia:3000, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:'https://commons.wikimedia.org/wiki/Special:FilePath/2024_Nissan_Sentra_(B18)_IMG_4029.jpg?width=900', activo:true, color:'Plata', transmision:'Automática', capacidad:5, observaciones:'' },
+      { id:7, placa:'G912773', categoriaId:3, categoria:'SUV', marca:'Mazda', modelo:'CX-5', anio:2024, precioDia:4500, estadoOperativo:'DISPONIBLE', estadoActual:'DISPONIBLE', mantenimientoHasta:null, fotoUrl:null, activo:true, color:'Vino', transmision:'Automática', capacidad:5, observaciones:'' },
+      { id:8, placa:'A308194', categoriaId:1, categoria:'Económico', marca:'Chevrolet', modelo:'Spark', anio:2022, precioDia:2000, estadoOperativo:'FUERA_DE_SERVICIO', estadoActual:'FUERA_DE_SERVICIO', mantenimientoHasta:null, fotoUrl:'https://commons.wikimedia.org/wiki/Special:FilePath/2021_Chevrolet_Spark_1LT_in_Red_Hot,_Rear_Left,_12-25-2021.jpg?width=900', activo:true, color:'Blanco', transmision:'Automática', capacidad:5, observaciones:'Pendiente de reparación.' }
     ];
 
     const clientes = [

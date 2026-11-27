@@ -747,7 +747,7 @@ const tarjetaVeh = (v, { accion = 'rentar', texto = 'Rentar', sel = false, regis
       </div>` : ''}
       <div class="veh-pie">
         <div class="precio"><small>${registro ? 'Tarifa diaria' : ''}</small><b>${fmt.dinero(v.precioDia)}</b> <span>/ día</span></div>
-        <button class="btn sm${sel ? ' veh-btn-elegido' : ''}" type="button" data-${accion}="${v.id}">${texto}</button>
+        <span class="veh-elegir-toggle"><span>${texto}</span><label class="veh-liq-toggle-wrap"><input type="checkbox" class="veh-liq-toggle-input" data-${accion}="${v.id}" aria-label="${registro ? 'Elegir' : 'Rentar'} ${esc(v.marca)} ${esc(v.modelo)}"${sel ? ' checked' : ''}><span class="veh-liq-track"><span class="veh-liq-fill"></span></span><span class="veh-liq-thumb"><span class="veh-liq-thumb-rim"></span><span class="veh-liq-thumb-caustic"></span><span class="veh-liq-thumb-core"></span><span class="veh-liq-spec-top"></span><span class="veh-liq-spec-bottom"></span></span><span class="veh-liq-glow"></span></label></span>
       </div>
     </div>
   </article>`;
@@ -1275,10 +1275,15 @@ async function vCatalogo(c, ctx) {
 function confirmarAlquiler(v, ini, fin, refrescar) {
   const m = UI.modal({
     titulo: 'Confirmar alquiler',
+    alCerrar: () => {
+      $$('.veh-liq-toggle-input[data-rentar="' + v.id + '"]').forEach(b => { b.checked = false; });
+    },
     cuerpo: `
       <div class="resumen-veh">
-        <div class="foto-mini">${fotoVeh(v)}</div>
-        <div><b>${esc(v.marca)} ${esc(v.modelo)} ${esc(v.anio)}</b><span>${esc(v.categoria)} · Placa ${esc(v.placa)}</span></div>
+        <div class="resumen-veh-foto">
+          ${fotoVeh(v)}
+          <div class="resumen-veh-info"><b>${esc(v.marca)} ${esc(v.modelo)} ${esc(v.anio)}</b><span>${esc(v.categoria)} · Placa ${esc(v.placa)}</span></div>
+        </div>
       </div>
 
       <dl class="dl">
@@ -1529,14 +1534,14 @@ async function detalleAlquiler(a, { alCambiar } = {}) {
     ancho: 600,
     cuerpo: `
       <div class="detalle-alq-head">
-        <div class="detalle-alq-foto" data-detalle-foto>${UI.sinFoto(true)}</div>
+        <div class="detalle-alq-foto-img" data-detalle-foto>${UI.sinFoto(true)}</div>
+        <div class="detalle-alq-estado">${estadoAlquiler(a)}</div>
         <div class="detalle-alq-identidad">
           <span class="detalle-alq-eyebrow">VEHÍCULO DEL ALQUILER</span>
           <b>${esc(a.vehiculo)}</b>
           <span>Placa ${esc(a.placa)} · ${etq(a.canal)}</span>
           <div class="detalle-alq-meta" data-detalle-veh-meta><span>${fmt.dinero(a.precioDia)} / día</span></div>
         </div>
-        <div class="detalle-alq-estado">${estadoAlquiler(a)}</div>
       </div>
 
       <dl class="dl">
@@ -2663,7 +2668,8 @@ function devolverAlquiler(a, alCambiar) {
     ancho: 720,
     cuerpo: `
       <div class="devolucion-cab">
-        <div class="devolucion-foto" data-dev-foto>${UI.sinFoto(true)}</div>
+        <div class="devolucion-foto-img" data-dev-foto>${UI.sinFoto(true)}</div>
+        <div class="devolucion-estado">${estadoAlquiler(a)}</div>
         <div class="devolucion-identidad">
           <span class="devolucion-eyebrow">VEHÍCULO A RECIBIR</span>
           <h3>${esc(a.vehiculo)}</h3>
@@ -2673,7 +2679,6 @@ function devolverAlquiler(a, alCambiar) {
             <span><small>Entrega pactada</small><b>${fmt.fecha(a.fechaFinPactada)}</b></span>
           </div>
         </div>
-        <div class="devolucion-estado">${estadoAlquiler(a)}</div>
       </div>
 
       <form class="form devolucion-form" id="fd" novalidate>
@@ -3130,11 +3135,23 @@ async function vNuevoAlquiler(c, ctx) {
       : UI.vacio('No hay vehículos disponibles para esas fechas.', 'car');
   }
 
+  let pintarVehiculosTimer = null;
+
   async function elegirVehiculo(v) {
-    st.vehiculo = v;
+    // Si ya estaba elegido, un segundo clic lo deselecciona (deshace la
+    // selección) en vez de volver a elegirlo.
+    const yaElegido = st.vehiculo === v;
+    st.vehiculo = yaElegido ? null : v;
     st.cot = null;
-    pintarVehiculos();
+    // La grilla se reconstruye por completo (innerHTML) al elegir; si se hace
+    // en el mismo clic, el toggle recién tocado nunca llega a animar (el nodo
+    // se destruye antes de que el navegador pinte la coreografía líquida).
+    // Se retrasa lo justo para que se vea (ver styles.css, .veh-liq-animar).
+    clearTimeout(pintarVehiculosTimer);
+    pintarVehiculosTimer = setTimeout(() => { if (ctx.vigente()) pintarVehiculos(); }, 560);
     pintarResumen();
+
+    if (yaElegido) return;
 
     try {
       const cot = await Api.cotizarAlquiler(v.id, st.ini, st.fin);
@@ -3148,12 +3165,33 @@ async function vNuevoAlquiler(c, ctx) {
   }
 
   $('#vehs', c).addEventListener('click', e => {
+    // El toggle líquido vive dentro de un <label>: un clic ahí dispara DOS
+    // eventos "click" (uno sobre el elemento visual tocado y otro que el
+    // navegador reenvía de forma nativa al checkbox real). Ese caso se
+    // maneja aparte con "change" (ver más abajo) para no procesarlo dos
+    // veces — si se procesara aquí también, seleccionar y deseleccionar se
+    // cancelarían entre sí en el mismo clic.
+    if (e.target.closest('.veh-liq-toggle-wrap')) return;
     const b = e.target.closest('[data-elegir]');
     const card = e.target.closest('[data-card-veh]');
     const id = b ? +b.dataset.elegir : card ? +card.dataset.cardVeh : null;
     if (!id) return;
     const v = st.vehiculos.find(x => x.id === id);
-    if (v) elegirVehiculo(v);
+    if (!v) return;
+    elegirVehiculo(v);
+  });
+
+  $('#vehs', c).addEventListener('change', e => {
+    const b = e.target.closest('.veh-liq-toggle-input');
+    if (!b) return;
+    const id = +b.dataset.elegir;
+    const v = st.vehiculos.find(x => x.id === id);
+    if (!v) return;
+    // Dispara la coreografía completa (brote → vuelo → submerge) sólo en la
+    // tarjeta recién tocada; las demás, al repintarse, sólo muestran su
+    // estado final sin reproducir la animación (ver styles.css).
+    b.classList.add('veh-liq-animar');
+    elegirVehiculo(v);
   });
 
 
@@ -3184,13 +3222,15 @@ async function vNuevoAlquiler(c, ctx) {
           </div>
 
           <section class="revision-vehiculo revision-bloque-principal">
-            <div class="revision-vehiculo-foto">${fotoVeh(v)}</div>
-            <div class="revision-vehiculo-datos">
-              <span class="revision-label">Vehículo</span>
-              <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
-              <p>${esc(v.anio)} · ${esc(v.categoria)} · Placa ${esc(v.placa)}</p>
-              ${datosVehiculo ? `<p class="revision-meta-extra">${esc(datosVehiculo)}</p>` : ''}
-              <div class="revision-tarifa"><b>${fmt.dinero(cot.precioDia)}</b><small>/ día</small></div>
+            <div class="revision-vehiculo-foto">
+              ${fotoVeh(v)}
+              <div class="revision-vehiculo-datos">
+                <span class="revision-label">Vehículo</span>
+                <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
+                <p>${esc(v.anio)} · ${esc(v.categoria)} · Placa ${esc(v.placa)}</p>
+                ${datosVehiculo ? `<p class="revision-meta-extra">${esc(datosVehiculo)}</p>` : ''}
+                <div class="revision-tarifa"><b>${fmt.dinero(cot.precioDia)}</b><small>/ día</small></div>
+              </div>
             </div>
           </section>
 
@@ -3292,27 +3332,33 @@ async function vNuevoAlquiler(c, ctx) {
 
       ${veh ? `
         <div class="resumen-vehiculo-registro">
-          <div class="resumen-vehiculo-foto">${fotoVeh(veh)}</div>
-          <div>
-            <b>${esc(veh.marca)} ${esc(veh.modelo)}</b>
-            <span>${esc(veh.anio)} · ${esc(veh.categoria)}</span>
-            <small>Placa ${esc(veh.placa)}${veh.transmision ? ' · ' + esc(veh.transmision) : ''}${veh.color ? ' · ' + esc(veh.color) : ''}</small>
+          <div class="resumen-vehiculo-foto">
+            ${fotoVeh(veh)}
+            <div class="resumen-vehiculo-info">
+              <b>${esc(veh.marca)} ${esc(veh.modelo)}</b>
+              <span>${esc(veh.anio)} · ${esc(veh.categoria)}</span>
+              <small>Placa ${esc(veh.placa)}${veh.transmision ? ' · ' + esc(veh.transmision) : ''}${veh.color ? ' · ' + esc(veh.color) : ''}</small>
+            </div>
           </div>
         </div>` : `
         <div class="resumen-vacio-registro">${icon('car')}<div><b>Selecciona un vehículo</b><span>La información y cotización aparecerán aquí.</span></div></div>`}
 
       <div class="resumen-seccion">
         <span class="resumen-seccion-titulo">Cliente</span>
-        <div class="resumen-fila"><span>Nombre</span><b>${cl ? esc(cl.nombre) : '—'}</b></div>
-        <div class="resumen-fila"><span>Cédula</span><b>${cl ? esc(cl.cedula) : '—'}</b></div>
+        <div class="resumen-fila-compacta">
+          <div class="resumen-dato"><span>Nombre</span><b>${cl ? esc(cl.nombre) : '—'}</b></div>
+          <div class="resumen-dato"><span>Cédula</span><b>${cl ? esc(cl.cedula) : '—'}</b></div>
+        </div>
         ${cl ? `<div class="resumen-fila"><span>Licencia</span><b class="${cl.licenciaConducir ? '' : 'texto-aviso'}">${cl.licenciaConducir ? esc(cl.licenciaConducir) : 'No registrada'}</b></div>` : ''}
       </div>
 
       <div class="resumen-seccion">
         <span class="resumen-seccion-titulo">Período</span>
-        <div class="resumen-fila"><span>Salida</span><b>${fmt.fecha(st.ini)}</b></div>
-        <div class="resumen-fila"><span>Entrega</span><b>${fmt.fecha(st.fin)}</b></div>
-        <div class="resumen-fila"><span>Días</span><b>${st.cot ? st.cot.dias : '—'}</b></div>
+        <div class="resumen-fila-compacta">
+          <div class="resumen-dato"><span>Salida</span><b>${fmt.fecha(st.ini)}</b></div>
+          <div class="resumen-dato"><span>Entrega</span><b>${fmt.fecha(st.fin)}</b></div>
+          <div class="resumen-dato resumen-dato-corta"><span>Días</span><b>${st.cot ? st.cot.dias : '—'}</b></div>
+        </div>
       </div>
 
       <div class="resumen-seccion costo-alquiler">
@@ -3430,13 +3476,15 @@ function detalleVehiculo(v, alActualizar) {
     titulo: 'Detalle del vehículo',
     ancho: 720,
     cuerpo: `
-      <div class="detalle-veh">
-        <div class="detalle-veh-foto">${fotoVeh(v)}</div>
-        <div class="detalle-veh-info">
-          <span class="detalle-veh-eyebrow">VEHÍCULO #${v.id}</span>
-          <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
-          <p>${esc(v.placa)} · ${esc(v.categoria || 'Sin categoría')}</p>
-          <div class="badges">${v.activo ? badge(v.estadoActual) : badge(null, 'Inactivo', 'neutro')}</div>
+      <div class="detalle-veh-hero">
+        <div class="detalle-veh-foto">
+          ${fotoVeh(v)}
+          <div class="detalle-veh-info">
+            <span class="detalle-veh-eyebrow">VEHÍCULO #${v.id}</span>
+            <h3>${esc(v.marca)} ${esc(v.modelo)}</h3>
+            <p>${esc(v.placa)} · ${esc(v.categoria || 'Sin categoría')}</p>
+            <div class="badges">${v.activo ? badge(v.estadoActual) : badge(null, 'Inactivo', 'neutro')}</div>
+          </div>
         </div>
       </div>
       <div class="detalle-veh-grid">
@@ -3573,7 +3621,8 @@ async function vFlota(c, ctx) {
     filtros.categoriaId = e.target.value;
     l.recargar(true);
   };
-  $('[data-nuevo-veh]').onclick = () => editarVehiculo(null, categorias, () => { l.recargar(); actualizarResumenFlota(); });
+  const bNuevoVeh = $('[data-nuevo-veh]');
+  if (bNuevoVeh) bNuevoVeh.onclick = () => editarVehiculo(null, categorias, () => { l.recargar(); actualizarResumenFlota(); });
   $('#lista', c).addEventListener('click', async e => {
     const b = e.target.closest('[data-acc]');
     if (!b) return;
@@ -4211,7 +4260,7 @@ async function vConfiguracion(c, ctx) {
           <form class="form config-form" id="configWalletForm" novalidate>
             <div class="config-fin-grid">
               ${UI.campo({name:'retiroWalletClientePct',label:'Cliente recibe al retirar (%)',tipo:'number',value:fin.retiroWalletClientePct,attrs:`min="0" max="100" step="0.01"${disabled}`})}
-              <label class="campo config-switch"><span>Permitir retiros de Wallet GO</span><span class="switch-line"><input type="checkbox" name="permitirRetirosWallet" ${sis.permitirRetirosWallet?'checked':''}${disabled}><b>${sis.permitirRetirosWallet?'Activado':'Desactivado'}</b></span><small>Si se desactiva, el saldo solo podrá utilizarse en futuros alquileres.</small></label>
+              <label class="campo config-switch"><span>Permitir retiros de Wallet GO</span><span class="switch-line"><input type="checkbox" class="switch-toggle" name="permitirRetirosWallet" ${sis.permitirRetirosWallet?'checked':''}${disabled}><b>${sis.permitirRetirosWallet?'Activado':'Desactivado'}</b></span><small>Si se desactiva, el saldo solo podrá utilizarse en futuros alquileres.</small></label>
             </div>
             <div class="config-fin-resumen" id="configWalletResumen"></div>
             ${puedeEditarConfig ? `<div class="config-fin-acciones"><button class="btn" type="submit">${icon('check')} Guardar Wallet GO</button></div>`:''}
