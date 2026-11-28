@@ -4995,7 +4995,10 @@ function vAdministradores(c, ctx) {
               ${UI.campo({ name: 'nombre', label: 'Nombre completo', requerido: true, placeholder: 'Ej. Juan Pérez Gómez', attrs: 'autocomplete="off"' })}
               ${UI.campo({ name: 'correo', label: 'Correo electrónico', tipo: 'email', requerido: true, placeholder: 'ejemplo@correo.com', attrs: 'autocomplete="off"' })}
               ${UI.campo({ name: 'perfil', label: 'Rol', tipo: 'select', requerido: true, value: 'Operador', ayuda: 'El rol determina qué módulos y acciones puede usar.', opciones: PERFILES_ADM.map(x => ({ valor: x, texto: x })) })}
-              <div class="rol-ayuda"><small><b>Superadministrador:</b> acceso total · <b>Administrador:</b> gestión general sin administradores ni cambios críticos · <b>Operador:</b> operación diaria · <b>Consulta:</b> solo lectura.</small></div>
+              <ul class="rol-ayuda">
+                <li><b>Superadministrador</b></li>
+                <li><b>Operador</b></li>
+              </ul>
             </div>
 
             <div class="adm-col">
