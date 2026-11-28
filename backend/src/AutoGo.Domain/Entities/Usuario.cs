@@ -18,19 +18,26 @@ public sealed class Usuario
     /// <summary>Instante UTC del último inicio de sesión exitoso. Null = nunca ha iniciado sesión.</summary>
     public DateTime? UltimoAccesoUtc { get; private set; }
     public DateTime FechaCreacion { get; private set; }
+    public int IntentosFallidos { get; private set; }
+    public DateTime? BloqueadoHastaUtc { get; private set; }
+    public DateTime? FechaUltimoCambioPassword { get; private set; }
 
     private Usuario() { }
 
     public static Usuario Rehidratar(int id, string nombre, string correo, string? passwordHash, Rol rol,
         bool debeCambiarPassword, bool activo, int? clienteId, DateTime? ultimoAccesoUtc = null,
-        DateTime fechaCreacion = default) => new()
+        DateTime fechaCreacion = default, int intentosFallidos = 0, DateTime? bloqueadoHastaUtc = null,
+        DateTime? fechaUltimoCambioPassword = null) => new()
     {
         Id = id, Nombre = nombre, Correo = correo, PasswordHash = passwordHash, Rol = rol,
         DebeCambiarPassword = debeCambiarPassword, Activo = activo, ClienteId = clienteId,
-        UltimoAccesoUtc = ultimoAccesoUtc, FechaCreacion = fechaCreacion
+        UltimoAccesoUtc = ultimoAccesoUtc, FechaCreacion = fechaCreacion,
+        IntentosFallidos = intentosFallidos, BloqueadoHastaUtc = bloqueadoHastaUtc,
+        FechaUltimoCambioPassword = fechaUltimoCambioPassword
     };
 
     public bool PuedeIniciarSesion => Activo && !string.IsNullOrEmpty(PasswordHash);
+    public bool EstaBloqueado(DateTime ahoraUtc) => BloqueadoHastaUtc is DateTime bloqueado && bloqueado > ahoraUtc;
 
     public static string NormalizarCorreo(string? correo)
     {

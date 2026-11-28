@@ -36,11 +36,35 @@ public sealed class AuthService(
 {
     public async Task<AuthResultadoDto> LoginAsync(string correo, string password, CancellationToken ct = default)
     {
-        var usuario = await usuarios.ObtenerPorCorreoAsync((correo ?? string.Empty).Trim().ToLowerInvariant(), ct);
-        if (usuario is null || !usuario.PuedeIniciarSesion || !hasher.Verificar(password ?? string.Empty, usuario.PasswordHash!))
+        var correoNormalizado = (correo ?? string.Empty).Trim().ToLowerInvariant();
+        var usuario = await usuarios.ObtenerPorCorreoAsync(correoNormalizado, ct);
+        var ahoraUtc = clock.AhoraUtc;
+
+        if (usuario is not null && await usuarios.EstaBloqueadoAsync(usuario.Id, ahoraUtc, ct))
+            throw new AuthenticationException("Su cuenta está temporalmente bloqueada. Intente nuevamente más tarde.");
+
+        var credencialesValidas = usuario is not null && usuario.PuedeIniciarSesion &&
+            hasher.Verificar(password ?? string.Empty, usuario.PasswordHash!);
+
+        if (!credencialesValidas)
+        {
+            if (usuario is not null)
+            {
+                var intentos = usuario.IntentosFallidos + 1;
+                DateTime? bloqueadoHasta = intentos >= 5 ? ahoraUtc.AddMinutes(15) : null;
+                await usuarios.ActualizarBloqueoAsync(usuario.Id, intentos, bloqueadoHasta, ct);
+            }
+
+            await usuarios.RegistrarIntentoLoginAsync(usuario?.Id, correoNormalizado, false, null, null, ct);
+            throw new AuthenticationException();
+        }
+
+        if (usuario is null)
             throw new AuthenticationException();
 
-        await usuarios.RegistrarAccesoAsync(usuario.Id, clock.AhoraUtc, ct);
+        await usuarios.ActualizarBloqueoAsync(usuario.Id, 0, null, ct);
+        await usuarios.RegistrarIntentoLoginAsync(usuario.Id, correoNormalizado, true, null, null, ct);
+        await usuarios.RegistrarAccesoAsync(usuario.Id, ahoraUtc, ct);
         return Emitir(usuario);
     }
 

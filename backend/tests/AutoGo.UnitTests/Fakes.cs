@@ -73,39 +73,98 @@ internal sealed class FakeUsuarios : IUsuarioRepository
 
     public Task<Usuario?> ObtenerPorCorreoAsync(string correo, CancellationToken ct = default) =>
         Task.FromResult(Datos.FirstOrDefault(u => u.Correo == correo));
+
     public Task<Usuario?> ObtenerPorIdAsync(int id, CancellationToken ct = default) =>
         Task.FromResult(Datos.FirstOrDefault(u => u.Id == id));
-    public Task CrearTokenRecuperacionAsync(int usuarioId, string tokenHash, DateTime expiraEnUtc, CancellationToken ct = default)
-    {
-        Tokens.Add((usuarioId, tokenHash));
-        return Task.CompletedTask;
-    }
+
     public Task<int> CrearAdministradorAsync(string nombre, string correo, string passwordHash, Rol rol, CancellationToken ct = default)
     {
         var id = Datos.Count + 1;
         Datos.Add(Usuario.Rehidratar(id, nombre, correo, passwordHash, rol, true, true, null));
         return Task.FromResult(id);
     }
+
     public int? UltimoClienteVinculado { get; private set; }
-    public Task<(int UsuarioId, int ClienteId)> RegistrarClienteAsync(int? clienteExistenteId, Cliente cliente, string correo, string passwordHash, CancellationToken ct = default)
+
+    public Task<(int UsuarioId, int ClienteId)> RegistrarClienteAsync(int? clienteExistenteId, Cliente cliente, string correo,
+        string passwordHash, CancellationToken ct = default)
     {
         UltimoClienteVinculado = clienteExistenteId;
         var clienteId = clienteExistenteId ?? 1;
-        Datos.Add(Usuario.Rehidratar(99, cliente.Nombre, correo, passwordHash, Rol.Cliente, false, true, clienteId));
-        return Task.FromResult((99, clienteId));
+        var usuarioId = 99;
+        Datos.Add(Usuario.Rehidratar(usuarioId, cliente.Nombre, correo, passwordHash, Rol.Cliente, false, true, clienteId));
+        return Task.FromResult((usuarioId, clienteId));
     }
-    public Task ActualizarPasswordAsync(int usuarioId, string passwordHash, bool debeCambiar, CancellationToken ct = default) => Task.CompletedTask;
-    public Task<TokenRecuperacion?> ObtenerTokenVigenteAsync(string tokenHash, DateTime ahoraUtc, CancellationToken ct = default) => throw new NotImplementedException();
-    public Task ConsumirTokenAsync(int tokenId, string passwordHash, DateTime ahoraUtc, CancellationToken ct = default) => throw new NotImplementedException();
+
+    public Task ActualizarPasswordAsync(int usuarioId, string passwordHash, bool debeCambiar, CancellationToken ct = default)
+    {
+        var i = Datos.FindIndex(u => u.Id == usuarioId);
+        if (i >= 0)
+        {
+            var usuario = Datos[i];
+            Datos[i] = Usuario.Rehidratar(usuario.Id, usuario.Nombre, usuario.Correo, passwordHash, usuario.Rol,
+                debeCambiar, usuario.Activo, usuario.ClienteId, usuario.UltimoAccesoUtc, usuario.FechaCreacion,
+                usuario.IntentosFallidos, usuario.BloqueadoHastaUtc, usuario.FechaUltimoCambioPassword);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task CrearTokenRecuperacionAsync(int usuarioId, string tokenHash, DateTime expiraEnUtc, CancellationToken ct = default)
+    {
+        Tokens.Add((usuarioId, tokenHash));
+        return Task.CompletedTask;
+    }
+
+    public Task<TokenRecuperacion?> ObtenerTokenVigenteAsync(string tokenHash, DateTime ahoraUtc, CancellationToken ct = default)
+    {
+        var token = Tokens.FirstOrDefault(x => x.Hash == tokenHash);
+        if (token == default) return Task.FromResult<TokenRecuperacion?>(null);
+        return Task.FromResult<TokenRecuperacion?>(new TokenRecuperacion(token.UsuarioId, token.UsuarioId, ahoraUtc.AddMinutes(30)));
+    }
+
+    public Task ConsumirTokenAsync(int tokenId, string passwordHash, DateTime ahoraUtc, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
 
     public Task RegistrarAccesoAsync(int usuarioId, DateTime ahoraUtc, CancellationToken ct = default)
     {
         var i = Datos.FindIndex(u => u.Id == usuarioId);
         if (i >= 0)
-            Datos[i] = Usuario.Rehidratar(Datos[i].Id, Datos[i].Nombre, Datos[i].Correo, Datos[i].PasswordHash,
-                Datos[i].Rol, Datos[i].DebeCambiarPassword, Datos[i].Activo, Datos[i].ClienteId, ahoraUtc);
+        {
+            var usuario = Datos[i];
+            Datos[i] = Usuario.Rehidratar(usuario.Id, usuario.Nombre, usuario.Correo, usuario.PasswordHash, usuario.Rol,
+                usuario.DebeCambiarPassword, usuario.Activo, usuario.ClienteId, ahoraUtc, usuario.FechaCreacion,
+                usuario.IntentosFallidos, usuario.BloqueadoHastaUtc, usuario.FechaUltimoCambioPassword);
+        }
         return Task.CompletedTask;
     }
+
+    public Task<bool> EstaBloqueadoAsync(int usuarioId, DateTime ahoraUtc, CancellationToken ct = default)
+    {
+        var usuario = Datos.FirstOrDefault(u => u.Id == usuarioId);
+        return Task.FromResult(usuario is not null && usuario.EstaBloqueado(ahoraUtc));
+    }
+
+    public Task ActualizarBloqueoAsync(int usuarioId, int intentosFallidos, DateTime? bloqueadoHastaUtc, CancellationToken ct = default)
+    {
+        var i = Datos.FindIndex(u => u.Id == usuarioId);
+        if (i >= 0)
+        {
+            var usuario = Datos[i];
+            Datos[i] = Usuario.Rehidratar(usuario.Id, usuario.Nombre, usuario.Correo, usuario.PasswordHash, usuario.Rol,
+                usuario.DebeCambiarPassword, usuario.Activo, usuario.ClienteId, usuario.UltimoAccesoUtc, usuario.FechaCreacion,
+                intentosFallidos, bloqueadoHastaUtc, usuario.FechaUltimoCambioPassword);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task RegistrarIntentoLoginAsync(int? usuarioId, string? correo, bool exito, string? ipAddress = null,
+        string? userAgent = null, CancellationToken ct = default) => Task.CompletedTask;
+
+    public Task RegistrarAuditoriaAsync(int? usuarioId, string? usuarioNombre, string entidad, int? entidadId,
+        string accion, string? detalle = null, string? antesJson = null, string? despuesJson = null,
+        string? ipAddress = null, CancellationToken ct = default) => Task.CompletedTask;
 
     public Task<IReadOnlyList<Usuario>> ListarAdministradoresAsync(CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Usuario>>(Datos.Where(u => u.Rol is Rol.Administrador or Rol.Operador).ToList());
@@ -114,8 +173,12 @@ internal sealed class FakeUsuarios : IUsuarioRepository
     {
         var i = Datos.FindIndex(u => u.Id == id);
         if (i >= 0)
-            Datos[i] = Usuario.Rehidratar(Datos[i].Id, nombre, Datos[i].Correo, Datos[i].PasswordHash,
-                rol, Datos[i].DebeCambiarPassword, activo, Datos[i].ClienteId, Datos[i].UltimoAccesoUtc, Datos[i].FechaCreacion);
+        {
+            var usuario = Datos[i];
+            Datos[i] = Usuario.Rehidratar(usuario.Id, nombre, usuario.Correo, usuario.PasswordHash, rol,
+                usuario.DebeCambiarPassword, activo, usuario.ClienteId, usuario.UltimoAccesoUtc, usuario.FechaCreacion,
+                usuario.IntentosFallidos, usuario.BloqueadoHastaUtc, usuario.FechaUltimoCambioPassword);
+        }
         return Task.CompletedTask;
     }
 
@@ -123,8 +186,12 @@ internal sealed class FakeUsuarios : IUsuarioRepository
     {
         var i = Datos.FindIndex(u => u.Id == id);
         if (i >= 0)
-            Datos[i] = Usuario.Rehidratar(Datos[i].Id, Datos[i].Nombre, Datos[i].Correo, Datos[i].PasswordHash,
-                Datos[i].Rol, Datos[i].DebeCambiarPassword, false, Datos[i].ClienteId, Datos[i].UltimoAccesoUtc, Datos[i].FechaCreacion);
+        {
+            var usuario = Datos[i];
+            Datos[i] = Usuario.Rehidratar(usuario.Id, usuario.Nombre, usuario.Correo, usuario.PasswordHash, usuario.Rol,
+                usuario.DebeCambiarPassword, false, usuario.ClienteId, usuario.UltimoAccesoUtc, usuario.FechaCreacion,
+                usuario.IntentosFallidos, usuario.BloqueadoHastaUtc, usuario.FechaUltimoCambioPassword);
+        }
         return Task.CompletedTask;
     }
 }
