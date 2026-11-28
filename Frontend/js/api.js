@@ -137,7 +137,7 @@ const Api = (() => {
 
   const USUARIO = 'id nombre correo rol perfil debeCambiarPassword clienteId';
   const AUTH = `token expiraEnUtc usuario { ${USUARIO} }`;
-  const CATEGORIA = 'id nombre activo';
+  const CATEGORIA = 'id nombre';
   // Campos ampliados de vehículos requeridos por la interfaz final.
   const VEHICULO_EXTRA = cfg.VEHICULO_EXTRA === true;
 
